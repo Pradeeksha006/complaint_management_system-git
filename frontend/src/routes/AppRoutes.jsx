@@ -14,6 +14,7 @@ import Settings from '../pages/Settings';
 import UserManagement from '../pages/UserManagement';
 import DepartmentManagement from '../pages/DepartmentManagement';
 import AuditLogs from '../pages/AuditLogs';
+import AllComplaints from '../pages/AllComplaints';
 import { Error404, Error403 } from '../pages/ErrorPages';
 import MainLayout from '../layouts/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -86,7 +87,7 @@ const AppRoutes = () => {
         } />
         <Route path="all-complaints" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
-            <Dashboard /> {/* or list all in dept */}
+            <AllComplaints />
           </ProtectedRoute>
         } />
 

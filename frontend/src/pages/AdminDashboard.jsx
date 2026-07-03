@@ -3,128 +3,69 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  LineChart, Line
 } from 'recharts';
 import { 
   Inbox, Clock, CheckCircle, Star, TrendingUp, Users, Building2, ShieldCheck,
-  Loader2, RefreshCw, FileText, ArrowRight, UserCheck, Tag
+  Loader2, RefreshCw, FileText
 } from 'lucide-react';
 
-const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#6366f1', '#ec4899', '#8b5cf6'];
-
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' or 'complaints'
   const [stats, setStats] = useState(null);
-  const [complaints, setComplaints] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [officers, setOfficers] = useState([]);
+  const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [complaintsLoading, setComplaintsLoading] = useState(false);
-  const [updatingId, setUpdatingId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchStats();
-    fetchSupportData();
+    fetchDashboardData();
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'complaints') {
-      fetchComplaints();
-    }
-  }, [activeTab]);
-
-  const fetchStats = async () => {
+  const fetchDashboardData = async () => {
     try {
-      setLoading(true);
-      const response = await api.get('/api/analytics/dashboard');
-      setStats(response.data);
+      setRefreshing(true);
+      const [statsRes, compRes] = await Promise.all([
+        api.get('/api/analytics/dashboard'),
+        api.get('/api/complaints?size=5')
+      ]);
+      setStats(statsRes.data);
+      setRecentComplaints(compRes.data.content || []);
     } catch (err) {
-      console.error('Error fetching admin analytics', err);
+      console.error('Error fetching dashboard statistics', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSupportData = async () => {
-    try {
-      const [deptRes, offRes] = await Promise.all([
-        api.get('/api/departments'),
-        api.get('/api/users/officers')
-      ]);
-      setDepartments(deptRes.data);
-      setOfficers(offRes.data);
-    } catch (err) {
-      console.error('Error fetching support data', err);
-    }
-  };
-
-  const fetchComplaints = async () => {
-    try {
-      setComplaintsLoading(true);
-      const response = await api.get('/api/complaints?size=100');
-      setComplaints(response.data.content || []);
-    } catch (err) {
-      console.error('Error fetching complaints list', err);
-    } finally {
-      setComplaintsLoading(false);
-    }
-  };
-
-  const handleDeptTransfer = async (complaintId, targetDeptId) => {
-    if (!targetDeptId) return;
-    try {
-      setUpdatingId(complaintId);
-      await api.put(`/api/complaints/${complaintId}/transfer?targetDeptId=${targetDeptId}&remarks=Reassigned by Super Admin`);
-      await fetchComplaints();
-      await fetchStats();
-      alert('Department re-assigned successfully!');
-    } catch (err) {
-      alert('Failed to transfer department: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleOfficerAssign = async (complaintId, officerId) => {
-    try {
-      setUpdatingId(complaintId);
-      if (!officerId) {
-        // Option to unassign if needed or skip
-        return;
-      }
-      await api.put(`/api/complaints/${complaintId}/assign?officerId=${officerId}`);
-      await fetchComplaints();
-      alert('Officer assigned successfully!');
-    } catch (err) {
-      alert('Failed to assign officer: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setUpdatingId(null);
+      setRefreshing(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading system metrics and analytics...</div>;
+    return (
+      <div className="p-8 text-center text-slate-500 flex items-center justify-center gap-2">
+        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+        Loading system metrics and analytics...
+      </div>
+    );
   }
 
-  const getDeptData = () => {
+  // Format department data for "Filed Complaints"
+  const getFiledDeptData = () => {
     if (!stats?.departmentWise) return [];
     return Object.keys(stats.departmentWise).map(key => ({
       name: key.replace('Department', '').trim(),
-      Complaints: stats.departmentWise[key]
+      "Filed Complaints": stats.departmentWise[key]
     }));
   };
 
-  const getPriorityData = () => {
-    if (!stats?.priorityWise) return [];
-    return Object.keys(stats.priorityWise).map(key => ({
-      name: key,
-      value: stats.priorityWise[key]
+  // Format department data for "Resolved Complaints"
+  const getResolvedDeptData = () => {
+    if (!stats?.resolvedDepartmentWise) return [];
+    return Object.keys(stats.resolvedDepartmentWise).map(key => ({
+      name: key.replace('Department', '').trim(),
+      "Resolved Complaints": stats.resolvedDepartmentWise[key]
     }));
   };
 
-  const deptData = getDeptData();
-  const priorityData = getPriorityData();
-
+  const filedDeptData = getFiledDeptData();
+  const resolvedDeptData = getResolvedDeptData();
   const monthlyTrends = stats?.monthlyTrends || [];
 
   return (
@@ -133,20 +74,20 @@ const AdminDashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Admin Control Tower</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Review system audit metrics, re-route complaints to departments, and assign officers.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Real-time system monitoring, department workloads, and recent cases.</p>
         </div>
-        <div className="flex gap-2">
-          <Link to="/users" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-            <Users className="h-3.5 w-3.5 text-blue-600" />
-            Manage Users
-          </Link>
-          <Link to="/departments" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-            <Building2 className="h-3.5 w-3.5 text-purple-600" />
-            Departments
-          </Link>
-          <Link to="/audit-logs" className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-            <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
-            Audit Logs
+        <div className="flex gap-2 self-start sm:self-auto">
+          <button 
+            onClick={fetchDashboardData}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            disabled={refreshing}
+          >
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Refresh
+          </button>
+          <Link to="/all-complaints" className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-700 shadow-md shadow-blue-500/10">
+            <Building2 className="h-3.5 w-3.5" />
+            Complaint Router
           </Link>
         </div>
       </div>
@@ -198,98 +139,54 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="border-b border-slate-200 dark:border-slate-800">
-        <nav className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`pb-4 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'analytics'
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-            }`}
-          >
-            System Overview & Charts
-          </button>
-          <button
-            onClick={() => setActiveTab('complaints')}
-            className={`pb-4 text-sm font-semibold border-b-2 transition-colors ${
-              activeTab === 'complaints'
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
-                : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
-            }`}
-          >
-            Complaints Assignment Center
-          </button>
-        </nav>
-      </div>
+      {/* Analytics Charts Grid */}
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* Chart 1: Filed (Registered) Complaints Department Wise */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
+          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Registered Complaints (Department-Wise)</h3>
+          {filedDeptData.length === 0 ? (
+            <div className="text-center text-slate-500 py-12 flex-1 flex items-center justify-center">No complaints registered yet.</div>
+          ) : (
+            <div className="h-64 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={filedDeptData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
+                  <Tooltip />
+                  <Bar dataKey="Filed Complaints" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
 
-      {/* Tab 1: Charts & Analytics */}
-      {activeTab === 'analytics' && (
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Department-wise Bar Chart */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-6">Department Wise Distribution</h3>
-            {deptData.length === 0 ? (
-              <div className="text-center text-slate-500 py-12">No data available.</div>
-            ) : (
-              <div className="h-64 flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={deptData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                    <YAxis stroke="#94a3b8" fontSize={11} />
-                    <Tooltip />
-                    <Bar dataKey="Complaints" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
+        {/* Chart 2: Resolved Complaints Department Wise */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
+          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Resolved Complaints (Department-Wise)</h3>
+          {resolvedDeptData.length === 0 ? (
+            <div className="text-center text-slate-500 py-12 flex-1 flex items-center justify-center">No resolved complaints recorded yet.</div>
+          ) : (
+            <div className="h-64 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={resolvedDeptData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
+                  <Tooltip />
+                  <Bar dataKey="Resolved Complaints" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
 
-          {/* Priority Pie Chart */}
-          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-6">Priority Level Analysis</h3>
-            {priorityData.length === 0 ? (
-              <div className="text-center text-slate-500 py-12">No data available.</div>
-            ) : (
-              <div className="h-64 flex-1 flex flex-col sm:flex-row items-center justify-around gap-4">
-                <div className="h-full w-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={priorityData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {priorityData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-2">
-                  {priorityData.map((item, idx) => (
-                    <div key={item.name} className="flex items-center gap-3 text-sm">
-                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                      <span className="font-semibold text-slate-600 dark:text-slate-300">{item.name}:</span>
-                      <strong className="text-slate-800 dark:text-white">{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Monthly Trend Line Chart */}
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-6">Monthly Volume Trends</h3>
+        {/* Monthly Trend Line Chart */}
+        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
+          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Monthly Registration & Resolution Trends</h3>
+          {monthlyTrends.length === 0 ? (
+            <div className="text-center text-slate-500 py-12">No trend logs recorded yet.</div>
+          ) : (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyTrends}>
@@ -303,112 +200,73 @@ const AdminDashboard = () => {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Complaint Assign/Router Panel */}
-      {activeTab === 'complaints' && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-800 dark:text-white">Active Case Assignments</h3>
-            <button 
-              onClick={fetchComplaints}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 rounded-lg"
-              title="Refresh List"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
-
-          {complaintsLoading ? (
-            <div className="py-12 text-center text-slate-500 flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading complaints database...
-            </div>
-          ) : complaints.length === 0 ? (
-            <div className="py-12 text-center text-slate-500">No complaints filed in the system.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
-                <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                  <tr>
-                    <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Title & Citizen</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Route Department</th>
-                    <th className="px-4 py-3">Assign Officer</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {complaints.map((c) => {
-                    const deptOfficers = officers.filter(o => o.departmentId === c.departmentId);
-
-                    return (
-                      <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                        <td className="px-4 py-4 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                          <Link to={`/track-complaint/${c.id}`} className="hover:underline">
-                            {c.id}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="font-semibold text-slate-800 dark:text-white max-w-xs truncate" title={c.title}>
-                            {c.title}
-                          </div>
-                          <div className="text-xs text-slate-400 mt-0.5">
-                            By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ${
-                            c.status === 'SUBMITTED' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
-                            c.status === 'ASSIGNED' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' :
-                            c.status === 'RESOLVED' ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400' :
-                            'bg-slate-50 text-slate-600 dark:bg-slate-950/30 dark:text-slate-400'
-                          }`}>
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                            <select
-                              disabled={updatingId === c.id}
-                              value={c.departmentId || ''}
-                              onChange={(e) => handleDeptTransfer(c.id, Number(e.target.value))}
-                              className="rounded border border-slate-200 bg-white py-1 px-2 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[150px] focus:ring-1 focus:ring-blue-500"
-                            >
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
-                            <UserCheck className="h-3.5 w-3.5 text-slate-400" />
-                            <select
-                              disabled={updatingId === c.id}
-                              value={c.assignedOfficerId || ''}
-                              onChange={(e) => handleOfficerAssign(c.id, Number(e.target.value))}
-                              className="rounded border border-slate-200 bg-white py-1 px-2 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[160px] focus:ring-1 focus:ring-blue-500"
-                            >
-                              <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">-- Choose Officer --</option>
-                              {deptOfficers.map((o) => (
-                                <option key={o.id} value={o.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{o.fullName} ({o.designation})</option>
-                              ))}
-                            </select>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           )}
         </div>
-      )}
+      </div>
+
+      {/* Recent Complaints Panel */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
+          <Link to="/all-complaints" className="text-xs font-semibold text-blue-600 hover:underline">
+            View All Complaints →
+          </Link>
+        </div>
+
+        {recentComplaints.length === 0 ? (
+          <div className="py-8 text-center text-slate-500 text-sm">No complaints registered in the system yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-500 dark:text-slate-400">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                <tr>
+                  <th className="px-4 py-3">ID</th>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Department</th>
+                  <th className="px-4 py-3">Priority</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {recentComplaints.map((c) => (
+                  <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                      <Link to={`/track-complaint/${c.id}`} className="hover:underline">
+                        {c.id}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-800 dark:text-white max-w-xs truncate">{c.title}</div>
+                      <div className="text-xs text-slate-400">By: {c.isAnonymous ? 'Anonymous' : c.citizenName}</div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{c.departmentName}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ${
+                        c.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                        c.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                        c.priority === 'MEDIUM' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {c.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ${
+                        c.status === 'SUBMITTED' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
+                        c.status === 'ASSIGNED' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' :
+                        c.status === 'RESOLVED' ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400' :
+                        'bg-slate-50 text-slate-600 dark:bg-slate-950/30 dark:text-slate-400'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

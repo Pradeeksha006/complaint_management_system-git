@@ -42,6 +42,14 @@ public class AnalyticsService {
         }
         stats.put("departmentWise", deptMap);
 
+        // Resolved Department Counts
+        List<Object[]> resolvedDeptCounts = complaintRepository.countResolvedComplaintsGroupByDepartment();
+        Map<String, Long> resolvedDeptMap = new HashMap<>();
+        for (Object[] row : resolvedDeptCounts) {
+            resolvedDeptMap.put(row[0].toString(), (Long) row[1]);
+        }
+        stats.put("resolvedDepartmentWise", resolvedDeptMap);
+
         // Priority Counts
         List<Object[]> priorityCounts = complaintRepository.countComplaintsGroupByPriority();
         Map<String, Long> priorityMap = new HashMap<>();

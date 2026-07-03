@@ -41,6 +41,9 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     @Query("SELECT c.department.name, COUNT(c) FROM Complaint c GROUP BY c.department.name")
     List<Object[]> countComplaintsGroupByDepartment();
 
+    @Query("SELECT c.department.name, COUNT(c) FROM Complaint c WHERE c.status = 'RESOLVED' OR c.status = 'CLOSED' GROUP BY c.department.name")
+    List<Object[]> countResolvedComplaintsGroupByDepartment();
+
     @Query("SELECT c.priority, COUNT(c) FROM Complaint c GROUP BY c.priority")
     List<Object[]> countComplaintsGroupByPriority();
 
