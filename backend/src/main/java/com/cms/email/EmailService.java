@@ -53,6 +53,18 @@ public class EmailService {
         sendEmail(email, "Activate Your Account - CMS", content);
     }
 
+    public void sendLoginAlertEmail(String email, String name) {
+        String content = getEmailTemplate(
+            "Security Notice: New Login Detected",
+            "Dear " + name + ",",
+            "A new login was detected on your Citizen & Government Complaint Management System account. " +
+            "If this was you, no action is required. If you did not authorize this login, please change your password or contact an administrator immediately.",
+            frontendUrl + "/settings",
+            "Review Account Settings"
+        );
+        sendEmail(email, "Security Notice: New Login Detected", content);
+    }
+
     public void sendResetPasswordEmail(String email, String name, String token) {
         String resetUrl = frontendUrl + "/reset-password?token=" + token;
         String content = getEmailTemplate(

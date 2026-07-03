@@ -46,4 +46,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
 
     // Find escalatable complaints: ASSIGNED status for more than 48 hours
     List<Complaint> findByStatusAndUpdatedAtBefore(ComplaintStatus status, LocalDateTime time);
+
+    long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+    long countByResolvedAtBetween(LocalDateTime start, LocalDateTime end);
 }

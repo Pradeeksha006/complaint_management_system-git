@@ -235,10 +235,12 @@ const CreateComplaint = () => {
               <select 
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2 text-sm dark:border-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
               >
                 {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
+                  <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                    {d.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -247,12 +249,12 @@ const CreateComplaint = () => {
               <select 
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2 text-sm dark:border-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
               >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="CRITICAL">Critical</option>
+                <option value="LOW" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Low</option>
+                <option value="MEDIUM" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Medium</option>
+                <option value="HIGH" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">High</option>
+                <option value="CRITICAL" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Critical</option>
               </select>
             </div>
           </div>

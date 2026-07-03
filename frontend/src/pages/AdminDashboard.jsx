@@ -125,14 +125,7 @@ const AdminDashboard = () => {
   const deptData = getDeptData();
   const priorityData = getPriorityData();
 
-  const monthlyTrends = [
-    { month: 'Jan', Filed: 45, Resolved: 32 },
-    { month: 'Feb', Filed: 50, Resolved: 44 },
-    { month: 'Mar', Filed: 70, Resolved: 60 },
-    { month: 'Apr', Filed: 85, Resolved: 72 },
-    { month: 'May', Filed: 60, Resolved: 58 },
-    { month: 'Jun', Filed: stats?.totalComplaints || 95, Resolved: (stats?.statusWise?.RESOLVED || 0) + (stats?.statusWise?.CLOSED || 0) },
-  ];
+  const monthlyTrends = stats?.monthlyTrends || [];
 
   return (
     <div className="space-y-8">
@@ -383,10 +376,10 @@ const AdminDashboard = () => {
                               disabled={updatingId === c.id}
                               value={c.departmentId || ''}
                               onChange={(e) => handleDeptTransfer(c.id, Number(e.target.value))}
-                              className="rounded border border-slate-200 bg-transparent py-1 px-2 text-xs outline-none dark:border-slate-800 dark:text-white max-w-[150px]"
+                              className="rounded border border-slate-200 bg-white py-1 px-2 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[150px] focus:ring-1 focus:ring-blue-500"
                             >
                               {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
+                                <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
                               ))}
                             </select>
                           </div>
@@ -398,11 +391,11 @@ const AdminDashboard = () => {
                               disabled={updatingId === c.id}
                               value={c.assignedOfficerId || ''}
                               onChange={(e) => handleOfficerAssign(c.id, Number(e.target.value))}
-                              className="rounded border border-slate-200 bg-transparent py-1 px-2 text-xs outline-none dark:border-slate-800 dark:text-white max-w-[160px]"
+                              className="rounded border border-slate-200 bg-white py-1 px-2 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[160px] focus:ring-1 focus:ring-blue-500"
                             >
-                              <option value="">-- Choose Officer --</option>
+                              <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">-- Choose Officer --</option>
                               {deptOfficers.map((o) => (
-                                <option key={o.id} value={o.id}>{o.fullName} ({o.designation})</option>
+                                <option key={o.id} value={o.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{o.fullName} ({o.designation})</option>
                               ))}
                             </select>
                           </div>

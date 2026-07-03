@@ -62,6 +62,28 @@ public class AnalyticsService {
                 .orElse(0.0);
         stats.put("averageResolutionTimeDays", Math.round(avgResolutionDays * 10.0) / 10.0);
 
+        // Compute monthly trends dynamically
+        java.time.LocalDate now = java.time.LocalDate.now();
+        List<Map<String, Object>> monthlyTrends = new java.util.ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            java.time.LocalDate monthStart = now.minusMonths(i).withDayOfMonth(1);
+            java.time.LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
+            
+            java.time.LocalDateTime start = monthStart.atStartOfDay();
+            java.time.LocalDateTime end = monthEnd.atTime(23, 59, 59);
+
+            long filed = complaintRepository.countByCreatedAtBetween(start, end);
+            long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            String monthName = monthStart.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH);
+
+            Map<String, Object> trendRow = new HashMap<>();
+            trendRow.put("month", monthName);
+            trendRow.put("Filed", filed);
+            trendRow.put("Resolved", resolved);
+            monthlyTrends.add(trendRow);
+        }
+        stats.put("monthlyTrends", monthlyTrends);
+
         return stats;
     }
 }

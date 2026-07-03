@@ -87,6 +87,9 @@ public class UserService {
 
         String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
 
+        // Send login alert email
+        emailService.sendLoginAlertEmail(user.getEmail(), user.getFullName());
+
         Long deptId = null;
         if (user.getRole() == Role.ROLE_OFFICER || user.getRole() == Role.ROLE_DEPT_HEAD) {
             Officer officer = officerRepository.findByUserId(user.getId()).orElse(null);
