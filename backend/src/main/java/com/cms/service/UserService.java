@@ -56,9 +56,9 @@ public class UserService {
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
                 .role(Role.ROLE_CITIZEN)
-                .status(UserStatus.PENDING)
-                .verificationToken(verificationToken)
-                .emailVerified(false)
+                .status(UserStatus.ACTIVE)
+                .verificationToken(null)
+                .emailVerified(true)
                 .build();
 
         User savedUser = userRepository.save(user);
