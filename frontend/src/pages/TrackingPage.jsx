@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, FolderSearch } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Search, Sparkles, FolderSearch, X } from 'lucide-react';
 
 const TrackingPage = () => {
   const [complaintId, setComplaintId] = useState('');
@@ -14,7 +14,16 @@ const TrackingPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-8 py-12">
+    <div className="relative max-w-md mx-auto space-y-8 py-12">
+      {/* Close Button */}
+      <Link 
+        to="/dashboard" 
+        className="absolute -top-4 -right-4 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+        title="Back to Dashboard"
+      >
+        <X className="h-5 w-5" />
+      </Link>
+
       {/* Header */}
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20">

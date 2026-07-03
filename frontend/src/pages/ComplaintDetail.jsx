@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText
+  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -84,7 +84,15 @@ const ComplaintDetail = () => {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Main Details and Map */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
+          <div className="relative rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
+            {/* Close X Button */}
+            <Link 
+              to="/dashboard" 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+              title="Close and Go Back"
+            >
+              <X className="h-5 w-5" />
+            </Link>
             
             {/* Title Header */}
             <div>
