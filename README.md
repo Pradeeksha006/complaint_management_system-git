@@ -64,7 +64,7 @@ INSERT INTO departments (id, name, code, description, created_at, updated_at) VA
 -- Seed Users (Password for all accounts: admin123)
 -- BCrypt hash for admin123: $2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.
 INSERT INTO users (id, username, password, email, full_name, phone_number, role, status, email_verified, created_at, updated_at) VALUES 
-(1, 'admin', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'admin@cms.com', 'Super Admin', '1234567890', 'ROLE_ADMIN', 'ACTIVE', true, NOW(), NOW()),
+(1, 'admin', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'pradeeksha2006@gmail.com', 'Super Admin', '1234567890', 'ROLE_ADMIN', 'ACTIVE', true, NOW(), NOW()),
 (2, 'citizen', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'citizen@cms.com', 'Jane Citizen', '0987654321', 'ROLE_CITIZEN', 'ACTIVE', true, NOW(), NOW()),
 (3, 'head_wt', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'head_wt@cms.com', 'David Department Head', '5556667777', 'ROLE_DEPT_HEAD', 'ACTIVE', true, NOW(), NOW()),
 (4, 'officer_wt', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'officer_wt@cms.com', 'John Officer', '4445556666', 'ROLE_OFFICER', 'ACTIVE', true, NOW(), NOW());
