@@ -1,0 +1,17 @@
+# Maven
+backend/target/
+backend/*.releaseBackup
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
+Thumbs.db

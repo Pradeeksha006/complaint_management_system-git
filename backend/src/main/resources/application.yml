@@ -1,0 +1,57 @@
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: complaint-management-system
+  
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:cms}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.brevo.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:placeholder@example.com}
+    password: ${SPRING_MAIL_PASSWORD:placeholder}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+# Custom Application Configs
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970} # 256-bit key in hex
+    accessTokenExpirationMs: 86400000 # 24 hours (for convenience in dev, can be smaller in prod)
+    refreshTokenExpirationMs: 604800000 # 7 days
+  
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:placeholder}
+    api-key: ${CLOUDINARY_API_KEY:placeholder}
+    api-secret: ${CLOUDINARY_API_SECRET:placeholder}
+
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
