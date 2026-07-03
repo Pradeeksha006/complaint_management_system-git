@@ -88,7 +88,7 @@ const ComplaintDetail = () => {
             {/* Close X Button */}
             <Link 
               to="/dashboard" 
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="absolute top-12 right-6 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Close and Go Back"
             >
               <X className="h-5 w-5" />

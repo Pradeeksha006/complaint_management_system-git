@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -7,7 +7,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, MapPin, Upload, AlertCircle, Eye, Info, Loader2, CheckCircle2 
+  Sparkles, MapPin, Upload, AlertCircle, Eye, Info, Loader2, CheckCircle2, X
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -190,7 +190,15 @@ const CreateComplaint = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="relative max-w-4xl mx-auto space-y-8">
+      {/* Close Button */}
+      <Link 
+        to="/dashboard" 
+        className="absolute top-12 right-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+        title="Cancel and Go Back"
+      >
+        <X className="h-5 w-5" />
+      </Link>
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Register a Complaint</h2>
