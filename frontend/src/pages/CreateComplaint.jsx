@@ -63,9 +63,6 @@ const CreateComplaint = () => {
     try {
       const response = await api.get('/api/departments');
       setDepartments(response.data);
-      if (response.data.length > 0) {
-        setSelectedDept(response.data[0].id.toString());
-      }
     } catch (err) {
       console.error('Failed to load departments', err);
     }
@@ -108,7 +105,7 @@ const CreateComplaint = () => {
   const handleCheckDuplicates = async () => {
     if (!selectedDept || !position || !descriptionWatch || descriptionWatch.length < 15) return;
     try {
-      const res = await api.post(`/api/complaints/detect-duplicates?departmentId=${selectedDept}&latitude=${position[0]}&longitude=${position[1]}&description=${encodeURIComponent(descriptionWatch)}`);
+      const res = await api.post(`/api/complaints/detect-duplicates?departmentId=${selectedDept || '0'}&latitude=${position[0]}&longitude=${position[1]}&description=${encodeURIComponent(descriptionWatch)}`);
       setDuplicates(res.data);
     } catch (err) {
       console.error('Failed to execute duplicate checks', err);
@@ -134,7 +131,9 @@ const CreateComplaint = () => {
       formData.append('latitude', position[0].toString());
       formData.append('longitude', position[1].toString());
       formData.append('address', address);
-      formData.append('departmentId', selectedDept);
+      if (selectedDept) {
+        formData.append('departmentId', selectedDept);
+      }
       formData.append('priority', priority);
 
       if (uploadedFiles.length > 0) {
@@ -237,6 +236,9 @@ const CreateComplaint = () => {
                 onChange={(e) => setSelectedDept(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
               >
+                <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                  -- Auto-Detect (Let AI Assign) --
+                </option>
                 {departments.map(d => (
                   <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
                     {d.name}

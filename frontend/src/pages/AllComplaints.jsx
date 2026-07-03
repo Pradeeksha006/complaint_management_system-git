@@ -174,8 +174,6 @@ const AllComplaints = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredComplaints.map((c) => {
-                  const deptOfficers = officers.filter(o => o.departmentId === c.departmentId);
-
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                       <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
@@ -226,8 +224,10 @@ const AllComplaints = () => {
                             className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[220px] focus:ring-1 focus:ring-blue-500"
                           >
                             <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">-- Choose Officer --</option>
-                            {deptOfficers.map((o) => (
-                              <option key={o.id} value={o.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{o.fullName} ({o.designation})</option>
+                            {officers.map((o) => (
+                              <option key={o.id} value={o.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                                {o.fullName} - {o.departmentName.replace('Department', '').trim()} ({o.designation})
+                              </option>
                             ))}
                           </select>
                         </div>
