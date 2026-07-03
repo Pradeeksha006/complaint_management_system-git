@@ -61,10 +61,11 @@ INSERT INTO departments (id, name, code, description, created_at, updated_at) VA
 (4, 'Sanitation Department', 'SN', 'Garbage collection bins and public cleaning operations.', NOW(), NOW()),
 (5, 'Police Department', 'PL', 'Safety patrols, theft and local crime reporting.', NOW(), NOW());
 
--- Seed Users (Password for all accounts: admin123)
+-- Seed Users (Password for admin: pradeeksha2006, all other accounts: admin123)
+-- BCrypt hash for pradeeksha2006: $2a$10$APGv3ZJpwUnMAey4.q2BRO/hcj/QeJUVVkMHKn2D7Hnm..7KGYeXi
 -- BCrypt hash for admin123: $2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.
 INSERT INTO users (id, username, password, email, full_name, phone_number, role, status, email_verified, created_at, updated_at) VALUES 
-(1, 'admin', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'pradeeksha2006@gmail.com', 'Super Admin', '1234567890', 'ROLE_ADMIN', 'ACTIVE', true, NOW(), NOW()),
+(1, 'admin', '$2a$10$APGv3ZJpwUnMAey4.q2BRO/hcj/QeJUVVkMHKn2D7Hnm..7KGYeXi', 'pradeeksha2006@gmail.com', 'Super Admin', '1234567890', 'ROLE_ADMIN', 'ACTIVE', true, NOW(), NOW()),
 (2, 'citizen', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'citizen@cms.com', 'Jane Citizen', '0987654321', 'ROLE_CITIZEN', 'ACTIVE', true, NOW(), NOW()),
 (3, 'head_wt', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'head_wt@cms.com', 'David Department Head', '5556667777', 'ROLE_DEPT_HEAD', 'ACTIVE', true, NOW(), NOW()),
 (4, 'officer_wt', '$2a$10$X87Xv6YspvT5yXfD6O4G1Oa27V.9e.17k7N/3jOcrfVz73m/QWk1.', 'officer_wt@cms.com', 'John Officer', '4445556666', 'ROLE_OFFICER', 'ACTIVE', true, NOW(), NOW());
