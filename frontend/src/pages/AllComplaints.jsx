@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Building2, UserCheck, Loader2, RefreshCw, Search, Filter, ClipboardList
+  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, CheckSquare
 } from 'lucide-react';
 
 const AllComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [officers, setOfficers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -24,14 +23,12 @@ const AllComplaints = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [compRes, deptRes, offRes] = await Promise.all([
+      const [compRes, deptRes] = await Promise.all([
         api.get('/api/complaints?size=200'),
-        api.get('/api/departments'),
-        api.get('/api/users/officers')
+        api.get('/api/departments')
       ]);
       setComplaints(compRes.data.content || []);
       setDepartments(deptRes.data || []);
-      setOfficers(offRes.data || []);
     } catch (err) {
       console.error('Error fetching complaints routing data', err);
     } finally {
@@ -47,7 +44,7 @@ const AllComplaints = () => {
       // Refresh list
       const compRes = await api.get('/api/complaints?size=200');
       setComplaints(compRes.data.content || []);
-      alert('Department re-assigned successfully!');
+      alert('Department transferred successfully!');
     } catch (err) {
       alert('Failed to transfer department: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -55,16 +52,24 @@ const AllComplaints = () => {
     }
   };
 
-  const handleOfficerAssign = async (complaintId, officerId) => {
+  const handleStatusUpdate = async (complaintId, newStatus) => {
+    if (!newStatus) return;
     try {
       setUpdatingId(complaintId);
-      await api.put(`/api/complaints/${complaintId}/assign?officerId=${officerId}`);
+      const formData = new FormData();
+      formData.append('status', newStatus);
+      formData.append('remarks', 'Status updated by Super Admin');
+
+      await api.put(`/api/complaints/${complaintId}/status`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       // Refresh list
       const compRes = await api.get('/api/complaints?size=200');
       setComplaints(compRes.data.content || []);
-      alert('Officer assigned successfully!');
+      alert('Status updated successfully!');
     } catch (err) {
-      alert('Failed to assign officer: ' + (err.response?.data?.message || err.message));
+      alert('Failed to update status: ' + (err.response?.data?.message || err.message));
     } finally {
       setUpdatingId(null);
     }
@@ -98,7 +103,7 @@ const AllComplaints = () => {
             <ClipboardList className="h-6 w-6 text-blue-600" />
             Complaint Routing Center
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Transfer cases to respective departments or assign officers directly.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Transfer cases to respective departments or update their resolution statuses directly.</p>
         </div>
         <button 
           onClick={fetchData}
@@ -167,9 +172,9 @@ const AllComplaints = () => {
                 <tr>
                   <th className="px-6 py-4">ID</th>
                   <th className="px-6 py-4">Title & Citizen</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Route Department</th>
-                  <th className="px-6 py-4">Assign Officer</th>
+                  <th className="px-6 py-4">Current Status</th>
+                  <th className="px-6 py-4">Transfer Department</th>
+                  <th className="px-6 py-4">Update Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -216,19 +221,18 @@ const AllComplaints = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <UserCheck className="h-3.5 w-3.5 text-slate-400" />
+                          <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
                           <select
                             disabled={updatingId === c.id}
-                            value={c.assignedOfficerId || ''}
-                            onChange={(e) => handleOfficerAssign(c.id, Number(e.target.value))}
-                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[220px] focus:ring-1 focus:ring-blue-500"
+                            value={c.status || ''}
+                            onChange={(e) => handleStatusUpdate(c.id, e.target.value)}
+                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[200px] focus:ring-1 focus:ring-blue-500"
                           >
-                            <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">-- Choose Officer --</option>
-                            {officers.map((o) => (
-                              <option key={o.id} value={o.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-                                {o.fullName} - {o.departmentName.replace('Department', '').trim()} ({o.designation})
-                              </option>
-                            ))}
+                            <option value="SUBMITTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Submitted</option>
+                            <option value="ACCEPTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Accepted</option>
+                            <option value="IN_PROGRESS" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">In Progress</option>
+                            <option value="RESOLVED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Resolved</option>
+                            <option value="CLOSED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Closed</option>
                           </select>
                         </div>
                       </td>
