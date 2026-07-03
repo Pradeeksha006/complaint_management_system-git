@@ -11,7 +11,7 @@ spring:
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:cms}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: ${DB_USER:root}
-    password: ${DB_PASSWORD:password}
+    password: ${DB_PASSWORD:pr@deeksha$#}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -31,8 +31,8 @@ spring:
   mail:
     host: ${SPRING_MAIL_HOST:smtp.brevo.com}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME:placeholder@example.com}
-    password: ${SPRING_MAIL_PASSWORD:placeholder}
+    username: ${SPRING_MAIL_USERNAME:pradeeksha2006@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:ywggwtzisiatnwet}
     properties:
       mail:
         smtp:
