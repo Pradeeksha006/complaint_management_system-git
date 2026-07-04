@@ -32,7 +32,6 @@ public class ComplaintDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime resolvedAt;
-    private LocalDateTime closedAt;
     private List<AttachmentDto> attachments;
     private FeedbackDto feedback;
 }

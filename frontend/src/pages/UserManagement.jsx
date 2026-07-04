@@ -103,6 +103,7 @@ const UserManagement = () => {
               <table className="w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
+                    <th className="px-6 py-3">Customer ID</th>
                     <th className="px-6 py-3">User</th>
                     <th className="px-6 py-3">Role</th>
                     <th className="px-6 py-3">Status</th>
@@ -112,6 +113,9 @@ const UserManagement = () => {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
                   {users.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-800 dark:text-white">
+                        {u.role === 'ROLE_CITIZEN' ? `CUST-${String(u.id).padStart(4, '0')}` : 'N/A'}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-slate-800 dark:text-white font-bold">{u.fullName}</span>

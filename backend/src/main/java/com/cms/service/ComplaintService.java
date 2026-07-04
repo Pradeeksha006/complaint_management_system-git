@@ -195,8 +195,6 @@ public class ComplaintService {
         
         if (status == ComplaintStatus.RESOLVED) {
             complaint.setResolvedAt(LocalDateTime.now());
-        } else if (status == ComplaintStatus.CLOSED) {
-            complaint.setClosedAt(LocalDateTime.now());
         }
 
         // Upload work images if present

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, CheckSquare
+  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList
 } from 'lucide-react';
 
 const AllComplaints = () => {
@@ -52,34 +52,13 @@ const AllComplaints = () => {
     }
   };
 
-  const handleStatusUpdate = async (complaintId, newStatus) => {
-    if (!newStatus) return;
-    try {
-      setUpdatingId(complaintId);
-      const formData = new FormData();
-      formData.append('status', newStatus);
-      formData.append('remarks', 'Status updated by Super Admin');
-
-      await api.put(`/api/complaints/${complaintId}/status`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      // Refresh list
-      const compRes = await api.get('/api/complaints?size=200');
-      setComplaints(compRes.data.content || []);
-      alert('Status updated successfully!');
-    } catch (err) {
-      alert('Failed to update status: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  // Filter complaints list locally
+  // Filter complaints list locally (supports search by Ticket ID, Customer ID, title, or citizen name)
   const filteredComplaints = complaints.filter(c => {
+    const customerIdStr = c.citizenId ? `cust-${String(c.citizenId).padStart(4, '0')}` : 'anonymous';
     const matchesSearch = c.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.citizenName && c.citizenName.toLowerCase().includes(searchTerm.toLowerCase()));
+                          (c.citizenName && c.citizenName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          customerIdStr.includes(searchTerm.toLowerCase());
     const matchesDept = filterDept ? c.departmentId === Number(filterDept) : true;
     const matchesStatus = filterStatus ? c.status === filterStatus : true;
     return matchesSearch && matchesDept && matchesStatus;
@@ -103,7 +82,7 @@ const AllComplaints = () => {
             <ClipboardList className="h-6 w-6 text-blue-600" />
             Complaint Routing Center
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Transfer cases to respective departments or update their resolution statuses directly.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Transfer cases to respective departments and monitor workflow timelines.</p>
         </div>
         <button 
           onClick={fetchData}
@@ -123,7 +102,7 @@ const AllComplaints = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by ID, title, or citizen..."
+            placeholder="Search by Ticket ID, Customer ID (e.g. CUST-0002)..."
             className="w-full rounded-lg border border-slate-200 bg-transparent py-2 pl-10 pr-4 text-sm outline-none dark:border-slate-800 dark:text-white focus:border-blue-500"
           />
         </div>
@@ -170,11 +149,11 @@ const AllComplaints = () => {
             <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
               <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 <tr>
-                  <th className="px-6 py-4">ID</th>
+                  <th className="px-6 py-4">Ticket ID</th>
+                  <th className="px-6 py-4">Customer ID</th>
                   <th className="px-6 py-4">Title & Citizen</th>
                   <th className="px-6 py-4">Current Status</th>
                   <th className="px-6 py-4">Transfer Department</th>
-                  <th className="px-6 py-4">Update Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -185,6 +164,9 @@ const AllComplaints = () => {
                         <Link to={`/track-complaint/${c.id}`} className="hover:underline">
                           {c.id}
                         </Link>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-800 dark:text-white">
+                        {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'N/A (Anonymous)'}
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.title}>
@@ -216,23 +198,6 @@ const AllComplaints = () => {
                             {departments.map((d) => (
                               <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
                             ))}
-                          </select>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
-                          <select
-                            disabled={updatingId === c.id}
-                            value={c.status || ''}
-                            onChange={(e) => handleStatusUpdate(c.id, e.target.value)}
-                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[200px] focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="SUBMITTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Submitted</option>
-                            <option value="ACCEPTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Accepted</option>
-                            <option value="IN_PROGRESS" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">In Progress</option>
-                            <option value="RESOLVED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Resolved</option>
-                            <option value="CLOSED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Closed</option>
                           </select>
                         </div>
                       </td>

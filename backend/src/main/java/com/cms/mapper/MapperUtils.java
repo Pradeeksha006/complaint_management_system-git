@@ -100,7 +100,6 @@ public class MapperUtils {
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())
                 .resolvedAt(c.getResolvedAt())
-                .closedAt(c.getClosedAt())
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())

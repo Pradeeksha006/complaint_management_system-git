@@ -70,9 +70,6 @@ public class Complaint {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
-    @Column(name = "closed_at")
-    private LocalDateTime closedAt;
-
     @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @ToString.Exclude
