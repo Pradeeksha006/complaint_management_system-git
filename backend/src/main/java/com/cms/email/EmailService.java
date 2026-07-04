@@ -25,6 +25,10 @@ public class EmailService {
 
     @Async
     public void sendEmail(String to, String subject, String htmlContent) {
+        if (to == null || to.trim().isEmpty() || to.toLowerCase().endsWith("@cms.com")) {
+            log.info("Bypassing actual email sending to dummy/invalid address: {}", to);
+            return;
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

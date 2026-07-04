@@ -142,7 +142,7 @@ const DeptHeadDashboard = () => {
     return officers.map(o => {
       const assignedCount = complaints.filter(c => c.assignedOfficerId === o.id).length;
       return {
-        name: o.fullName.split(' ')[0], // First name
+        name: o.fullName ? o.fullName.split(' ')[0] : 'Officer', // First name
         Workload: assignedCount
       };
     });
