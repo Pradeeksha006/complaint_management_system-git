@@ -15,7 +15,7 @@ const DeptHeadDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [selectedDeptId, setSelectedDeptId] = useState(user?.departmentId || '');
+  const [selectedDeptId, setSelectedDeptId] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, avgTime: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +30,15 @@ const DeptHeadDashboard = () => {
     fetchDepartments();
   }, []);
 
+  // Sync selectedDeptId once user session is loaded/restored
+  useEffect(() => {
+    if (user?.role === 'ROLE_ADMIN' && departments.length > 0 && !selectedDeptId) {
+      setSelectedDeptId(departments[0].id);
+    } else if (user?.departmentId && !selectedDeptId) {
+      setSelectedDeptId(user.departmentId);
+    }
+  }, [user, departments, selectedDeptId]);
+
   // Fetch department-specific data whenever selectedDeptId changes
   useEffect(() => {
     if (selectedDeptId) {
@@ -41,10 +50,6 @@ const DeptHeadDashboard = () => {
     try {
       const deptRes = await api.get('/api/departments');
       setDepartments(deptRes.data || []);
-      // If user is Admin and no department is selected, default to the first department
-      if (user?.role === 'ROLE_ADMIN' && !selectedDeptId && deptRes.data.length > 0) {
-        setSelectedDeptId(deptRes.data[0].id);
-      }
     } catch (err) {
       console.error('Error fetching departments list', err);
     }
@@ -267,7 +272,7 @@ const DeptHeadDashboard = () => {
                         <span className="text-xs text-slate-400 font-medium">Category: {c.category}</span>
                       </div>
                       <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">{c.title}</h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-350">{c.description}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-355">{c.description}</p>
                       {c.address && <p className="text-[10px] text-slate-400 mt-1">Address: {c.address}</p>}
                       <p className="text-[10px] text-slate-450">Filed: {new Date(c.createdAt).toLocaleString()}</p>
                     </div>
