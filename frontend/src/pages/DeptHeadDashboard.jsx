@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, CheckSquare as CheckIcon
+  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2
 } from 'lucide-react';
 
 const DeptHeadDashboard = () => {
@@ -296,7 +296,7 @@ const DeptHeadDashboard = () => {
                     <div className="flex flex-wrap gap-3">
                       {/* Change Status (Resolve) Dropdown */}
                       <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
-                        <CheckIcon className="h-3.5 w-3.5 text-slate-400" />
+                        <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
                         <select
                           disabled={actioningId === c.id}
                           value={c.status}
