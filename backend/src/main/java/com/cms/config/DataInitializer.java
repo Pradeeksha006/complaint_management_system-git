@@ -32,7 +32,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        migrateUsersTableIfNecessary();
+        migrateDatabaseTablesIfNecessary();
         cleanupLegacyMockUsers();
         seedDepartments();
         seedAdminUser();
@@ -40,26 +40,42 @@ public class DataInitializer implements CommandLineRunner {
         seedDatabaseViews();
     }
 
-    private void migrateUsersTableIfNecessary() {
-        log.info("Checking if users table needs migration to all_users...");
+    private void migrateDatabaseTablesIfNecessary() {
+        log.info("Checking if database tables need migration...");
         try {
-            // Check if 'users' is a physical BASE TABLE
-            String checkSql = "SELECT COUNT(*) FROM information_schema.tables " +
-                              "WHERE table_schema = DATABASE() " +
-                              "AND table_name = 'users' " +
-                              "AND table_type = 'BASE TABLE'";
-            Integer isBaseTable = jdbcTemplate.queryForObject(checkSql, Integer.class);
+            // Check if 'users' needs migration to 'all_users'
+            String checkUsersSql = "SELECT COUNT(*) FROM information_schema.tables " +
+                                   "WHERE table_schema = DATABASE() " +
+                                   "AND table_name = 'users' " +
+                                   "AND table_type = 'BASE TABLE'";
+            Integer isUsersBaseTable = jdbcTemplate.queryForObject(checkUsersSql, Integer.class);
             
-            if (isBaseTable != null && isBaseTable > 0) {
-                log.info("Migrating physical table 'users' to 'all_users' and creating views...");
+            if (isUsersBaseTable != null && isUsersBaseTable > 0) {
+                log.info("Migrating physical table 'users' to 'all_users'...");
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
                 jdbcTemplate.execute("DROP TABLE IF EXISTS all_users");
                 jdbcTemplate.execute("RENAME TABLE users TO all_users");
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
                 log.info("Successfully migrated users table structure.");
             }
+
+            // Check if 'officers' needs migration to 'officer_records'
+            String checkOfficersSql = "SELECT COUNT(*) FROM information_schema.tables " +
+                                     "WHERE table_schema = DATABASE() " +
+                                     "AND table_name = 'officers' " +
+                                     "AND table_type = 'BASE TABLE'";
+            Integer isOfficersBaseTable = jdbcTemplate.queryForObject(checkOfficersSql, Integer.class);
+            
+            if (isOfficersBaseTable != null && isOfficersBaseTable > 0) {
+                log.info("Migrating physical table 'officers' to 'officer_records'...");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
+                jdbcTemplate.execute("DROP TABLE IF EXISTS officer_records");
+                jdbcTemplate.execute("RENAME TABLE officers TO officer_records");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
+                log.info("Successfully migrated officers table structure.");
+            }
         } catch (Exception e) {
-            log.error("Failed to migrate users table: {}", e.getMessage());
+            log.error("Failed to migrate database tables: {}", e.getMessage());
         }
     }
 
@@ -73,7 +89,7 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
             jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
             jdbcTemplate.update("DELETE FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
-            jdbcTemplate.update("DELETE FROM officers WHERE user_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM officer_records WHERE user_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
             jdbcTemplate.update("DELETE FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')");
             log.info("Legacy mock users cleaned up successfully.");
         } catch (Exception e) {
@@ -191,9 +207,10 @@ public class DataInitializer implements CommandLineRunner {
     private void seedDatabaseViews() {
         log.info("Checking/Creating MySQL views...");
         try {
-            // Create user and admin views
+            // Create user, admin and officers views
             jdbcTemplate.execute("CREATE OR REPLACE VIEW users AS SELECT * FROM all_users WHERE role = 'ROLE_CITIZEN'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW admin AS SELECT * FROM all_users WHERE role = 'ROLE_ADMIN'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW officers AS SELECT o.id, o.user_id, o.department_id, d.name AS department_name, o.designation, o.created_at, o.updated_at FROM officer_records o JOIN departments d ON o.department_id = d.id");
             
             // Create department views
             jdbcTemplate.execute("CREATE OR REPLACE VIEW water_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'WT'");
