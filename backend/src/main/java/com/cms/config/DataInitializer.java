@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Arrays;
 import java.util.List;
@@ -24,11 +25,13 @@ public class DataInitializer implements CommandLineRunner {
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) throws Exception {
         seedDepartments();
         seedAdminUser();
+        seedDatabaseViews();
     }
 
     private void seedDepartments() {
@@ -86,6 +89,21 @@ public class DataInitializer implements CommandLineRunner {
                 userRepository.save(admin);
                 log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha006s@gmail.com'");
             }
+        }
+    }
+
+    private void seedDatabaseViews() {
+        log.info("Checking/Creating MySQL department views...");
+        try {
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW water_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'WT'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW sanitation_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'SN'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW electricity_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'EL'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW road_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'RD'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW police_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'PL'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW health_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'HL'");
+            log.info("Successfully registered MySQL views for all departments.");
+        } catch (Exception e) {
+            log.error("Failed to create database views for departments: {}", e.getMessage());
         }
     }
 }

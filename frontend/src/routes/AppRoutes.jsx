@@ -88,6 +88,12 @@ const AppRoutes = () => {
             <AllComplaints />
           </ProtectedRoute>
         } />
+
+        <Route path="department-control" element={
+          <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
+            <DeptHeadDashboard />
+          </ProtectedRoute>
+        } />
         
         <Route path="track" element={
           <ProtectedRoute>

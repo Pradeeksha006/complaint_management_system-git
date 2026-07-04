@@ -46,6 +46,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { name: 'Manage Users', path: '/users', icon: Users },
           { name: 'Departments', path: '/departments', icon: Building2 },
+          { name: 'Dept Control Desk', path: '/department-control', icon: Building2 },
           { name: 'All Complaints', path: '/all-complaints', icon: ClipboardList },
           { name: 'Audit Logs', path: '/audit-logs', icon: ShieldCheck },
           { name: 'Settings', path: '/settings', icon: Settings },
