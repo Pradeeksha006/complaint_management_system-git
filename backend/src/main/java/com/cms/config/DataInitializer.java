@@ -32,6 +32,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        migrateUsersTableIfNecessary();
         cleanupLegacyMockUsers();
         seedDepartments();
         seedAdminUser();
@@ -39,16 +40,41 @@ public class DataInitializer implements CommandLineRunner {
         seedDatabaseViews();
     }
 
+    private void migrateUsersTableIfNecessary() {
+        log.info("Checking if users table needs migration to all_users...");
+        try {
+            // Check if 'users' is a physical BASE TABLE
+            String checkSql = "SELECT COUNT(*) FROM information_schema.tables " +
+                              "WHERE table_schema = DATABASE() " +
+                              "AND table_name = 'users' " +
+                              "AND table_type = 'BASE TABLE'";
+            Integer isBaseTable = jdbcTemplate.queryForObject(checkSql, Integer.class);
+            
+            if (isBaseTable != null && isBaseTable > 0) {
+                log.info("Migrating physical table 'users' to 'all_users' and creating views...");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
+                jdbcTemplate.execute("DROP TABLE IF EXISTS all_users");
+                jdbcTemplate.execute("RENAME TABLE users TO all_users");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
+                log.info("Successfully migrated users table structure.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to migrate users table: {}", e.getMessage());
+        }
+    }
+
     private void cleanupLegacyMockUsers() {
         log.info("Cleaning up legacy mock/seeded users if present...");
         try {
-            jdbcTemplate.update("DELETE FROM feedbacks WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE updated_by_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
-            jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
-            jdbcTemplate.update("DELETE FROM officers WHERE user_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
-            jdbcTemplate.update("DELETE FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')");
+            // First, delete timeline events updated by non-existent users or legacy mock users to prevent foreign key errors
+            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE updated_by_id NOT IN (SELECT id FROM all_users) OR updated_by_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            
+            jdbcTemplate.update("DELETE FROM feedbacks WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM officers WHERE user_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')");
             log.info("Legacy mock users cleaned up successfully.");
         } catch (Exception e) {
             log.error("Failed to clean up legacy mock users: {}", e.getMessage());
@@ -163,17 +189,22 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedDatabaseViews() {
-        log.info("Checking/Creating MySQL department views...");
+        log.info("Checking/Creating MySQL views...");
         try {
+            // Create user and admin views
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW users AS SELECT * FROM all_users WHERE role = 'ROLE_CITIZEN'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW admin AS SELECT * FROM all_users WHERE role = 'ROLE_ADMIN'");
+            
+            // Create department views
             jdbcTemplate.execute("CREATE OR REPLACE VIEW water_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'WT'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW sanitation_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'SN'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW electricity_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'EL'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW road_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'RD'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW police_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'PL'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW health_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'HL'");
-            log.info("Successfully registered MySQL views for all departments.");
+            log.info("Successfully registered all MySQL views.");
         } catch (Exception e) {
-            log.error("Failed to create database views for departments: {}", e.getMessage());
+            log.error("Failed to create database views: {}", e.getMessage());
         }
     }
 }
