@@ -85,7 +85,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
         <Route path="all-complaints" element={
-          <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
+          <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
             <AllComplaints />
           </ProtectedRoute>
         } />
