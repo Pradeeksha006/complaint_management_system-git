@@ -43,7 +43,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       case 'ROLE_ADMIN':
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-          { name: 'Manage Users', path: '/users', icon: Users },
+          { name: 'Manage Customers', path: '/users', icon: Users },
+          { name: 'Manage Officers', path: '/officers', icon: Users },
           { name: 'Departments', path: '/departments', icon: Building2 },
           { name: 'Dept Control Desk', path: '/department-control', icon: Building2 },
           { name: 'All Complaints', path: '/all-complaints', icon: ClipboardList },

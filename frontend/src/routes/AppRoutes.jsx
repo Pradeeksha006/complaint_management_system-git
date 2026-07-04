@@ -12,6 +12,7 @@ import TrackingPage from '../pages/TrackingPage';
 import ComplaintDetail from '../pages/ComplaintDetail';
 import Settings from '../pages/Settings';
 import UserManagement from '../pages/UserManagement';
+import OfficerManagement from '../pages/OfficerManagement';
 import DepartmentManagement from '../pages/DepartmentManagement';
 import AuditLogs from '../pages/AuditLogs';
 import AllComplaints from '../pages/AllComplaints';
@@ -72,6 +73,11 @@ const AppRoutes = () => {
         <Route path="users" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
             <UserManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="officers" element={
+          <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+            <OfficerManagement />
           </ProtectedRoute>
         } />
         <Route path="departments" element={

@@ -32,10 +32,27 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        cleanupLegacyMockUsers();
         seedDepartments();
         seedAdminUser();
         seedDepartmentHeads();
         seedDatabaseViews();
+    }
+
+    private void cleanupLegacyMockUsers() {
+        log.info("Cleaning up legacy mock/seeded users if present...");
+        try {
+            jdbcTemplate.update("DELETE FROM feedbacks WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE updated_by_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaints WHERE citizen_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM officers WHERE user_id IN (SELECT id FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')");
+            log.info("Legacy mock users cleaned up successfully.");
+        } catch (Exception e) {
+            log.error("Failed to clean up legacy mock users: {}", e.getMessage());
+        }
     }
 
     private void seedDepartments() {

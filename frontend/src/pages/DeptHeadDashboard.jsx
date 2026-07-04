@@ -295,66 +295,51 @@ const DeptHeadDashboard = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      {/* Change Status (Resolve) Dropdown */}
-                      <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
-                        <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
-                        <select
-                          disabled={actioningId === c.id}
-                          value={c.status}
-                          onChange={(e) => handleStatusUpdate(c.id, e.target.value)}
-                          className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
-                        >
-                          <option value="SUBMITTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Submitted</option>
-                          <option value="ASSIGNED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Assigned</option>
-                          <option value="IN_PROGRESS" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">In Progress</option>
-                          <option value="RESOLVED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Resolved</option>
-                        </select>
-                      </div>
+                      {user?.role === 'ROLE_ADMIN' ? (
+                        <span className="text-xs text-slate-400 font-semibold italic bg-slate-50 dark:bg-slate-800/40 px-2.5 py-1 rounded">
+                          View Only Mode (Admin)
+                        </span>
+                      ) : (
+                        <>
+                          {/* Change Status (Resolve) Dropdown */}
+                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
+                            <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
+                            <select
+                              disabled={actioningId === c.id}
+                              value={c.status}
+                              onChange={(e) => handleStatusUpdate(c.id, e.target.value)}
+                              className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
+                            >
+                              <option value="SUBMITTED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Submitted</option>
+                              <option value="ASSIGNED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Assigned</option>
+                              <option value="IN_PROGRESS" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">In Progress</option>
+                              <option value="RESOLVED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Resolved</option>
+                            </select>
+                          </div>
 
-                      {/* Officer Assignment Dropdown */}
-                      {(c.status === 'SUBMITTED' || c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS') && (
-                        <div className="flex gap-2">
-                          <select 
-                            value={assigningTo[c.id] || ''}
-                            onChange={(e) => setAssigningTo({ ...assigningTo, [c.id]: e.target.value })}
-                            className="rounded border border-slate-200 bg-transparent px-2 py-1 text-xs dark:border-slate-800 dark:text-white"
-                          >
-                            <option value="">Select Officer...</option>
-                            {officers.map(o => (
-                              <option key={o.id} value={o.id}>{o.fullName} ({o.designation})</option>
-                            ))}
-                          </select>
-                          <button 
-                            disabled={actioningId === c.id}
-                            onClick={() => handleAssign(c.id)}
-                            className="rounded bg-blue-600 px-3 py-1 text-xs font-bold text-white hover:bg-blue-700 disabled:bg-blue-400"
-                          >
-                            Assign
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Department Transfer Dropdown */}
-                      {c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED' && (
-                        <div className="flex gap-2">
-                          <select 
-                            value={transferringTo[c.id] || ''}
-                            onChange={(e) => setTransferringTo({ ...transferringTo, [c.id]: e.target.value })}
-                            className="rounded border border-slate-200 bg-transparent px-2 py-1 text-xs dark:border-slate-800 dark:text-white"
-                          >
-                            <option value="">Transfer Dept...</option>
-                            {departments.filter(d => d.id !== Number(selectedDeptId)).map(d => (
-                              <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                          </select>
-                          <button 
-                            disabled={actioningId === c.id}
-                            onClick={() => handleTransfer(c.id)}
-                            className="rounded border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/20 dark:text-red-400"
-                          >
-                            Transfer
-                          </button>
-                        </div>
+                          {/* Officer Assignment Dropdown */}
+                          {(c.status === 'SUBMITTED' || c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS') && (
+                            <div className="flex gap-2">
+                              <select 
+                                value={assigningTo[c.id] || ''}
+                                onChange={(e) => setAssigningTo({ ...assigningTo, [c.id]: e.target.value })}
+                                className="rounded border border-slate-200 bg-transparent px-2 py-1 text-xs dark:border-slate-800 dark:text-white"
+                              >
+                                <option value="">Select Officer...</option>
+                                {officers.map(o => (
+                                  <option key={o.id} value={o.id}>{o.fullName} ({o.designation})</option>
+                                ))}
+                              </select>
+                              <button 
+                                disabled={actioningId === c.id}
+                                onClick={() => handleAssign(c.id)}
+                                className="rounded bg-blue-600 px-3 py-1 text-xs font-bold text-white hover:bg-blue-700 disabled:bg-blue-400"
+                              >
+                                Assign
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
