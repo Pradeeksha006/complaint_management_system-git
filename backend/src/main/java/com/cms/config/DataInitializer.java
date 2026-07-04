@@ -4,8 +4,10 @@ import com.cms.entity.Department;
 import com.cms.entity.User;
 import com.cms.entity.UserStatus;
 import com.cms.entity.Role;
+import com.cms.entity.Officer;
 import com.cms.repository.DepartmentRepository;
 import com.cms.repository.UserRepository;
+import com.cms.repository.OfficerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -24,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
+    private final OfficerRepository officerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
 
@@ -31,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         seedDepartments();
         seedAdminUser();
+        seedDepartmentHeads();
         seedDatabaseViews();
     }
 
@@ -89,6 +93,55 @@ public class DataInitializer implements CommandLineRunner {
                 userRepository.save(admin);
                 log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha006s@gmail.com'");
             }
+        }
+    }
+
+    private void seedDepartmentHeads() {
+        log.info("Checking/Seeding Department Head accounts...");
+        seedDeptHead("WT", "water_admin", "water@cms.com", "waterpassword", "Water Chief Superintendent");
+        seedDeptHead("SN", "sanitation_admin", "sanitation@cms.com", "sanitationpassword", "Sanitation Chief Superintendent");
+        seedDeptHead("EL", "electricity_admin", "electricity@cms.com", "electricitypassword", "Electricity Chief Superintendent");
+        seedDeptHead("RD", "roads_admin", "roads@cms.com", "roadspassword", "Roads Chief Superintendent");
+        seedDeptHead("HL", "health_admin", "health@cms.com", "healthpassword", "Health Chief Superintendent");
+        seedDeptHead("PL", "police_admin", "police@cms.com", "policepassword", "Police Chief Superintendent");
+    }
+
+    private void seedDeptHead(String deptCode, String username, String email, String password, String fullName) {
+        Optional<Department> deptOpt = departmentRepository.findByCode(deptCode);
+        if (deptOpt.isEmpty()) {
+            return;
+        }
+        Department dept = deptOpt.get();
+
+        Optional<User> existingUserOpt = userRepository.findByUsername(username);
+        User user;
+        if (existingUserOpt.isPresent()) {
+            user = existingUserOpt.get();
+        } else {
+            user = User.builder()
+                    .username(username)
+                    .password(passwordEncoder.encode(password))
+                    .email(email)
+                    .fullName(fullName)
+                    .phoneNumber("9876543210")
+                    .role(Role.ROLE_DEPT_HEAD)
+                    .status(UserStatus.ACTIVE)
+                    .emailVerified(true)
+                    .build();
+            user = userRepository.save(user);
+            log.info("Seeded user account: {}", username);
+        }
+
+        // Make sure officer entry exists
+        Optional<Officer> existingOfficerOpt = officerRepository.findByUserId(user.getId());
+        if (existingOfficerOpt.isEmpty()) {
+            Officer officer = Officer.builder()
+                    .user(user)
+                    .department(dept)
+                    .designation("Chief Superintendent")
+                    .build();
+            officerRepository.save(officer);
+            log.info("Seeded Chief Superintendent for department {}", dept.getName());
         }
     }
 
