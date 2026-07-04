@@ -15,6 +15,7 @@ import UserManagement from '../pages/UserManagement';
 import DepartmentManagement from '../pages/DepartmentManagement';
 import AuditLogs from '../pages/AuditLogs';
 import AllComplaints from '../pages/AllComplaints';
+import DeptHeadDashboard from '../pages/DeptHeadDashboard';
 import { Error404, Error403 } from '../pages/ErrorPages';
 import MainLayout from '../layouts/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
