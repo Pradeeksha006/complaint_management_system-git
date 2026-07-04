@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { loginStart, loginSuccess, loginFailure } from '../redux/authSlice';
-import { Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, Loader2 } from 'lucide-react';
+import { Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 
 const schema = yup.object().shape({
   usernameOrEmail: yup.string().required('Username or email is required'),
@@ -18,6 +18,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
   const [successMsg, setSuccessMsg] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
@@ -88,13 +89,20 @@ const Login = () => {
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input 
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 {...register('password')}
                 placeholder="••••••••"
-                className={`w-full rounded-lg border bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white ${
+                className={`w-full rounded-lg border bg-transparent py-2.5 pl-10 pr-10 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white ${
                   errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500 dark:focus:border-blue-500'
                 }`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
             {errors.password && <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>}
           </div>

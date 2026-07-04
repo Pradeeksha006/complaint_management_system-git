@@ -4,14 +4,19 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
-import { Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, User, Phone, Loader2 } from 'lucide-react';
+import { 
+  Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, User, Phone, Loader2, Eye, EyeOff 
+} from 'lucide-react';
 
 const schema = yup.object().shape({
+  fullName: yup.string().required('Full name is required'),
   username: yup.string().min(3, 'Username must be at least 3 characters').required('Username is required'),
   email: yup.string().email('Invalid email format').required('Email is required'),
+  phoneNumber: yup.string().required('Phone number is required'),
   password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-  fullName: yup.string().required('Full name is required'),
-  phoneNumber: yup.string().optional(),
+  confirmPassword: yup.string()
+    .oneOf([yup.ref('password'), null], 'Passwords must match')
+    .required('Confirm password is required'),
 });
 
 const Register = () => {
@@ -19,6 +24,10 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Password visibility toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
@@ -29,8 +38,13 @@ const Register = () => {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      await api.post('/api/auth/register', data);
-      setSuccessMsg('Registration successful! Please check your email inbox to verify your account.');
+      // Exclude confirmPassword when submitting to backend register endpoint
+      const { confirmPassword, ...submitData } = data;
+      await api.post('/api/auth/register', submitData);
+      setSuccessMsg('Registration successful! Please sign in using your new credentials.');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Registration failed. Try again.');
     } finally {
@@ -128,22 +142,55 @@ const Register = () => {
                 }`}
               />
             </div>
+            {errors.phoneNumber && <span className="text-xs text-red-500 mt-0.5 block">{errors.phoneNumber.message}</span>}
           </div>
 
+          {/* New Password */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">New Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <input 
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 {...register('password')}
                 placeholder="••••••••"
-                className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-4 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white ${
+                className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white ${
                   errors.password ? 'border-red-500' : 'border-slate-200 focus:border-blue-500 dark:focus:border-blue-500'
                 }`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
             {errors.password && <span className="text-xs text-red-500 mt-0.5 block">{errors.password.message}</span>}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-1">Confirm Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <input 
+                type={showConfirmPassword ? 'text' : 'password'}
+                {...register('confirmPassword')}
+                placeholder="••••••••"
+                className={`w-full rounded-lg border bg-transparent py-2 pl-10 pr-10 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white ${
+                  errors.confirmPassword ? 'border-red-500' : 'border-slate-200 focus:border-blue-500 dark:focus:border-blue-500'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.confirmPassword && <span className="text-xs text-red-500 mt-0.5 block">{errors.confirmPassword.message}</span>}
           </div>
 
           <button
