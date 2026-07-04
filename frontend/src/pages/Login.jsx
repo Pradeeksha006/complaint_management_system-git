@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -16,9 +16,12 @@ const schema = yup.object().shape({
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
   const [successMsg, setSuccessMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
@@ -29,7 +32,7 @@ const Login = () => {
     try {
       const response = await api.post('/api/auth/login', data);
       dispatch(loginSuccess(response.data));
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Login failed. Please check credentials.';
       dispatch(loginFailure(errMsg));

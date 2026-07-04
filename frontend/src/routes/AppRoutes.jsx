@@ -29,9 +29,7 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Guest Public Tracker */}
-      <Route path="/track-complaint/:id" element={<ComplaintDetail />} />
-      <Route path="/track" element={<TrackingPage />} />
+
 
       {/* Main Authenticated shell */}
       <Route path="/" element={<MainLayout />}>
@@ -88,6 +86,18 @@ const AppRoutes = () => {
         <Route path="all-complaints" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
             <AllComplaints />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="track" element={
+          <ProtectedRoute>
+            <TrackingPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="track-complaint/:id" element={
+          <ProtectedRoute>
+            <ComplaintDetail />
           </ProtectedRoute>
         } />
 

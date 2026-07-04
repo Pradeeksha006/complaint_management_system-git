@@ -44,6 +44,14 @@ const ChatbotWidget = ({ isOpen, onClose }) => {
     if (text.includes('file draft') || text.includes('new draft') || text.includes('create draft') || text.includes('draft complaint')) {
       setDraftState({ step: 1, title: '', description: '', category: '' });
       reply = 'Sure, let\'s prepare a draft complaint. What is the title of your issue? (e.g. "Broken Water Pipe near Main St")';
+    } else if (text.includes('submit a complaint') || text.includes('file a complaint') || text.includes('how to submit') || text.includes('how to file') || text.includes('register a complaint') || text.includes('report an issue')) {
+      reply = 'To file a complaint: 1. Click on "File Complaint" in the sidebar. 2. Enter a descriptive Title and choose a Category. 3. Pinpoint the location on the map. 4. Upload photos/documents if you have them. 5. Click the "File Complaint" button. If you are offline, you can also ask me to "file draft" to queue it locally!';
+    } else if (text.includes('how to register') || text.includes('create account') || text.includes('register') || text.includes('sign up') || text.includes('signup') || text.includes('create id')) {
+      reply = 'To create an account: 1. Go to the "Sign Up" page. 2. Enter your Full Name, a unique Username, Email address, and Phone Number. 3. Input your Password and confirm it in the "Confirm Password" field. 4. Click "Register" to verify and create your account.';
+    } else if (text.includes('how to login') || text.includes('login') || text.includes('sign in') || text.includes('signin') || text.includes('cannot log in') || text.includes('admin login')) {
+      reply = 'To sign in: 1. Click the "Sign In" link. 2. Provide either your registered username or email. 3. Enter your password. You can click the eye icon inside the input field to double-check spelling. 4. Click "Sign In". For the Admin Superuser, please use the email "pradeeksha006s@gmail.com" with password "pradeeksha2006".';
+    } else if (text.includes('what is this') || text.includes('how does it work') || text.includes('purpose') || text.includes('about') || text.includes('system overview')) {
+      reply = 'The Citizen & Government Complaint Management System (CMS) allows residents to submit local infrastructure or public safety issues directly to specific municipal departments. The admin assigns the ticket, officers update the progress, and you get real-time email alerts!';
     } else if (text.includes('water') || text.includes('drain') || text.includes('sewage') || text.includes('leak') || text.includes('plumb') || text.includes('pipe')) {
       reply = 'The Water Supply & Sewage Department (WT) handles contaminated water supplies, pipe leakages, sewage blockages, no-water conditions, and billing disputes. Please submit a complaint for immediate action.';
     } else if (text.includes('road') || text.includes('pothole') || text.includes('street') || text.includes('highway') || text.includes('bridge') || text.includes('sidewalk')) {
@@ -69,7 +77,7 @@ const ChatbotWidget = ({ isOpen, onClose }) => {
     } else if (text.includes('contact') || text.includes('support') || text.includes('helpline') || text.includes('phone') || text.includes('number')) {
       reply = 'You can reach our system support center at support@cms.gov or email our lead administrator directly at pradeeksha2006@gmail.com for escalation queries.';
     } else {
-      reply = 'I am here to assist! Try asking about: "water supply", "road repairs", "power cut", "how to file anonymously", "offline drafts", "how to track status", "resolution time", or "helpline contact info".';
+      reply = 'I am here to assist! Try asking about: "how to submit a complaint", "how to register", "how to login", "water supply", "road repairs", "offline drafts", or "how to track status".';
     }
 
     setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
