@@ -63,27 +63,27 @@ public class DataInitializer implements CommandLineRunner {
         Optional<User> existingAdminOpt = userRepository.findByUsername("admin");
         if (existingAdminOpt.isPresent()) {
             User admin = existingAdminOpt.get();
-            if (!"pradeeksha006s@gmail.com".equalsIgnoreCase(admin.getEmail())) {
-                admin.setEmail("pradeeksha006s@gmail.com");
+            if (!"pradeeksha2006@gmail.com".equalsIgnoreCase(admin.getEmail())) {
+                admin.setEmail("pradeeksha2006@gmail.com");
                 admin.setEmailVerified(true);
                 admin.setStatus(UserStatus.ACTIVE);
                 userRepository.save(admin);
-                log.info("Updated existing admin user email to pradeeksha006s@gmail.com");
+                log.info("Updated existing admin user email to pradeeksha2006@gmail.com");
             }
         } else {
-            Optional<User> adminByEmail = userRepository.findByEmail("pradeeksha006s@gmail.com");
+            Optional<User> adminByEmail = userRepository.findByEmail("pradeeksha2006@gmail.com");
             if (adminByEmail.isPresent()) {
                 User admin = adminByEmail.get();
                 admin.setRole(Role.ROLE_ADMIN);
                 admin.setStatus(UserStatus.ACTIVE);
                 admin.setEmailVerified(true);
                 userRepository.save(admin);
-                log.info("Promoted user with email pradeeksha006s@gmail.com to ROLE_ADMIN");
+                log.info("Promoted user with email pradeeksha2006@gmail.com to ROLE_ADMIN");
             } else {
                 User admin = User.builder()
                         .username("admin")
                         .password(passwordEncoder.encode("pradeeksha2006"))
-                        .email("pradeeksha006s@gmail.com")
+                        .email("pradeeksha2006@gmail.com")
                         .fullName("Super Admin")
                         .phoneNumber("1234567890")
                         .role(Role.ROLE_ADMIN)
@@ -91,7 +91,7 @@ public class DataInitializer implements CommandLineRunner {
                         .emailVerified(true)
                         .build();
                 userRepository.save(admin);
-                log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha006s@gmail.com'");
+                log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha2006@gmail.com'");
             }
         }
     }
