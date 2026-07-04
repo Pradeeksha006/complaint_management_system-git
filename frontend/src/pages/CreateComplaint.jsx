@@ -53,10 +53,42 @@ const CreateComplaint = () => {
   });
 
   const descriptionWatch = watch('description');
+  const titleWatch = watch('title');
+  const [isManualDeptSelection, setIsManualDeptSelection] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
   }, []);
+
+  // Real-time AI auto-detection of department based on title & description
+  useEffect(() => {
+    if (isManualDeptSelection) return;
+
+    const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
+    if (!content.trim()) return;
+
+    let predictedCode = '';
+    if (content.includes('water') || content.includes('leak') || content.includes('pipe') || content.includes('drain') || content.includes('sewer') || content.includes('plumb') || content.includes('tap') || content.includes('contamination') || content.includes('drainage')) {
+      predictedCode = 'WT';
+    } else if (content.includes('road') || content.includes('pothole') || content.includes('highway') || content.includes('street') || content.includes('bridge') || content.includes('sidewalk') || content.includes('curb') || content.includes('pavement')) {
+      predictedCode = 'RD';
+    } else if (content.includes('electricity') || content.includes('power') || content.includes('wire') || content.includes('spark') || content.includes('transformer') || content.includes('light') || content.includes('voltage') || content.includes('blackout') || content.includes('electrician') || content.includes('shock')) {
+      predictedCode = 'EL';
+    } else if (content.includes('garbage') || content.includes('trash') || content.includes('waste') || content.includes('sanitation') || content.includes('clean') || content.includes('sweeping') || content.includes('dump') || content.includes('litter') || content.includes('overflow')) {
+      predictedCode = 'SN';
+    } else if (content.includes('police') || content.includes('theft') || content.includes('robbery') || content.includes('crime') || content.includes('fight') || content.includes('security') || content.includes('guard') || content.includes('nuisance') || content.includes('assault')) {
+      predictedCode = 'PL';
+    } else if (content.includes('stray') || content.includes('dog') || content.includes('health') || content.includes('mosquito') || content.includes('pest') || content.includes('animal') || content.includes('disease') || content.includes('vet') || content.includes('hygiene') || content.includes('food')) {
+      predictedCode = 'HL';
+    }
+
+    if (predictedCode) {
+      const match = departments.find(d => d.code === predictedCode);
+      if (match) {
+        setSelectedDept(match.id.toString());
+      }
+    }
+  }, [titleWatch, descriptionWatch, departments, isManualDeptSelection]);
 
   const fetchDepartments = async () => {
     try {
@@ -229,7 +261,10 @@ const CreateComplaint = () => {
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
             <select 
               value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
+              onChange={(e) => {
+                setSelectedDept(e.target.value);
+                setIsManualDeptSelection(true); // Stop auto-detect once the user changes it manually
+              }}
               className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
             >
               <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
@@ -245,12 +280,18 @@ const CreateComplaint = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category / Classification</label>
-            <input 
-              type="text"
+            <select 
               {...register('category')}
-              placeholder="e.g. Water Leakage, Potholes, Live Wire"
-              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800 dark:text-white focus:border-blue-500"
-            />
+              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="Water Supply & Sewage" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Water Supply & Sewage</option>
+              <option value="Sanitation & Waste Management" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Sanitation & Waste Management</option>
+              <option value="Electricity & Public Lighting" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Electricity & Public Lighting</option>
+              <option value="Roads & Traffic Infrastructure" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Roads & Traffic Infrastructure</option>
+              <option value="Public Health & Veterinary" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Public Health & Veterinary</option>
+              <option value="Law & Public Security" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Law & Public Security</option>
+              <option value="General Civic Issues" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">General Civic Issues</option>
+            </select>
             {errors.category && <span className="text-xs text-red-500 mt-1 block">{errors.category.message}</span>}
           </div>
 

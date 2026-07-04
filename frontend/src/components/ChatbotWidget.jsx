@@ -41,19 +41,35 @@ const ChatbotWidget = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (text.includes('file draft') || text.includes('new draft') || text.includes('create draft')) {
+    if (text.includes('file draft') || text.includes('new draft') || text.includes('create draft') || text.includes('draft complaint')) {
       setDraftState({ step: 1, title: '', description: '', category: '' });
       reply = 'Sure, let\'s prepare a draft complaint. What is the title of your issue? (e.g. "Broken Water Pipe near Main St")';
-    } else if (text.includes('water')) {
-      reply = 'The Water Department handles sewage blockage, leakages, and water billing disputes.';
-    } else if (text.includes('road') || text.includes('pothole')) {
-      reply = 'Road maintenance deals with potholes, road widening, and street repairs.';
-    } else if (text.includes('electricity') || text.includes('power')) {
-      reply = 'The Electricity Department repairs streetlights, handles live wire hazards, and billing errors.';
-    } else if (text.includes('track') || text.includes('status')) {
-      reply = 'To track a complaint, click on "Track Complaint" in your sidebar, enter the complaint ID (e.g., WT-20260703-0001), and review the real-time timeline.';
+    } else if (text.includes('water') || text.includes('drain') || text.includes('sewage') || text.includes('leak') || text.includes('plumb') || text.includes('pipe')) {
+      reply = 'The Water Supply & Sewage Department (WT) handles contaminated water supplies, pipe leakages, sewage blockages, no-water conditions, and billing disputes. Please submit a complaint for immediate action.';
+    } else if (text.includes('road') || text.includes('pothole') || text.includes('street') || text.includes('highway') || text.includes('bridge') || text.includes('sidewalk')) {
+      reply = 'The Roads & Traffic Infrastructure Department (RD) manages pothole repairs, broken pavements, traffic sign maintenance, road leveling, and water logging on highways.';
+    } else if (text.includes('electricity') || text.includes('power') || text.includes('wire') || text.includes('spark') || text.includes('transformer') || text.includes('light')) {
+      reply = 'The Electricity & Public Lighting Department (EL) resolves street light malfunctions, electrical wire sparks, load shedding, transformer blowouts, and domestic billing errors.';
+    } else if (text.includes('garbage') || text.includes('waste') || text.includes('trash') || text.includes('sanitation') || text.includes('cleaning') || text.includes('litter')) {
+      reply = 'The Sanitation & Waste Management Department (SN) sweeps public roads, cleans local drainage, clears garbage accumulation bins, and fines open dumping violations.';
+    } else if (text.includes('police') || text.includes('security') || text.includes('crime') || text.includes('theft') || text.includes('disturbance') || text.includes('nuisance')) {
+      reply = 'The Law & Public Security Department (PL) coordinates with local police to solve public nuisance, late-night noise pollution, local safety patrols, theft, and illegal parking.';
+    } else if (text.includes('stray') || text.includes('dog') || text.includes('animal') || text.includes('health') || text.includes('mosquito') || text.includes('pest') || text.includes('hygiene') || text.includes('food')) {
+      reply = 'The Public Health & Veterinary Department (HL) conducts pest control/fogging, manages stray animal vaccinations, inspects public food stalls for hygiene, and handles disease control.';
+    } else if (text.includes('anonymous') || text.includes('hide my name') || text.includes('private')) {
+      reply = 'Yes! You can file complaints anonymously. Simply toggle "Anonymous File" on the filing form. Your personal details will be hidden from public and officers, though the Super Admin retains system auditing logs for security.';
+    } else if (text.includes('draft') || text.includes('offline') || text.includes('no internet')) {
+      reply = 'Our system supports offline queueing. If you lose internet connection, your complaint is saved locally as an "Offline Draft". Once you are back online, you can sync and submit all drafts in one tap from the dashboard!';
+    } else if (text.includes('track') || text.includes('status') || text.includes('id') || text.includes('reference')) {
+      reply = 'To track your complaint: 1. Click on "Track Complaint" in the sidebar. 2. Enter your reference ID (e.g. WT-20260704-0001). 3. View the operational timeline. You can also view status logs under "My Complaints" in your dashboard.';
+    } else if (text.includes('how long') || text.includes('time') || text.includes('days') || text.includes('duration')) {
+      reply = 'Typically, complaints are reviewed and routed by the Admin within 24 hours. Officers aim to resolve standard issues (like garbage cleaning or street light repair) within 2-3 business days. Heavy works (like road laying) may take longer.';
+    } else if (text.includes('email') || text.includes('alert') || text.includes('notification')) {
+      reply = 'The system sends automatic email alerts to your registered email address (e.g., when you register, when the admin routes your complaint, when an officer begins working on it, or when it is marked as resolved!).';
+    } else if (text.includes('contact') || text.includes('support') || text.includes('helpline') || text.includes('phone') || text.includes('number')) {
+      reply = 'You can reach our system support center at support@cms.gov or email our lead administrator directly at pradeeksha2006@gmail.com for escalation queries.';
     } else {
-      reply = 'I am not sure I understand that fully. You can try asking about: "water leak", "street light", "road repairs", or say "file draft" to prepare a draft ticket.';
+      reply = 'I am here to assist! Try asking about: "water supply", "road repairs", "power cut", "how to file anonymously", "offline drafts", "how to track status", "resolution time", or "helpline contact info".';
     }
 
     setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
