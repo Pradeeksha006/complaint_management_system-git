@@ -208,9 +208,9 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Checking/Creating MySQL views...");
         try {
             // Create user, admin and officers views
-            jdbcTemplate.execute("CREATE OR REPLACE VIEW users AS SELECT * FROM all_users WHERE role = 'ROLE_CITIZEN'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW users AS SELECT id AS cid, username, password, email, full_name, phone_number, role, status, verification_token, reset_password_token, email_verified, created_at, updated_at FROM all_users WHERE role = 'ROLE_CITIZEN'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW admin AS SELECT * FROM all_users WHERE role = 'ROLE_ADMIN'");
-            jdbcTemplate.execute("CREATE OR REPLACE VIEW officers AS SELECT o.id, o.user_id, o.department_id, d.name AS department_name, o.designation, o.created_at, o.updated_at FROM officer_records o JOIN departments d ON o.department_id = d.id");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW officers AS SELECT o.user_id, o.department_id, d.name AS department_name, o.designation, o.created_at, o.updated_at FROM officer_records o JOIN departments d ON o.department_id = d.id");
             
             // Create department views
             jdbcTemplate.execute("CREATE OR REPLACE VIEW water_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'WT'");
