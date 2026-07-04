@@ -32,7 +32,6 @@ const CreateComplaint = () => {
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState('');
-  const [priority, setPriority] = useState('MEDIUM');
   
   // Geo coordinates state (default center: Mumbai coordinates)
   const [position, setPosition] = useState([19.0760, 72.8777]);
@@ -134,7 +133,6 @@ const CreateComplaint = () => {
       if (selectedDept) {
         formData.append('departmentId', selectedDept);
       }
-      formData.append('priority', priority);
 
       if (uploadedFiles.length > 0) {
         uploadedFiles.forEach(file => {
@@ -165,7 +163,6 @@ const CreateComplaint = () => {
       description: data.description,
       category: data.category,
       departmentId: selectedDept,
-      priority: priority,
       latitude: position[0],
       longitude: position[1],
       address: address,
@@ -228,37 +225,22 @@ const CreateComplaint = () => {
             {errors.title && <span className="text-xs text-red-500 mt-1 block">{errors.title.message}</span>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
-              <select 
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-                  -- Auto-Detect (Let AI Assign) --
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
+            <select 
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                -- Auto-Detect (Let AI Assign) --
+              </option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+                  {d.name}
                 </option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Priority</label>
-              <select 
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="LOW" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Low</option>
-                <option value="MEDIUM" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Medium</option>
-                <option value="HIGH" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">High</option>
-                <option value="CRITICAL" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Critical</option>
-              </select>
-            </div>
+              ))}
+            </select>
           </div>
 
           <div>

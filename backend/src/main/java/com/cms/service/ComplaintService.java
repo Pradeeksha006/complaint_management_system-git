@@ -67,12 +67,8 @@ public class ComplaintService {
                     .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
         }
 
-        Priority priority;
-        if (priorityStr == null || priorityStr.isBlank()) {
-            priority = AiHelper.predictPriority(title, description);
-        } else {
-            priority = Priority.valueOf(priorityStr.toUpperCase());
-        }
+        // Always predict priority automatically using AI
+        Priority priority = AiHelper.predictPriority(title, description);
 
         // 3. Generate Complaint ID: e.g. WT-20260703-0001
         String complaintId = generateComplaintId(dept.getCode());
