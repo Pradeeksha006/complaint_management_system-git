@@ -172,7 +172,6 @@ const OfficerManagement = () => {
                     <th className="px-6 py-3">User</th>
                     <th className="px-6 py-3">Department</th>
                     <th className="px-6 py-3">Designation</th>
-                    <th className="px-6 py-3">Role</th>
                     <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
@@ -183,7 +182,9 @@ const OfficerManagement = () => {
                       <td className="px-6 py-4 font-mono text-xs font-bold text-purple-600 dark:text-purple-400">
                         {u.role === 'ROLE_DEPT_HEAD' 
                           ? `DEPT-HEAD-${String(u.id).padStart(4, '0')}` 
-                          : `OFFICER-${String(u.id).padStart(4, '0')}`}
+                          : `${u.designation && u.designation !== 'N/A' 
+                              ? u.designation.toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/-$/, '').replace(/^-/, '') 
+                              : 'OFFICER'}-${String(u.id).padStart(4, '0')}`}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -196,15 +197,6 @@ const OfficerManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-slate-550 dark:text-slate-400 text-xs">
                         {u.designation}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                          u.role === 'ROLE_DEPT_HEAD' 
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/20 dark:text-purple-400' 
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950/20 dark:text-blue-400'
-                        }`}>
-                          {u.role.replace('ROLE_', '').replace('_', ' ')}
-                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
