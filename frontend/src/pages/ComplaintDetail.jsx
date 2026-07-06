@@ -342,7 +342,7 @@ const ComplaintDetail = () => {
           </div>
 
           {/* Feedback Form for Citizen */}
-          {user?.role === 'ROLE_CITIZEN' && complaint.status === 'RESOLVED' && !complaint.feedback && (
+          {(user?.role === 'ROLE_CITIZEN' || user?.role === 'ROLE_ADMIN') && complaint.status === 'RESOLVED' && !complaint.feedback && (
             <div className="rounded-xl border border-blue-200 bg-blue-50/20 p-6 dark:border-blue-900/30">
               <h4 className="text-sm font-bold text-blue-800 dark:text-blue-400">Submit Resolution Review</h4>
               <p className="text-xs text-blue-600 dark:text-blue-500 mt-1 leading-relaxed">
