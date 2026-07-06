@@ -167,6 +167,51 @@ public class UserService {
     }
 
     @Transactional
+    public OfficerDto createNewOfficer(com.cms.dto.OfficerCreationRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new BadRequestException("Username already exists");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new BadRequestException("Email already exists");
+        }
+
+        Department dept = departmentRepository.findById(request.getDepartmentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber())
+                .role(Role.ROLE_OFFICER)
+                .status(UserStatus.ACTIVE)
+                .emailVerified(true)
+                .securityPin(request.getSecurityPin() != null && !request.getSecurityPin().isBlank() 
+                             ? request.getSecurityPin() : "123456")
+                .build();
+        User savedUser = userRepository.save(user);
+
+        Officer officer = new Officer();
+        officer.setUser(savedUser);
+        officer.setDepartment(dept);
+        officer.setDesignation(request.getDesignation());
+        
+        Officer savedOfficer = officerRepository.save(officer);
+
+        // Save Audit Log
+        AuditLog audit = AuditLog.builder()
+                .user(savedUser)
+                .action("CREATE_OFFICER")
+                .details("Created new Officer account: " + request.getUsername() + " in department: " + dept.getName())
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(audit);
+
+        return MapperUtils.toDto(savedOfficer);
+    }
+
+    @Transactional
     public void promoteToDeptHead(Long officerId) {
         Officer officer = officerRepository.findById(officerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Officer not found"));

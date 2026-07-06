@@ -34,6 +34,11 @@ public class UserController {
         return ResponseEntity.ok(userService.createOfficer(userId, departmentId, designation));
     }
 
+    @PostMapping("/officers/create")
+    public ResponseEntity<OfficerDto> createNewOfficer(@RequestBody com.cms.dto.OfficerCreationRequest request) {
+        return ResponseEntity.ok(userService.createNewOfficer(request));
+    }
+
     @PutMapping("/{id}/status")
     public ResponseEntity<Void> updateStatus(@PathVariable Long id, @RequestParam String status) {
         userService.updateUserStatus(id, status);

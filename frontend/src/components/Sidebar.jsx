@@ -80,7 +80,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">CMS Portal</h2>
+            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">CM</h2>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Govt & Org</p>
           </div>
         </div>
@@ -128,7 +128,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Footer info */}
         <div className="mt-auto px-2 text-[10px] font-medium text-slate-400 text-center">
-          <p>System Version 1.0.0</p>
+          <p>For the CIVIC</p>
         </div>
       </aside>
     </>
