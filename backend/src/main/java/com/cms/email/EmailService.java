@@ -128,6 +128,30 @@ public class EmailService {
         sendEmail(email, "Complaint Closed: " + complaintId, content);
     }
 
+    public void sendNearDeadlineAlert(String adminEmail, String complaintId, String title, String remainingTime, String deptName) {
+        String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
+        String content = getEmailTemplate(
+            "SLA Deadline Warning",
+            "Dear Admin,",
+            "The complaint <strong>" + complaintId + "</strong> (Title: " + title + ") assigned to the <strong>" + deptName + "</strong> department is approaching its deadline. There is approximately " + remainingTime + " remaining.",
+            trackUrl,
+            "Inspect Complaint"
+        );
+        sendEmail(adminEmail, "SLA WARNING: " + complaintId + " approaching deadline", content);
+    }
+
+    public void sendDeadlinePassedApologyEmail(String citizenEmail, String name, String complaintId, String title) {
+        String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
+        String content = getEmailTemplate(
+            "Apology: SLA Resolution Deadline Exceeded",
+            "Dear " + name + ",",
+            "We sincerely apologize. Your complaint <strong>" + complaintId + "</strong> (Title: " + title + ") has exceeded our target resolution SLA. Our department heads are actively prioritizing this case to resolve it as quickly as possible. Thank you for your continued patience.",
+            trackUrl,
+            "Track Complaint"
+        );
+        sendEmail(citizenEmail, "Apology: Resolution delay for complaint " + complaintId, content);
+    }
+
     private String getEmailTemplate(String title, String salutation, String message, String actionUrl, String actionText) {
         return """
         <!DOCTYPE html>

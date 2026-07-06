@@ -71,6 +71,17 @@ public class Complaint {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    @Column(name = "deadline")
+    private LocalDateTime deadline;
+
+    @Column(name = "near_deadline_alert_sent", nullable = false)
+    @Builder.Default
+    private boolean nearDeadlineAlertSent = false;
+
+    @Column(name = "over_deadline_alert_sent", nullable = false)
+    @Builder.Default
+    private boolean overDeadlineAlertSent = false;
+
     @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @ToString.Exclude

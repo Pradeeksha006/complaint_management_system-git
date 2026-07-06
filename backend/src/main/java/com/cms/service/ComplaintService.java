@@ -73,6 +73,16 @@ public class ComplaintService {
         // 3. Generate Complaint ID: e.g. WT-20260703-0001
         String complaintId = generateComplaintId(dept.getCode());
 
+        // SLA deadline calculation based on priority
+        LocalDateTime deadline = LocalDateTime.now();
+        if (priority == Priority.HIGH || priority == Priority.CRITICAL) {
+            deadline = deadline.plusDays(1); // 24 hours
+        } else if (priority == Priority.MEDIUM) {
+            deadline = deadline.plusDays(3); // 3 days
+        } else {
+            deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
+        }
+
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
                 .citizen(citizen)
@@ -86,6 +96,7 @@ public class ComplaintService {
                 .longitude(longitude)
                 .address(address)
                 .isAnonymous(isAnonymous)
+                .deadline(deadline)
                 .attachments(new ArrayList<>())
                 .build();
 

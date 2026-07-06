@@ -212,6 +212,10 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute("CREATE OR REPLACE VIEW admin AS SELECT * FROM all_users WHERE role = 'ROLE_ADMIN'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW officers AS SELECT o.user_id, o.department_id, d.name AS department_name, o.designation, o.created_at, o.updated_at FROM officer_records o JOIN departments d ON o.department_id = d.id");
             
+            // Create resolved and pending complaints views
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW resolved_complaints AS SELECT * FROM complaints WHERE status IN ('RESOLVED', 'CLOSED')");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW pending_complaints AS SELECT * FROM complaints WHERE status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')");
+
             // Create department views
             jdbcTemplate.execute("CREATE OR REPLACE VIEW water_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'WT'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW sanitation_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'SN'");

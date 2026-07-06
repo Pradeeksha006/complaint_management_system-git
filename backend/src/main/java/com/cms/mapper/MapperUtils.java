@@ -100,9 +100,21 @@ public class MapperUtils {
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())
                 .resolvedAt(c.getResolvedAt())
+                .deadline(c.getDeadline())
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())
+                .build();
+    }
+
+    public static NotificationDto toDto(Notification notification) {
+        if (notification == null) return null;
+        return NotificationDto.builder()
+                .id(notification.getId())
+                .userId(notification.getUserId())
+                .message(notification.getMessage())
+                .isRead(notification.isRead())
+                .createdAt(notification.getCreatedAt())
                 .build();
     }
 }
