@@ -177,6 +177,30 @@ const OfficerDashboard = () => {
                       <h4 className="text-md font-bold text-slate-800 dark:text-white mt-2">{c.title}</h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{c.description}</p>
                       <p className="text-[10px] text-slate-400 mt-2">Location: {c.address || 'Not specified'}</p>
+                      
+                      {/* Direct inline attachments preview */}
+                      {c.attachments && c.attachments.length > 0 && (
+                        <div className="flex gap-2 mt-3 overflow-x-auto py-1 shrink-0">
+                          {c.attachments.map((att) => (
+                            <a 
+                              key={att.id}
+                              href={att.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group hover:border-blue-500 transition-colors"
+                              title="Click to view file"
+                            >
+                              {att.fileType === 'IMAGE' ? (
+                                <img src={att.fileUrl} alt="Preview" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-[9px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-850">
+                                  {att.fileType}
+                                </div>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex sm:flex-col items-start sm:items-end gap-3 shrink-0">

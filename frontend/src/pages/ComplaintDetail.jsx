@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { QRCodeSVG } from 'qrcode.react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X
+  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 const ComplaintDetail = () => {
   const { id } = useParams();
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
 
   const [complaint, setComplaint] = useState(null);
   const [timeline, setTimeline] = useState([]);
@@ -24,9 +25,73 @@ const ComplaintDetail = () => {
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
+  // Modify / Delete states
+  const [departments, setDepartments] = useState([]);
+  const [timeRemaining, setTimeRemaining] = useState(null); // in seconds
+  const [selectedDeptId, setSelectedDeptId] = useState('');
+  const [modifying, setModifying] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     fetchDetail();
-  }, [id]);
+    if (user?.role === 'ROLE_CITIZEN') {
+      fetchDepartments();
+    }
+  }, [id, user]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/api/departments');
+      setDepartments(res.data);
+    } catch (err) {
+      console.error('Failed to load departments', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!complaint) return;
+    setSelectedDeptId(complaint.departmentId);
+
+    const calculateTimeRemaining = () => {
+      const createdTime = new Date(complaint.createdAt).getTime();
+      const now = new Date().getTime();
+      const diff = Math.max(0, 300 - Math.floor((now - createdTime) / 1000)); // 5 minutes limit
+      setTimeRemaining(diff);
+    };
+
+    calculateTimeRemaining();
+    const interval = setInterval(calculateTimeRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [complaint]);
+
+  const handleModifyDepartment = async () => {
+    setModifying(true);
+    try {
+      await api.put(`/api/complaints/${id}/modify-department?departmentId=${selectedDeptId}`);
+      alert('Department updated successfully!');
+      fetchDetail();
+    } catch (err) {
+      alert('Failed to modify department: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setModifying(false);
+    }
+  };
+
+  const handleDeleteComplaint = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete this complaint? This action cannot be undone.')) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete(`/api/complaints/${id}`);
+      alert('Complaint deleted successfully!');
+      navigate('/dashboard');
+    } catch (err) {
+      alert('Failed to delete complaint: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const fetchDetail = async () => {
     try {
@@ -192,6 +257,57 @@ const ComplaintDetail = () => {
 
         {/* Sidebar: QR tracking & Timeline & Feedback */}
         <div className="space-y-6">
+          
+          {/* Citizen Edit/Delete panel */}
+          {user?.role === 'ROLE_CITIZEN' && complaint.citizenId === user.id && (
+            <>
+              {timeRemaining > 0 ? (
+                <div className="rounded-xl border border-blue-200 bg-blue-50/10 p-5 dark:border-blue-900/30 space-y-3">
+                  <h4 className="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wider">Modify Complaint</h4>
+                  <p className="text-[11px] text-blue-600 dark:text-blue-500 leading-relaxed font-medium">
+                    You can change the target department if this complaint was routed incorrectly.
+                  </p>
+                  <div className="text-xs font-bold text-amber-600 dark:text-amber-500 flex items-center gap-1.5 animate-pulse">
+                    <Clock className="h-4 w-4 animate-spin-slow" />
+                    Time remaining: {Math.floor(timeRemaining / 60)}m {timeRemaining % 60}s
+                  </div>
+                  <div className="space-y-2 mt-2">
+                    <select
+                      value={selectedDeptId}
+                      onChange={(e) => setSelectedDeptId(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-850 dark:text-white focus:ring-1 focus:ring-blue-500"
+                    >
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleModifyDepartment}
+                      disabled={modifying}
+                      className="w-full rounded-lg bg-blue-600 py-2.5 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md shadow-blue-500/10"
+                    >
+                      {modifying ? 'Updating...' : 'Update Department'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-red-200 bg-red-50/15 p-5 dark:border-red-950/20 space-y-3">
+                  <h4 className="text-xs font-bold text-red-800 dark:text-red-400 uppercase tracking-wider">Delete Complaint</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                    The 5-minute modification window has expired. If this complaint is no longer valid, you can permanently delete it.
+                  </p>
+                  <button
+                    onClick={handleDeleteComplaint}
+                    disabled={deleting}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-red-650 py-2.5 text-xs font-bold text-white hover:bg-red-750 transition-colors shadow-md shadow-red-500/10"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete Complaint Permanently'}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
           {/* QR code and tracking link */}
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 text-center flex flex-col items-center">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Mobile Scan Tracking</h4>

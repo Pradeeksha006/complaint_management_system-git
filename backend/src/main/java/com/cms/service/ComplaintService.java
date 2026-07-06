@@ -79,7 +79,7 @@ public class ComplaintService {
                 .department(dept)
                 .title(title)
                 .description(description)
-                .category(category)
+                .category(dept.getName())
                 .priority(priority)
                 .status(ComplaintStatus.SUBMITTED)
                 .latitude(latitude)
@@ -325,5 +325,71 @@ public class ComplaintService {
                 .updatedBy(user)
                 .build();
         timelineRepository.save(event);
+    }
+
+    @Transactional
+    public ComplaintDto modifyDepartment(String id, Long departmentId) {
+        Complaint complaint = complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
+
+        String currentUsername = SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new BadRequestException("Unauthenticated user cannot modify complaint"));
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Check if user is the owner of the complaint
+        if (complaint.getCitizen() == null || !complaint.getCitizen().getId().equals(user.getId())) {
+            throw new BadRequestException("You are not authorized to modify this complaint");
+        }
+
+        // Check 5 minutes limit
+        if (LocalDateTime.now().isAfter(complaint.getCreatedAt().plusMinutes(5))) {
+            throw new BadRequestException("Complaints can only be modified within 5 minutes of filing");
+        }
+
+        Department newDept = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
+        complaint.setDepartment(newDept);
+        complaint.setCategory(newDept.getName());
+        complaint = complaintRepository.save(complaint);
+
+        // Add a timeline event
+        saveTimelineEvent(complaint, "MODIFIED", "Citizen modified the department assignment to: " + newDept.getName(), user);
+
+        return MapperUtils.toDto(complaint);
+    }
+
+    @Transactional
+    public void deleteComplaint(String id) {
+        Complaint complaint = complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
+
+        String currentUsername = SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new BadRequestException("Unauthenticated user cannot delete complaint"));
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Check authorization (only the owner citizen or an Admin can delete)
+        if (user.getRole() != Role.ROLE_ADMIN) {
+            if (complaint.getCitizen() == null || !complaint.getCitizen().getId().equals(user.getId())) {
+                throw new BadRequestException("You are not authorized to delete this complaint");
+            }
+            
+            // Check 5 minutes limit: only allow deletion AFTER 5 minutes!
+            if (LocalDateTime.now().isBefore(complaint.getCreatedAt().plusMinutes(5))) {
+                throw new BadRequestException("Complaints can only be deleted after 5 minutes of filing");
+            }
+        }
+
+        // Programmatically delete timeline and feedback first
+        Optional<Feedback> feedback = feedbackRepository.findByComplaintId(id);
+        feedback.ifPresent(feedbackRepository::delete);
+
+        List<Timeline> timelines = timelineRepository.findByComplaintIdOrderByCreatedAtAsc(id);
+        timelineRepository.deleteAll(timelines);
+        
+        // Delete the complaint (attachments are cascaded via orphanRemoval = true)
+        complaintRepository.delete(complaint);
     }
 }

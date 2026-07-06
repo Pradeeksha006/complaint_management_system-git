@@ -25,7 +25,6 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const schema = yup.object().shape({
   title: yup.string().min(5, 'Title must be at least 5 characters').required('Title is required'),
   description: yup.string().min(10, 'Description must be at least 10 characters').required('Description is required'),
-  category: yup.string().required('Category is required'),
 });
 
 const CreateComplaint = () => {
@@ -157,7 +156,7 @@ const CreateComplaint = () => {
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('description', data.description);
-      formData.append('category', data.category);
+      formData.append('category', 'Auto');
       formData.append('isAnonymous', 'false');
       formData.append('latitude', position[0].toString());
       formData.append('longitude', position[1].toString());
@@ -193,7 +192,7 @@ const CreateComplaint = () => {
     const draft = {
       title: data.title,
       description: data.description,
-      category: data.category,
+      category: 'Auto',
       departmentId: selectedDept,
       latitude: position[0],
       longitude: position[1],
@@ -279,23 +278,6 @@ const CreateComplaint = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category / Classification</label>
-            <select 
-              {...register('category')}
-              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="Water Supply & Sewage" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Water Supply & Sewage</option>
-              <option value="Sanitation & Waste Management" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Sanitation & Waste Management</option>
-              <option value="Electricity & Public Lighting" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Electricity & Public Lighting</option>
-              <option value="Roads & Traffic Infrastructure" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Roads & Traffic Infrastructure</option>
-              <option value="Public Health & Veterinary" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Public Health & Veterinary</option>
-              <option value="Law & Public Security" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Law & Public Security</option>
-              <option value="General Civic Issues" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">General Civic Issues</option>
-            </select>
-            {errors.category && <span className="text-xs text-red-500 mt-1 block">{errors.category.message}</span>}
-          </div>
-
-          <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detailed Description</label>
               <button 
@@ -373,10 +355,14 @@ const CreateComplaint = () => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Resolved Address</label>
-              <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed bg-slate-50 dark:bg-slate-800 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                {address || 'Double-click map to pinpoint location details'}
-              </p>
+              <label className="block text-[10px] font-bold text-slate-450 uppercase mb-2">Location Address / Landmark Details (Editable)</label>
+              <textarea 
+                rows={3}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Click GPS Location above, select on map, or type address details manually here..."
+                className="w-full text-xs text-slate-800 dark:text-white font-medium leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:border-blue-500 outline-none"
+              />
             </div>
           </div>
 

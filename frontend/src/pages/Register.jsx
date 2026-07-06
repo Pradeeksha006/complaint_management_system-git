@@ -114,7 +114,7 @@ const Register = () => {
                 <input 
                   type="text"
                   {...register('username')}
-                  placeholder="Enter Your Name"
+                  placeholder="Enter Your Username"
                   className={`w-full rounded-xl border bg-slate-950/40 py-3 pl-11 pr-4 text-sm outline-none transition-all text-white border-slate-800/80 ${
                     errors.username 
                       ? 'border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 

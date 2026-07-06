@@ -270,12 +270,36 @@ const DeptHeadDashboard = () => {
                         }`}>
                           {c.priority}
                         </span>
-                        <span className="text-xs text-slate-400 font-medium">Category: {c.category}</span>
                       </div>
                       <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">{c.title}</h4>
                       <p className="text-xs text-slate-600 dark:text-slate-355">{c.description}</p>
                       {c.address && <p className="text-[10px] text-slate-400 mt-1">Address: {c.address}</p>}
-                      <p className="text-[10px] text-slate-450">Filed: {new Date(c.createdAt).toLocaleString()}</p>
+                      
+                      {/* Direct inline attachments preview */}
+                      {c.attachments && c.attachments.length > 0 && (
+                        <div className="flex gap-2 mt-3 overflow-x-auto py-1 shrink-0">
+                          {c.attachments.map((att) => (
+                            <a 
+                              key={att.id}
+                              href={att.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group hover:border-blue-500 transition-colors"
+                              title="Click to view file"
+                            >
+                              {att.fileType === 'IMAGE' ? (
+                                <img src={att.fileUrl} alt="Preview" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-[9px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-850">
+                                  {att.fileType}
+                                </div>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <p className="text-[10px] text-slate-450 mt-2">Filed: {new Date(c.createdAt).toLocaleString()}</p>
                     </div>
 
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase ${

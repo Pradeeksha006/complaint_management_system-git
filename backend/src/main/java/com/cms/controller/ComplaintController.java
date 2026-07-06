@@ -91,4 +91,17 @@ public class ComplaintController {
             @RequestParam("remarks") String remarks) {
         return ResponseEntity.ok(complaintService.transferComplaint(id, targetDeptId, remarks));
     }
+
+    @PutMapping("/{id}/modify-department")
+    public ResponseEntity<ComplaintDto> modifyDepartment(
+            @PathVariable String id,
+            @RequestParam("departmentId") Long departmentId) {
+        return ResponseEntity.ok(complaintService.modifyDepartment(id, departmentId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteComplaint(@PathVariable String id) {
+        complaintService.deleteComplaint(id);
+        return ResponseEntity.noContent().build();
+    }
 }
