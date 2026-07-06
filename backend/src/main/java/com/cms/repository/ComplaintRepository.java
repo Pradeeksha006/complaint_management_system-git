@@ -52,4 +52,10 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
 
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     long countByResolvedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    long countByDepartmentId(Long departmentId);
+    long countByDepartmentIdAndStatus(Long departmentId, ComplaintStatus status);
+    long countByDepartmentIdAndPriority(Long departmentId, com.cms.entity.Priority priority);
+    long countByDepartmentIdAndStatusNotAndDeadlineBetween(Long departmentId, ComplaintStatus status, LocalDateTime start, LocalDateTime end);
+    long countByDepartmentIdAndStatusNotAndDeadlineBefore(Long departmentId, ComplaintStatus status, LocalDateTime deadline);
 }

@@ -52,8 +52,8 @@ const ResetPassword = () => {
         
         {/* Header */}
         <div className="flex flex-col items-center mb-6">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-            <Sparkles className="h-6 w-6" />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 font-black text-xs">
+            CMS
           </div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Verify Recovery</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center font-medium">

@@ -38,6 +38,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       case 'ROLE_DEPT_HEAD':
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Total Complaints', path: '/dept-statistics', icon: ClipboardList },
           { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'ROLE_ADMIN':
@@ -76,11 +77,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20">
-            <Sparkles className="h-5 w-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20 font-black text-xs">
+            CMS
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">CM</h2>
+            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">CMS</h2>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Govt & Org</p>
           </div>
         </div>

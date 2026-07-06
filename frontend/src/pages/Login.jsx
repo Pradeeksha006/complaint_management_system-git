@@ -51,8 +51,8 @@ const Login = () => {
         
         {/* Logo/Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-transform duration-200">
-            <Sparkles className="h-7 w-7" />
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-transform duration-200 font-black text-sm">
+            CMS
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Welcome back</h2>
           <p className="text-sm text-slate-400 mt-1.5 font-medium">Sign in to your CMS account</p>

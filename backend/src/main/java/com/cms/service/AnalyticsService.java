@@ -2,6 +2,8 @@ package com.cms.service;
 
 import com.cms.repository.ComplaintRepository;
 import com.cms.repository.FeedbackRepository;
+import com.cms.repository.UserRepository;
+import com.cms.repository.OfficerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,8 @@ public class AnalyticsService {
 
     private final ComplaintRepository complaintRepository;
     private final FeedbackRepository feedbackRepository;
+    private final UserRepository userRepository;
+    private final OfficerRepository officerRepository;
 
     @Transactional(readOnly = true)
     public Map<String, Object> getDashboardStats() {
@@ -135,5 +139,76 @@ public class AnalyticsService {
         stats.put("monthlyTrends", monthlyTrends);
 
         return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDepartmentStats(Long departmentId) {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Total
+        long total = complaintRepository.countByDepartmentId(departmentId);
+        stats.put("totalComplaints", total);
+
+        // Status Counts
+        long submitted = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.SUBMITTED);
+        long assigned = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.ASSIGNED);
+        long accepted = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.ACCEPTED);
+        long inProgress = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.IN_PROGRESS);
+        long waiting = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.WAITING_FOR_CITIZEN);
+        long escalated = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.ESCALATED);
+        
+        long resolved = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.RESOLVED);
+        long closed = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.CLOSED);
+        long rejected = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.REJECTED);
+
+        stats.put("pendingComplaints", submitted + assigned + accepted + waiting + escalated);
+        stats.put("inProgressComplaints", inProgress);
+        stats.put("resolvedComplaints", resolved + closed);
+        stats.put("rejectedComplaints", rejected);
+
+        // Priority Counts
+        long low = complaintRepository.countByDepartmentIdAndPriority(departmentId, com.cms.entity.Priority.LOW);
+        long medium = complaintRepository.countByDepartmentIdAndPriority(departmentId, com.cms.entity.Priority.MEDIUM);
+        long high = complaintRepository.countByDepartmentIdAndPriority(departmentId, com.cms.entity.Priority.HIGH);
+        stats.put("lowPriority", low);
+        stats.put("mediumPriority", medium);
+        stats.put("highPriority", high);
+
+        // Deadline
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime next24Hours = now.plusHours(24);
+        long nearDeadline = complaintRepository.countByDepartmentIdAndStatusNotAndDeadlineBetween(
+                departmentId,
+                com.cms.entity.ComplaintStatus.RESOLVED,
+                now,
+                next24Hours
+        );
+        long overdue = complaintRepository.countByDepartmentIdAndStatusNotAndDeadlineBefore(
+                departmentId,
+                com.cms.entity.ComplaintStatus.RESOLVED,
+                now
+        );
+        stats.put("nearDeadline", nearDeadline);
+        stats.put("overdue", overdue);
+
+        return stats;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDepartmentStatsForCurrentUser() {
+        String username = com.cms.security.SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new com.cms.exception.BadRequestException("Not authenticated"));
+        
+        com.cms.entity.User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.cms.exception.ResourceNotFoundException("User not found"));
+
+        if (user.getRole() != com.cms.entity.Role.ROLE_DEPT_HEAD && user.getRole() != com.cms.entity.Role.ROLE_OFFICER) {
+            throw new com.cms.exception.BadRequestException("Only department heads/officers can fetch department analytics");
+        }
+
+        com.cms.entity.Officer officer = officerRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new com.cms.exception.ResourceNotFoundException("Officer details not found"));
+
+        return getDepartmentStats(officer.getDepartment().getId());
     }
 }

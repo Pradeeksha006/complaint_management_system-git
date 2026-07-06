@@ -17,6 +17,7 @@ import DepartmentManagement from '../pages/DepartmentManagement';
 import AuditLogs from '../pages/AuditLogs';
 import AllComplaints from '../pages/AllComplaints';
 import DeptHeadDashboard from '../pages/DeptHeadDashboard';
+import DeptStatistics from '../pages/DeptStatistics';
 import { Error404, Error403 } from '../pages/ErrorPages';
 import MainLayout from '../layouts/MainLayout';
 import ProtectedRoute from './ProtectedRoute';
@@ -99,6 +100,12 @@ const AppRoutes = () => {
         <Route path="department-control" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
             <DeptHeadDashboard />
+          </ProtectedRoute>
+        } />
+
+        <Route path="dept-statistics" element={
+          <ProtectedRoute allowedRoles={['ROLE_DEPT_HEAD']}>
+            <DeptStatistics />
           </ProtectedRoute>
         } />
         

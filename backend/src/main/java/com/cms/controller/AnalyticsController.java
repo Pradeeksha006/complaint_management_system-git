@@ -20,4 +20,9 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(analyticsService.getDashboardStats());
     }
+
+    @GetMapping("/department")
+    public ResponseEntity<Map<String, Object>> getDepartmentStats() {
+        return ResponseEntity.ok(analyticsService.getDepartmentStatsForCurrentUser());
+    }
 }
