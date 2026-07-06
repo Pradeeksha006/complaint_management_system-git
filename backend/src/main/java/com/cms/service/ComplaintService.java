@@ -392,4 +392,29 @@ public class ComplaintService {
         // Delete the complaint (attachments are cascaded via orphanRemoval = true)
         complaintRepository.delete(complaint);
     }
+
+    @Transactional
+    public ComplaintDto autoRouteComplaint(String id) {
+        Complaint complaint = complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
+
+        String predictedCode = AiHelper.predictDepartment(complaint.getTitle(), complaint.getDescription());
+        Department targetDept = departmentRepository.findByCode(predictedCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Predicted department not found"));
+
+        String currentUsername = SecurityUtils.getCurrentUsername().orElse("System");
+        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
+
+        String prevDeptName = complaint.getDepartment().getName();
+        complaint.setDepartment(targetDept);
+        complaint.setCategory(targetDept.getName());
+        complaint.setAssignedOfficer(null);
+        complaint.setStatus(ComplaintStatus.SUBMITTED);
+
+        Complaint saved = complaintRepository.save(complaint);
+
+        saveTimelineEvent(saved, "TRANSFERRED", "AI Auto-Routed complaint from " + prevDeptName + " to " + targetDept.getName() + " based on content analysis.", currentUser);
+
+        return MapperUtils.toDto(saved);
+    }
 }

@@ -104,4 +104,9 @@ public class ComplaintController {
         complaintService.deleteComplaint(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/auto-route")
+    public ResponseEntity<ComplaintDto> autoRoute(@PathVariable String id) {
+        return ResponseEntity.ok(complaintService.autoRouteComplaint(id));
+    }
 }

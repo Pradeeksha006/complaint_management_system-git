@@ -340,29 +340,6 @@ const DeptHeadDashboard = () => {
                               <option value="RESOLVED" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">Resolved</option>
                             </select>
                           </div>
-
-                          {/* Officer Assignment Dropdown */}
-                          {(c.status === 'SUBMITTED' || c.status === 'ASSIGNED' || c.status === 'IN_PROGRESS') && (
-                            <div className="flex gap-2">
-                              <select 
-                                value={assigningTo[c.id] || ''}
-                                onChange={(e) => setAssigningTo({ ...assigningTo, [c.id]: e.target.value })}
-                                className="rounded border border-slate-200 bg-transparent px-2 py-1 text-xs dark:border-slate-800 dark:text-white"
-                              >
-                                <option value="">Select Officer...</option>
-                                {officers.map(o => (
-                                  <option key={o.id} value={o.id}>{o.fullName} ({o.designation})</option>
-                                ))}
-                              </select>
-                              <button 
-                                disabled={actioningId === c.id}
-                                onClick={() => handleAssign(c.id)}
-                                className="rounded bg-blue-600 px-3 py-1 text-xs font-bold text-white hover:bg-blue-700 disabled:bg-blue-400"
-                              >
-                                Assign
-                              </button>
-                            </div>
-                          )}
                         </>
                       )}
                     </div>

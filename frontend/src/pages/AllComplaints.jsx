@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList
+  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles
 } from 'lucide-react';
 
 const AllComplaints = () => {
@@ -47,6 +47,19 @@ const AllComplaints = () => {
       alert('Department transferred successfully!');
     } catch (err) {
       alert('Failed to transfer department: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleAiAutoRoute = async (complaintId) => {
+    try {
+      setUpdatingId(complaintId);
+      const res = await api.put(`/api/complaints/${complaintId}/auto-route`);
+      setComplaints(prev => prev.map(c => c.id === complaintId ? res.data : c));
+      alert(`AI automatically routed the complaint to: ${res.data.departmentName}`);
+    } catch (err) {
+      alert('AI Auto-Routing failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setUpdatingId(null);
     }
@@ -187,18 +200,27 @@ const AllComplaints = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           <Building2 className="h-3.5 w-3.5 text-slate-400" />
                           <select
                             disabled={updatingId === c.id}
                             value={c.departmentId || ''}
                             onChange={(e) => handleDeptTransfer(c.id, Number(e.target.value))}
-                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[200px] focus:ring-1 focus:ring-blue-500"
+                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[180px] focus:ring-1 focus:ring-blue-500"
                           >
                             {departments.map((d) => (
                               <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
                             ))}
                           </select>
+                          <button
+                            disabled={updatingId === c.id}
+                            onClick={() => handleAiAutoRoute(c.id)}
+                            className="inline-flex items-center gap-1 rounded bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-1.5 text-xs font-bold transition-colors"
+                            title="Auto-route this complaint to the department predicted by AI"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            AI Route
+                          </button>
                         </div>
                       </td>
                     </tr>
