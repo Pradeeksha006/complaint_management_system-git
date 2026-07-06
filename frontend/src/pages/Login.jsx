@@ -40,34 +40,33 @@ const Login = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-tr from-slate-50 via-blue-50/20 to-purple-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-purple-950/20 px-4 overflow-hidden">
+    <div className="premium-dark-bg flex min-h-screen items-center justify-center px-4 overflow-hidden py-12">
       
-      {/* Background blobs */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 rounded-full bg-blue-400/20 dark:bg-blue-600/10 blur-3xl animate-blob" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-purple-400/20 dark:bg-purple-600/10 blur-3xl animate-blob animation-delay-2000" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10 h-80 w-80 rounded-full bg-pink-400/10 dark:bg-pink-600/5 blur-3xl animate-blob animation-delay-4000" />
+      {/* Extra floating background depth layers */}
+      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-blue-500/10 blur-[130px] animate-blob" />
+      <div className="absolute bottom-1/4 right-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-[150px] animate-blob animation-delay-2000" />
 
       {/* Login Card */}
-      <div className="w-full max-w-md rounded-2xl border border-white/20 dark:border-slate-800/80 glass p-8 shadow-2xl transition-all duration-300 hover:shadow-blue-500/5 dark:hover:shadow-purple-500/5">
+      <div className="w-full max-w-md rounded-3xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.55)] transition-all duration-300 hover:border-slate-700/60">
         
         {/* Logo/Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 dark:shadow-blue-900/30 transform hover:scale-105 transition-transform duration-200">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-transform duration-200">
             <Sparkles className="h-7 w-7" />
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-slate-800 to-slate-900 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">Welcome back</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">Sign in to your CMS account</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-white">Welcome back</h2>
+          <p className="text-sm text-slate-400 mt-1.5 font-medium">Sign in to your CMS account</p>
         </div>
 
         {/* Feedback Messages */}
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400 border border-red-500/20 animate-pulse">
+          <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-455 border border-red-500/20 animate-pulse">
             <ShieldAlert className="h-5 w-5 shrink-0" />
             <p className="font-semibold">{error}</p>
           </div>
         )}
         {successMsg && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-500/10 p-4 text-sm text-green-600 dark:text-green-400 border border-green-500/20">
+          <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-500/10 p-4 text-sm text-green-455 border border-green-500/20">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
             <p className="font-semibold">{successMsg}</p>
           </div>
@@ -76,63 +75,63 @@ const Login = () => {
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="group">
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 transition-colors group-focus-within:text-blue-500">Username or Email</label>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 transition-colors group-focus-within:text-blue-400">Username or Email</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 transition-colors group-focus-within:text-blue-500" />
+              <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 transition-colors group-focus-within:text-blue-450" />
               <input 
                 type="text"
                 {...register('usernameOrEmail')}
                 placeholder="Enter username or email"
-                className={`w-full rounded-xl border bg-transparent/40 dark:bg-slate-900/35 py-3 pl-11 pr-4 text-sm outline-none transition-all dark:text-white dark:border-slate-800 ${
+                className={`w-full rounded-xl border bg-slate-950/40 py-3 pl-11 pr-4 text-sm outline-none transition-all text-white border-slate-800/80 ${
                   errors.usernameOrEmail 
                     ? 'border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                    : 'border-slate-200/80 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
+                    : 'border-slate-800/80 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
                 }`}
               />
             </div>
-            {errors.usernameOrEmail && <span className="text-xs text-red-500 font-semibold mt-1.5 block">{errors.usernameOrEmail.message}</span>}
+            {errors.usernameOrEmail && <span className="text-xs text-red-400 font-semibold mt-1.5 block">{errors.usernameOrEmail.message}</span>}
           </div>
 
           <div className="group">
             <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors group-focus-within:text-blue-500">Password</label>
-              <Link to="/forgot-password" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors dark:text-blue-400 dark:hover:text-blue-300">Forgot?</Link>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider transition-colors group-focus-within:text-blue-400">Password</label>
+              <Link to="/forgot-password" className="text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">Forgot?</Link>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 transition-colors group-focus-within:text-blue-500" />
+              <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 transition-colors group-focus-within:text-blue-455" />
               <input 
                 type={showPassword ? 'text' : 'password'}
                 {...register('password')}
                 placeholder="Enter password"
-                className={`w-full rounded-xl border bg-transparent/40 dark:bg-slate-900/35 py-3 pl-11 pr-11 text-sm outline-none transition-all dark:text-white dark:border-slate-800 ${
+                className={`w-full rounded-xl border bg-slate-950/40 py-3 pl-11 pr-11 text-sm outline-none transition-all text-white border-slate-800/80 ${
                   errors.password 
                     ? 'border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                    : 'border-slate-200/80 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
+                    : 'border-slate-800/80 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 dark:focus:border-blue-500 dark:focus:ring-blue-500/20'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-200 transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
               </button>
             </div>
-            {errors.password && <span className="text-xs text-red-500 font-semibold mt-1.5 block">{errors.password.message}</span>}
+            {errors.password && <span className="text-xs text-red-400 font-semibold mt-1.5 block">{errors.password.message}</span>}
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-lg shadow-blue-500/20 dark:shadow-indigo-900/30"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-700 hover:to-indigo-700 py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-lg shadow-blue-500/20 dark:shadow-indigo-900/30"
           >
             {loading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : 'Sign In'}
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400 font-medium">
+        <p className="mt-8 text-center text-sm text-slate-400 font-medium">
           Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">Sign up</Link>
+          <Link to="/register" className="font-bold text-blue-400 hover:text-blue-300 transition-colors">Sign up</Link>
         </p>
 
       </div>
