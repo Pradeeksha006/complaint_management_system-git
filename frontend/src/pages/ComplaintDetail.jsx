@@ -17,7 +17,12 @@ const ComplaintDetail = () => {
 
   const [complaint, setComplaint] = useState(null);
   const [timeline, setTimeline] = useState([]);
+  const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const isTranslated = complaint?.translatedDescription && 
+                       complaint?.translatedDescription !== complaint?.description;
+  const isStaff = user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_DEPT_HEAD' || user?.role === 'ROLE_OFFICER';
 
   // Feedback states
   const [rating, setRating] = useState(5);
@@ -101,6 +106,19 @@ const ComplaintDetail = () => {
 
       const timeRes = await api.get(`/api/complaints/${id}/timeline`);
       setTimeline(timeRes.data);
+
+      if (res.data.status !== 'RESOLVED' && res.data.status !== 'CLOSED') {
+        try {
+          const predRes = await api.post('/api/ai/predict-resolution', {
+            departmentId: res.data.departmentId,
+            category: res.data.category,
+            priority: res.data.priority
+          });
+          setPrediction(predRes.data);
+        } catch (predErr) {
+          console.error('Failed to load AI resolution predictions', predErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to load complaint detail', err);
     } finally {
@@ -174,6 +192,17 @@ const ComplaintDetail = () => {
               <h2 className="text-xl font-bold text-slate-800 dark:text-white mt-2 leading-tight">{complaint.title}</h2>
             </div>
 
+            {/* AI Summary Banner */}
+            {complaint.summary && (
+              <div className="rounded-lg bg-blue-50/30 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/20 p-3.5 flex items-start gap-2.5 text-xs text-blue-750 dark:text-blue-400 font-semibold leading-relaxed">
+                <Sparkles className="h-4.5 w-4.5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block mb-1">AI Brief Summary</span>
+                  {complaint.summary}
+                </div>
+              </div>
+            )}
+
             {/* Info Badges */}
             <div className="grid grid-cols-2 gap-4 border-t border-b border-slate-100 py-4 dark:border-slate-800 text-xs">
               <div className="flex items-center gap-2 text-slate-500">
@@ -196,10 +225,26 @@ const ComplaintDetail = () => {
 
             {/* Description */}
             <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h4>
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                Description
+                {isStaff && isTranslated && (
+                  <span className="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-[10px] font-bold">
+                    <Sparkles className="h-3 w-3 animate-pulse text-amber-500" /> AI Translated
+                  </span>
+                )}
+              </h4>
               <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
-                {complaint.description}
+                {isStaff && isTranslated ? complaint.translatedDescription : complaint.description}
               </p>
+
+              {isStaff && isTranslated && (
+                <details className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer select-none">
+                  <summary className="outline-none">View Original regional text</summary>
+                  <p className="mt-2 p-3 bg-slate-50/40 dark:bg-slate-800/20 rounded-lg text-slate-650 dark:text-slate-350 border border-slate-100 dark:border-slate-800/50 leading-relaxed font-medium">
+                    {complaint.description}
+                  </p>
+                </details>
+              )}
             </div>
 
             {/* Registered Citizen Details for Staff Admin / Dept Head */}
@@ -330,6 +375,29 @@ const ComplaintDetail = () => {
                 </div>
               )}
             </>
+          )}
+
+          {/* AI Resolution Predictor */}
+          {prediction && (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
+                AI Resolution Estimate
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Duration</span>
+                  <span>{prediction.estimatedDays} Days ({prediction.estimatedHours} hrs)</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Confidence</span>
+                  <span>{Math.round(prediction.confidenceScore * 100)}% Match</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-450 leading-relaxed italic">
+                *Estimated based on historical completion timeframes, priority guidelines, and AI modeling.
+              </p>
+            </div>
           )}
 
           {/* QR code and tracking link */}

@@ -40,6 +40,7 @@ public class ComplaintService {
     private final FeedbackRepository feedbackRepository;
     private final CloudinaryService cloudinaryService;
     private final EmailService emailService;
+    private final GeminiService geminiService;
 
     @Transactional
     public ComplaintDto createComplaint(String title, String description, String category,
@@ -83,12 +84,17 @@ public class ComplaintService {
             deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
         }
 
+        String summary = geminiService.generateSummary(description);
+        String translatedDesc = geminiService.translateToEnglish(description);
+
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
                 .citizen(citizen)
                 .department(dept)
                 .title(title)
                 .description(description)
+                .translatedDescription(translatedDesc)
+                .summary(summary)
                 .category(dept.getName())
                 .priority(priority)
                 .status(ComplaintStatus.SUBMITTED)

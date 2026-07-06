@@ -106,6 +106,8 @@ public class MapperUtils {
                         Collections.emptyList())
                 .citizenEmail(c.getCitizen() != null ? c.getCitizen().getEmail() : "N/A")
                 .citizenPhone(c.getCitizen() != null ? c.getCitizen().getPhoneNumber() : "N/A")
+                .summary(c.getSummary())
+                .translatedDescription(c.getTranslatedDescription())
                 .build();
     }
 

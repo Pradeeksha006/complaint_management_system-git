@@ -39,7 +39,13 @@ const CreateComplaint = () => {
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState([]);
   
-  // Duplicate check alert
+  // Language configuration
+  const [language, setLanguage] = useState('English');
+  
+  // Duplicate check state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateData, setDuplicateData] = useState(null);
+  const [pendingSubmitData, setPendingSubmitData] = useState(null);
   const [duplicates, setDuplicates] = useState([]);
   
   // Status states
@@ -131,31 +137,40 @@ const CreateComplaint = () => {
     }
   };
 
-  // Duplicate Check logic triggered on description change/blur
+  // Duplicate Check logic using Gemini AI
   const handleCheckDuplicates = async () => {
-    if (!selectedDept || !position || !descriptionWatch || descriptionWatch.length < 15) return;
+    if (!descriptionWatch || descriptionWatch.length < 10) {
+      alert("Please enter a description first.");
+      return;
+    }
+    setSubmitting(true);
     try {
-      const res = await api.post(`/api/complaints/detect-duplicates?departmentId=${selectedDept || '0'}&latitude=${position[0]}&longitude=${position[1]}&description=${encodeURIComponent(descriptionWatch)}`);
-      setDuplicates(res.data);
+      const res = await api.post('/api/ai/detect-duplicates', {
+        title: titleWatch || "General Complaint",
+        description: descriptionWatch,
+        latitude: position[0],
+        longitude: position[1]
+      });
+      setDuplicateData(res.data);
+      setShowDuplicateModal(true);
     } catch (err) {
-      console.error('Failed to execute duplicate checks', err);
+      alert('Failed to execute duplicate checks: ' + err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const onSubmit = async (data) => {
+  const executeSubmit = async (data) => {
     setSubmitting(true);
     setErrorMsg('');
-
-    // Check online status
-    if (!navigator.onLine) {
-      saveToOfflineDrafts(data);
-      return;
-    }
-
     try {
       const formData = new FormData();
       formData.append('title', data.title);
-      formData.append('description', data.description);
+      // Prepend language prefix if not English
+      const finalDesc = language !== 'English' 
+        ? `[Language: ${language}] ${data.description}` 
+        : data.description;
+      formData.append('description', finalDesc);
       formData.append('category', 'Auto');
       formData.append('isAnonymous', 'false');
       formData.append('latitude', position[0].toString());
@@ -181,11 +196,43 @@ const CreateComplaint = () => {
       }, 2500);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Submission failed. Saving to offline drafts.');
-      // Auto-fallback to drafts on server error
       saveToOfflineDrafts(data);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmit = async (data) => {
+    if (!navigator.onLine) {
+      saveToOfflineDrafts(data);
+      return;
+    }
+
+    // AI duplicate check on submit if not checked already
+    if (!duplicateData) {
+      setSubmitting(true);
+      try {
+        const res = await api.post('/api/ai/detect-duplicates', {
+          title: data.title,
+          description: data.description,
+          latitude: position[0],
+          longitude: position[1]
+        });
+        if (res.data.isDuplicate) {
+          setDuplicateData(res.data);
+          setPendingSubmitData(data);
+          setShowDuplicateModal(true);
+          setSubmitting(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Duplicate checking failed on submit, proceeding", err);
+      } finally {
+        setSubmitting(false);
+      }
+    }
+
+    executeSubmit(data);
   };
 
   const saveToOfflineDrafts = (data) => {
@@ -245,6 +292,21 @@ const CreateComplaint = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 md:grid-cols-2">
         {/* Form panel */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Complaint Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="English">English</option>
+              <option value="Tamil">Tamil (தமிழ்)</option>
+              <option value="Hindi">Hindi (हिन्दी)</option>
+              <option value="Telugu">Telugu (తెలుగు)</option>
+              <option value="Malayalam">Malayalam (മലയാളം)</option>
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Complaint Title</label>
             <input 
@@ -398,6 +460,84 @@ const CreateComplaint = () => {
           )}
         </div>
       </form>
+
+      {/* AI Duplicate Warning Modal */}
+      {showDuplicateModal && duplicateData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <AlertCircle className="h-6 w-6" />
+              <h3 className="text-lg font-bold">AI Duplicate Detected!</h3>
+            </div>
+            
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              Our AI duplicate scanner detected a highly similar complaint already registered in your immediate vicinity.
+            </p>
+
+            <div className="rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border border-amber-150 dark:border-amber-900/30 p-4 space-y-2 text-xs">
+              {duplicateData.isDuplicate ? (
+                <>
+                  <div className="font-bold text-slate-800 dark:text-white">
+                    Matching Ticket ID: {duplicateData.matchedComplaintId || 'N/A'}
+                  </div>
+                  {duplicateData.matchedComplaintTitle && (
+                    <div className="font-semibold text-slate-700 dark:text-slate-350">
+                      Title: "{duplicateData.matchedComplaintTitle}"
+                    </div>
+                  )}
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-1 italic">
+                    Reason: {duplicateData.reason}
+                  </div>
+                </>
+              ) : (
+                <div className="text-slate-650 dark:text-slate-300">
+                  {duplicateData.reason || "No exact duplicates found, but check complete."}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end text-xs font-bold pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDuplicateModal(false);
+                  setDuplicateData(null);
+                  setPendingSubmitData(null);
+                }}
+                className="rounded-lg border border-slate-200 bg-transparent px-4 py-2.5 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-850"
+              >
+                Cancel
+              </button>
+
+              {duplicateData.isDuplicate && duplicateData.matchedComplaintId && (
+                <a
+                  href={`/track-complaint/${duplicateData.matchedComplaintId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-400"
+                >
+                  View Existing
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDuplicateModal(false);
+                  if (pendingSubmitData) {
+                    executeSubmit(pendingSubmitData);
+                  } else {
+                    alert("Duplicate scan acknowledged.");
+                  }
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-2.5 text-white hover:bg-blue-700"
+              >
+                File Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

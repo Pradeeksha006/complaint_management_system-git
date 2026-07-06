@@ -82,6 +82,12 @@ public class Complaint {
     @Builder.Default
     private boolean overDeadlineAlertSent = false;
 
+    @Column(length = 255)
+    private String summary;
+
+    @Column(name = "translated_description", length = 4000)
+    private String translatedDescription;
+
     @OneToMany(mappedBy = "complaint", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @ToString.Exclude

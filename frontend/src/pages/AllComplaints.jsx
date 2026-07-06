@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles
+  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles, X
 } from 'lucide-react';
 
 const AllComplaints = () => {
@@ -15,6 +15,26 @@ const AllComplaints = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
+  // AI Semantic search states
+  const [semanticResults, setSemanticResults] = useState(null);
+  const [searchingSemantic, setSearchingSemantic] = useState(false);
+
+  const handleSemanticSearch = async () => {
+    if (!searchTerm.trim()) {
+      setSemanticResults(null);
+      return;
+    }
+    setSearchingSemantic(true);
+    try {
+      const res = await api.get(`/api/ai/search?query=${encodeURIComponent(searchTerm)}`);
+      setSemanticResults(res.data);
+    } catch (err) {
+      alert("AI Semantic search failed: " + err.message);
+    } finally {
+      setSearchingSemantic(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -66,12 +86,16 @@ const AllComplaints = () => {
   };
 
   // Filter complaints list locally (supports search by Ticket ID, Customer ID, title, or citizen name)
-  const filteredComplaints = complaints.filter(c => {
+  const activeList = semanticResults !== null ? semanticResults : complaints;
+
+  const filteredComplaints = activeList.filter(c => {
     const customerIdStr = c.citizenId ? `cust-${String(c.citizenId).padStart(4, '0')}` : 'anonymous';
-    const matchesSearch = c.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (c.citizenName && c.citizenName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          customerIdStr.includes(searchTerm.toLowerCase());
+    const matchesSearch = semanticResults !== null ? true : (
+      c.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.citizenName && c.citizenName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      customerIdStr.includes(searchTerm.toLowerCase())
+    );
     const matchesDept = filterDept ? c.departmentId === Number(filterDept) : true;
     const matchesStatus = filterStatus ? c.status === filterStatus : true;
     return matchesSearch && matchesDept && matchesStatus;
@@ -109,15 +133,35 @@ const AllComplaints = () => {
       {/* Search & Filters */}
       <div className="grid gap-4 md:grid-cols-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <input 
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by Ticket ID, Customer ID (e.g. CUST-0002)..."
-            className="w-full rounded-lg border border-slate-200 bg-transparent py-2 pl-10 pr-4 text-sm outline-none dark:border-slate-800 dark:text-white focus:border-blue-500"
-          />
+        <div className="relative flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <input 
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                if (!e.target.value.trim()) {
+                  setSemanticResults(null);
+                }
+              }}
+              placeholder="Search or ask in natural language..."
+              className="w-full rounded-lg border border-slate-200 bg-transparent py-2 pl-10 pr-4 text-sm outline-none dark:border-slate-800 dark:text-white focus:border-blue-500"
+            />
+          </div>
+          <button
+            onClick={handleSemanticSearch}
+            disabled={searchingSemantic}
+            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-600 hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/10"
+            title="Scan semantically with Gemini AI"
+          >
+            {searchingSemantic ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+            )}
+            AI Search
+          </button>
         </div>
 
         {/* Dept Filter */}
@@ -152,6 +196,23 @@ const AllComplaints = () => {
           </select>
         </div>
       </div>
+
+      {semanticResults !== null && (
+        <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/15 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/20 self-start animate-in fade-in-50 duration-150">
+          <Sparkles className="h-4 w-4 animate-pulse text-amber-500" />
+          <span>AI Semantic Search Active ({filteredComplaints.length} matches found)</span>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSemanticResults(null);
+            }}
+            className="text-slate-450 hover:text-slate-700 ml-1 rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-slate-800"
+            title="Clear AI search filter"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {/* Table Card */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

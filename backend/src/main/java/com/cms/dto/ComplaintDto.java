@@ -37,4 +37,6 @@ public class ComplaintDto {
     private FeedbackDto feedback;
     private String citizenEmail;
     private String citizenPhone;
+    private String summary;
+    private String translatedDescription;
 }
