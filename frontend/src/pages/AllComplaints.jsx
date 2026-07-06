@@ -166,6 +166,7 @@ const AllComplaints = () => {
                   <th className="px-6 py-4">Customer ID</th>
                   <th className="px-6 py-4">Title & Citizen</th>
                   <th className="px-6 py-4">Current Status</th>
+                  <th className="px-6 py-4">Assigned Officer</th>
                   <th className="px-6 py-4">Transfer Department</th>
                 </tr>
               </thead>
@@ -198,6 +199,17 @@ const AllComplaints = () => {
                         }`}>
                           {c.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {c.assignedOfficerName ? (
+                          <span className="font-semibold text-slate-800 dark:text-white">
+                            {c.assignedOfficerName}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-bold">
+                            Unassigned
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2.5">

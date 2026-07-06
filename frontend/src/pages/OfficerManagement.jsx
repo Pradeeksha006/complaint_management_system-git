@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { 
   Users, Award, Power, Loader2, RefreshCw, Star 
 } from 'lucide-react';
 
 const OfficerManagement = () => {
+  const { user } = useSelector((state) => state.auth);
+
   const [users, setUsers] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -37,7 +40,11 @@ const OfficerManagement = () => {
       setUsers(usersRes.data);
       setOfficers(officersRes.data || []);
       setDepartments(deptsRes.data || []);
-      if (deptsRes.data.length > 0) {
+      
+      // Auto-assign department id if department head
+      if (user?.role === 'ROLE_DEPT_HEAD' && user?.departmentId) {
+        setSelectedDeptId(user.departmentId.toString());
+      } else if (deptsRes.data.length > 0) {
         setSelectedDeptId(deptsRes.data[0].id.toString());
       }
     } catch (err) {
@@ -59,8 +66,8 @@ const OfficerManagement = () => {
 
   const handleCreateOfficer = async (e) => {
     e.preventDefault();
-    if (!fullName.trim() || !username.trim() || !email.trim() || !password.trim() || !selectedDeptId || !designation.trim()) {
-      alert('Please fill out all required fields.');
+    if (!fullName.trim() || !username.trim() || !email.trim() || !password.trim() || !selectedDeptId || !designation.trim() || !securityPin.trim()) {
+      alert('Please fill out all required fields, including the Secret Recovery PIN.');
       return;
     }
 
@@ -74,7 +81,7 @@ const OfficerManagement = () => {
         phoneNumber,
         designation,
         departmentId: parseInt(selectedDeptId),
-        securityPin: securityPin || '123456'
+        securityPin
       });
       // Clear form
       setFullName('');
@@ -111,9 +118,16 @@ const OfficerManagement = () => {
       return {
         ...u,
         officerId: detail?.id, // ID in officer table
+        departmentId: detail?.departmentId,
         departmentName: detail?.departmentName || 'N/A',
         designation: detail?.designation || 'N/A'
       };
+    })
+    .filter(staff => {
+      if (user?.role === 'ROLE_DEPT_HEAD') {
+        return staff.departmentId === user.departmentId;
+      }
+      return true;
     });
 
   return (
@@ -136,11 +150,13 @@ const OfficerManagement = () => {
         </button>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className={user?.role === 'ROLE_DEPT_HEAD' ? "grid gap-8 lg:grid-cols-3" : "w-full"}>
         {/* Officers List Table */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+        <div className={user?.role === 'ROLE_DEPT_HEAD' ? "lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden" : "w-full rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden"}>
           <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-            <h3 className="font-bold text-slate-800 dark:text-white">Department Officers Registry</h3>
+            <h3 className="font-bold text-slate-800 dark:text-white">
+              {user?.role === 'ROLE_DEPT_HEAD' ? 'Department Officers Registry' : 'All Department Staff Registry'}
+            </h3>
           </div>
 
           {loading ? (
@@ -235,119 +251,123 @@ const OfficerManagement = () => {
         </div>
 
         {/* Staff Creation Panel */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col h-fit space-y-4">
-          <h3 className="flex items-center gap-2 text-md font-bold text-slate-800 dark:text-white">
-            <Award className="h-5 w-5 text-purple-600" />
-            Add New Officer
-          </h3>
-          <p className="text-xs text-slate-500">Create a new department officer account and map them to their designated department.</p>
+        {user?.role === 'ROLE_DEPT_HEAD' && (
+          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col h-fit space-y-4">
+            <h3 className="flex items-center gap-2 text-md font-bold text-slate-800 dark:text-white">
+              <Award className="h-5 w-5 text-purple-600" />
+              Add New Officer
+            </h3>
+            <p className="text-xs text-slate-500">Create a new department officer account and map them to their designated department.</p>
 
-          <form onSubmit={handleCreateOfficer} className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
-              <input 
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. John Doe"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+            <form onSubmit={handleCreateOfficer} className="space-y-4 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label>
+                <input 
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Username</label>
-              <input 
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. johndoe"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Username</label>
+                <input 
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="e.g. johndoe"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
-              <input 
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. john@domain.com"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label>
+                <input 
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. john@domain.com"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
-              <input 
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+                <input 
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number</label>
-              <input 
-                type="text"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="e.g. +919876543210"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number</label>
+                <input 
+                  type="text"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="e.g. +919876543210"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Secret Recovery PIN</label>
-              <input 
-                type="text"
-                value={securityPin}
-                onChange={(e) => setSecurityPin(e.target.value)}
-                placeholder="Default: 123456"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Secret Recovery PIN <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  required
+                  value={securityPin}
+                  onChange={(e) => setSecurityPin(e.target.value)}
+                  placeholder="Enter Secret Recovery PIN"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department Assignment</label>
-              <select 
-                required
-                value={selectedDeptId}
-                onChange={(e) => setSelectedDeptId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white"
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department Assignment</label>
+                <select 
+                  disabled
+                  required
+                  value={selectedDeptId}
+                  onChange={(e) => setSelectedDeptId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-950 text-slate-500 cursor-not-allowed"
+                >
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Designation / Post</label>
+                <input 
+                  type="text"
+                  required
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  placeholder="e.g. Inspector, Assistant Engineer"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
               >
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Designation / Post</label>
-              <input 
-                type="text"
-                required
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                placeholder="e.g. Inspector, Assistant Engineer"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={actionLoading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
-            >
-              {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Officer Account'}
-            </button>
-          </form>
-        </div>
+                {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Officer Account'}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

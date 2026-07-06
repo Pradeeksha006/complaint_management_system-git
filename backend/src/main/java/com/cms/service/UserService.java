@@ -168,6 +168,9 @@ public class UserService {
 
     @Transactional
     public OfficerDto createNewOfficer(com.cms.dto.OfficerCreationRequest request) {
+        if (request.getSecurityPin() == null || request.getSecurityPin().isBlank()) {
+            throw new BadRequestException("Secret Recovery PIN is mandatory");
+        }
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BadRequestException("Username already exists");
         }
@@ -187,8 +190,7 @@ public class UserService {
                 .role(Role.ROLE_OFFICER)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
-                .securityPin(request.getSecurityPin() != null && !request.getSecurityPin().isBlank() 
-                             ? request.getSecurityPin() : "123456")
+                .securityPin(request.getSecurityPin())
                 .build();
         User savedUser = userRepository.save(user);
 

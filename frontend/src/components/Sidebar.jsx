@@ -39,6 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { name: 'Total Complaints', path: '/dept-statistics', icon: ClipboardList },
+          { name: 'Manage Officers', path: '/officers', icon: Users },
           { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'ROLE_ADMIN':
