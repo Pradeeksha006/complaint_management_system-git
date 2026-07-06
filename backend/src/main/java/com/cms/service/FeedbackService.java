@@ -8,6 +8,7 @@ import com.cms.mapper.MapperUtils;
 import com.cms.repository.ComplaintRepository;
 import com.cms.repository.FeedbackRepository;
 import com.cms.repository.UserRepository;
+import com.cms.repository.TimelineRepository;
 import com.cms.security.SecurityUtils;
 import com.cms.util.AiHelper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final ComplaintRepository complaintRepository;
     private final UserRepository userRepository;
+    private final TimelineRepository timelineRepository;
 
     @Transactional
     public FeedbackDto submitFeedback(String complaintId, FeedbackDto dto) {
@@ -38,9 +40,12 @@ public class FeedbackService {
         }
 
         String username = SecurityUtils.getCurrentUsername().orElse(null);
-        User user = username != null ? userRepository.findByUsername(username).orElse(null) : null;
+        User user = null;
+        if (username != null) {
+            user = userRepository.findByUsername(username).orElse(null);
+        }
 
-        // Perform AI Sentiment Analysis
+        // AI Sentiment Analysis on citizen comments
         String sentiment = AiHelper.analyzeSentiment(dto.getComments());
         log.info("Citizen feedback sentiment analysis result: {}", sentiment);
 
@@ -63,6 +68,7 @@ public class FeedbackService {
                 .description("Citizen submitted feedback (Rating: " + dto.getRating() + "/5) and closed the complaint.")
                 .updatedBy(user)
                 .build();
+        timelineRepository.save(event);
         
         return MapperUtils.toDto(saved);
     }

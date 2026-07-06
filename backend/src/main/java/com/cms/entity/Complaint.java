@@ -53,6 +53,7 @@ public class Complaint {
     private String address;
 
     @Column(name = "is_anonymous", nullable = false)
+    @Builder.Default
     private boolean isAnonymous = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
