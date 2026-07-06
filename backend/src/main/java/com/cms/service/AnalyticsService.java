@@ -86,12 +86,14 @@ public class AnalyticsService {
 
             long filed = complaintRepository.countByCreatedAtBetween(start, end);
             long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            long pending = complaintRepository.countPendingCreatedBetween(start, end);
             String label = day.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM"));
 
             Map<String, Object> trendRow = new HashMap<>();
             trendRow.put("label", label);
             trendRow.put("Filed", filed);
             trendRow.put("Resolved", resolved);
+            trendRow.put("Pending", pending);
             dailyTrends.add(trendRow);
         }
         stats.put("dailyTrends", dailyTrends);
@@ -107,12 +109,14 @@ public class AnalyticsService {
 
             long filed = complaintRepository.countByCreatedAtBetween(start, end);
             long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            long pending = complaintRepository.countPendingCreatedBetween(start, end);
             String label = weekStart.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM"));
 
             Map<String, Object> trendRow = new HashMap<>();
             trendRow.put("label", "Wk " + label);
             trendRow.put("Filed", filed);
             trendRow.put("Resolved", resolved);
+            trendRow.put("Pending", pending);
             weeklyTrends.add(trendRow);
         }
         stats.put("weeklyTrends", weeklyTrends);
@@ -128,12 +132,14 @@ public class AnalyticsService {
 
             long filed = complaintRepository.countByCreatedAtBetween(start, end);
             long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            long pending = complaintRepository.countPendingCreatedBetween(start, end);
             String monthName = monthStart.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH);
 
             Map<String, Object> trendRow = new HashMap<>();
             trendRow.put("label", monthName);
             trendRow.put("Filed", filed);
             trendRow.put("Resolved", resolved);
+            trendRow.put("Pending", pending);
             monthlyTrends.add(trendRow);
         }
         stats.put("monthlyTrends", monthlyTrends);

@@ -53,6 +53,9 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     long countByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
     long countByResolvedAtBetween(LocalDateTime start, LocalDateTime end);
 
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.createdAt BETWEEN :start AND :end AND c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
+    long countPendingCreatedBetween(@org.springframework.data.repository.query.Param("start") LocalDateTime start, @org.springframework.data.repository.query.Param("end") LocalDateTime end);
+
     long countByDepartmentId(Long departmentId);
     long countByDepartmentIdAndStatus(Long departmentId, ComplaintStatus status);
     long countByDepartmentIdAndPriority(Long departmentId, com.cms.entity.Priority priority);

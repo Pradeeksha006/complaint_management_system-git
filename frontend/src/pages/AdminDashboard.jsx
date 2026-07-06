@@ -240,6 +240,7 @@ const AdminDashboard = () => {
                   <Legend />
                   <Line type="monotone" dataKey="Filed" stroke="#3b82f6" strokeWidth={2.5} activeDot={{ r: 8 }} />
                   <Line type="monotone" dataKey="Resolved" stroke="#10b981" strokeWidth={2.5} />
+                  <Line type="monotone" dataKey="Pending" stroke="#f59e0b" strokeWidth={2.5} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
