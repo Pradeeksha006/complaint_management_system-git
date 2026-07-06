@@ -35,4 +35,6 @@ public class ComplaintDto {
     private LocalDateTime deadline;
     private List<AttachmentDto> attachments;
     private FeedbackDto feedback;
+    private String citizenEmail;
+    private String citizenPhone;
 }

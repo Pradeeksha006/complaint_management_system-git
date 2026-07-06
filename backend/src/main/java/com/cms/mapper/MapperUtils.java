@@ -104,6 +104,8 @@ public class MapperUtils {
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())
+                .citizenEmail(c.getCitizen() != null ? c.getCitizen().getEmail() : "N/A")
+                .citizenPhone(c.getCitizen() != null ? c.getCitizen().getPhoneNumber() : "N/A")
                 .build();
     }
 

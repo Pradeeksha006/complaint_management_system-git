@@ -267,7 +267,7 @@ const OfficerManagement = () => {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. John Doe"
+                  placeholder="Enter Officer's Name"
                   className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
                 />
               </div>
@@ -279,7 +279,7 @@ const OfficerManagement = () => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. johndoe"
+                  placeholder="Enter Officer's UserName"
                   className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
                 />
               </div>
@@ -291,7 +291,7 @@ const OfficerManagement = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. john@domain.com"
+                  placeholder="Officer's Email-Id"
                   className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
                 />
               </div>

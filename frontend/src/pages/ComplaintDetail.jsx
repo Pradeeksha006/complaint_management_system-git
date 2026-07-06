@@ -202,6 +202,30 @@ const ComplaintDetail = () => {
               </p>
             </div>
 
+            {/* Registered Citizen Details for Staff Admin / Dept Head */}
+            {(user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_DEPT_HEAD') && (
+              <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800/60 dark:bg-slate-950/20 space-y-3">
+                <h4 className="text-xs font-bold text-slate-450 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-blue-600" />
+                  Registered Citizen Info
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Full Name</span>
+                    <span>{complaint.citizenName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Email Address</span>
+                    <span>{complaint.citizenEmail || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Phone Number</span>
+                    <span>{complaint.citizenPhone || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Attachments */}
             {complaint.attachments && complaint.attachments.length > 0 && (
               <div>
@@ -332,7 +356,9 @@ const ComplaintDetail = () => {
                     </span>
                     <p className="text-slate-500 mt-2 font-medium leading-relaxed">{event.description}</p>
                     <div className="flex justify-between items-center mt-2 text-[10px] text-slate-400">
-                      <span>By: {event.updatedByFullName}</span>
+                      {(user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_DEPT_HEAD') && (
+                        <span>By: {event.updatedByFullName}</span>
+                      )}
                       <span>{new Date(event.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
