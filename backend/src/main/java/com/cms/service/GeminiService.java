@@ -20,10 +20,11 @@ public class GeminiService {
     @Value("${app.gemini.api-key:}")
     private String apiKey;
 
+    @Value("${app.gemini.model:gemini-2.0-flash}")
+    private String modelName;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=";
 
     private String callGemini(String prompt, boolean jsonMode) {
         if (apiKey == null || apiKey.trim().isEmpty()) {
@@ -32,7 +33,7 @@ public class GeminiService {
         }
 
         try {
-            String url = GEMINI_API_URL + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + apiKey;
 
             // Request body construction
             Map<String, Object> partsMap = new HashMap<>();
