@@ -136,8 +136,9 @@ public class DataInitializer implements CommandLineRunner {
                 admin.setRole(Role.ROLE_ADMIN);
                 admin.setStatus(UserStatus.ACTIVE);
                 admin.setEmailVerified(true);
+                admin.setSecurityPin("123456");
                 userRepository.save(admin);
-                log.info("Promoted user with email pradeeksha2006@gmail.com to ROLE_ADMIN");
+                log.info("Promoted user with email pradeeksha2006@gmail.com to ROLE_ADMIN and set security PIN.");
             } else {
                 User admin = User.builder()
                         .username("admin")
@@ -148,9 +149,10 @@ public class DataInitializer implements CommandLineRunner {
                         .role(Role.ROLE_ADMIN)
                         .status(UserStatus.ACTIVE)
                         .emailVerified(true)
+                        .securityPin("123456")
                         .build();
                 userRepository.save(admin);
-                log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha2006@gmail.com'");
+                log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha2006@gmail.com' with security PIN");
             }
         }
     }
@@ -172,10 +174,20 @@ public class DataInitializer implements CommandLineRunner {
         }
         Department dept = deptOpt.get();
 
+        String pin = "123456";
+        if ("WT".equals(deptCode)) pin = "111111";
+        else if ("SN".equals(deptCode)) pin = "222222";
+        else if ("EL".equals(deptCode)) pin = "333333";
+        else if ("RD".equals(deptCode)) pin = "444444";
+        else if ("HL".equals(deptCode)) pin = "555555";
+        else if ("PL".equals(deptCode)) pin = "666666";
+
         Optional<User> existingUserOpt = userRepository.findByUsername(username);
         User user;
         if (existingUserOpt.isPresent()) {
             user = existingUserOpt.get();
+            user.setSecurityPin(pin);
+            user = userRepository.save(user);
         } else {
             user = User.builder()
                     .username(username)
@@ -186,6 +198,7 @@ public class DataInitializer implements CommandLineRunner {
                     .role(Role.ROLE_DEPT_HEAD)
                     .status(UserStatus.ACTIVE)
                     .emailVerified(true)
+                    .securityPin(pin)
                     .build();
             user = userRepository.save(user);
             log.info("Seeded user account: {}", username);

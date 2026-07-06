@@ -14,6 +14,12 @@ const Settings = () => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPass, setLoadingPass] = useState(false);
 
+  // Forgot password flow states within settings
+  const [forgotMode, setForgotMode] = useState(false);
+  const [requiresPin, setRequiresPin] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpStatus, setOtpStatus] = useState('');
+
   const { register: regProfile, handleSubmit: handleProfileSubmit } = useForm({
     defaultValues: {
       fullName: user?.fullName,
@@ -23,16 +29,35 @@ const Settings = () => {
 
   const { register: regPass, handleSubmit: handlePassSubmit, reset: resetPass } = useForm();
 
+  const handleForgotPasswordLink = async () => {
+    setOtpLoading(true);
+    setPassSuccess('');
+    setOtpStatus('');
+    try {
+      const emailOrUser = user?.email || user?.username;
+      const res = await api.post('/api/auth/forgot-password', { email: emailOrUser });
+      setRequiresPin(res.data.requiresPin);
+      setOtpStatus(res.data.message);
+      setForgotMode(true);
+    } catch (err) {
+      alert('Failed to send verification code: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
   const onUpdateProfile = async (data) => {
     setLoadingProfile(true);
     setProfileSuccess('');
     try {
-      // Direct user profile update endpoint (we can also handle this in a real user management flow)
-      // In this setup, we simulate updating local Redux state directly after checking success.
-      dispatch(updateUser(data));
+      const res = await api.put('/api/users/profile/update', {
+        fullName: data.fullName,
+        phoneNumber: data.phoneNumber
+      });
+      dispatch(updateUser(res.data));
       setProfileSuccess('Profile details updated successfully!');
     } catch (err) {
-      alert('Failed to update: ' + err.message);
+      alert('Failed to update profile: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoadingProfile(false);
     }
@@ -46,11 +71,28 @@ const Settings = () => {
     setLoadingPass(true);
     setPassSuccess('');
     try {
-      // Simulate password change on current account details
-      setPassSuccess('Security credentials updated successfully!');
+      if (forgotMode) {
+        // Recovery path
+        await api.post('/api/auth/reset-password', {
+          email: user?.email || user?.username,
+          code: data.recoveryCode,
+          newPassword: data.newPassword
+        });
+        setPassSuccess('Security credentials recovered successfully!');
+        setForgotMode(false);
+        setOtpStatus('');
+      } else {
+        // Standard path
+        await api.put('/api/users/profile/update', {
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword,
+          confirmPassword: data.confirmPassword
+        });
+        setPassSuccess('Security credentials updated successfully!');
+      }
       resetPass();
     } catch (err) {
-      alert('Failed to reset: ' + err.message);
+      alert('Failed to change password: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoadingPass(false);
     }
@@ -141,6 +183,55 @@ const Settings = () => {
           )}
 
           <form onSubmit={handlePassSubmit(onChangePassword)} className="space-y-4">
+            {forgotMode ? (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 uppercase">
+                    {requiresPin ? 'Secret Recovery PIN' : 'Verification Code (OTP)'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPasswordLink}
+                    disabled={otpLoading}
+                    className="text-xs text-blue-600 font-bold hover:underline"
+                  >
+                    {otpLoading ? 'Resending...' : 'Resend Code'}
+                  </button>
+                </div>
+                <input 
+                  type="text"
+                  required
+                  {...regPass('recoveryCode')}
+                  placeholder={requiresPin ? 'Enter Secret Recovery PIN' : 'Enter 6-digit OTP'}
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+                {otpStatus && (
+                  <p className="text-[10px] text-blue-600 font-semibold mt-1.5">{otpStatus}</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">Current Password</label>
+                  <button
+                    type="button"
+                    onClick={handleForgotPasswordLink}
+                    disabled={otpLoading}
+                    className="text-[11px] text-blue-600 font-bold hover:underline"
+                  >
+                    {otpLoading ? 'Sending...' : 'Forgot password?'}
+                  </button>
+                </div>
+                <input 
+                  type="password"
+                  required
+                  {...regPass('currentPassword')}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">New Password</label>
               <input 
@@ -167,8 +258,21 @@ const Settings = () => {
               disabled={loadingPass}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
             >
-              {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Change Password'}
+              {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : forgotMode ? 'Verify & Reset Password' : 'Change Password'}
             </button>
+
+            {forgotMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotMode(false);
+                  setOtpStatus('');
+                }}
+                className="text-center w-full block text-xs text-slate-500 hover:text-slate-800 hover:underline mt-2 font-medium"
+              >
+                Cancel password recovery
+              </button>
+            )}
           </form>
         </div>
       </div>

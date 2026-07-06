@@ -11,6 +11,7 @@ import com.cms.repository.DepartmentRepository;
 import com.cms.repository.OfficerRepository;
 import com.cms.repository.UserRepository;
 import com.cms.security.JwtTokenProvider;
+import com.cms.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -199,5 +201,110 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<AuditLog> getAuditLogs() {
         return auditLogRepository.findAll();
+    }
+
+    @Transactional
+    public UserDto updateProfile(ProfileUpdateRequest request) {
+        String username = SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new BadRequestException("Not authenticated"));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Update phone number if provided
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        // Update full name if provided
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName());
+        }
+
+        // Handle password change if requested
+        if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
+                throw new BadRequestException("Current password is required to change password");
+            }
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                throw new BadRequestException("Incorrect current password");
+            }
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                throw new BadRequestException("New password and confirm password do not match");
+            }
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        }
+
+        User saved = userRepository.save(user);
+
+        // Save Audit Log
+        AuditLog audit = AuditLog.builder()
+                .user(user)
+                .action("UPDATE_PROFILE")
+                .details("User updated phone/password settings.")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(audit);
+
+        return MapperUtils.toDto(saved);
+    }
+
+    @Transactional
+    public ForgotPasswordResponse initiateOtpForgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .or(() -> userRepository.findByUsername(email))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email/username: " + email));
+
+        if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_DEPT_HEAD) {
+            return ForgotPasswordResponse.builder()
+                    .requiresPin(true)
+                    .message("Staff account detected. Please verify with your Secret Recovery PIN.")
+                    .build();
+        } else {
+            String otp = String.format("%06d", new java.util.Random().nextInt(900000) + 100000);
+            user.setResetOtp(otp);
+            user.setResetOtpExpiry(LocalDateTime.now().plusMinutes(10));
+            userRepository.save(user);
+
+            emailService.sendResetOtpEmail(user.getEmail(), user.getFullName(), otp);
+
+            return ForgotPasswordResponse.builder()
+                    .requiresPin(false)
+                    .message("Verification code (OTP) has been sent to your email: " + user.getEmail())
+                    .build();
+        }
+    }
+
+    @Transactional
+    public void verifyAndResetPassword(ResetPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .or(() -> userRepository.findByUsername(request.getEmail()))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_DEPT_HEAD) {
+            if (user.getSecurityPin() == null || !user.getSecurityPin().equals(request.getCode())) {
+                throw new BadRequestException("Invalid Secret Recovery PIN");
+            }
+        } else {
+            if (user.getResetOtp() == null || !user.getResetOtp().equals(request.getCode())) {
+                throw new BadRequestException("Invalid Verification Code (OTP)");
+            }
+            if (user.getResetOtpExpiry() == null || LocalDateTime.now().isAfter(user.getResetOtpExpiry())) {
+                throw new BadRequestException("Verification Code (OTP) has expired");
+            }
+            user.setResetOtp(null);
+            user.setResetOtpExpiry(null);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        // Audit Log
+        AuditLog audit = AuditLog.builder()
+                .user(user)
+                .action("RESET_PASSWORD")
+                .details("User reset password via " + (user.getRole() == Role.ROLE_CITIZEN ? "OTP" : "Security PIN") + ".")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(audit);
     }
 }

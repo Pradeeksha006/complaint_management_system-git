@@ -1,18 +1,23 @@
 import React, { useState } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
-import { Sparkles, Lock, ShieldAlert, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react';
+import { Sparkles, Lock, Key, ShieldAlert, CheckCircle2, Loader2, ArrowLeft, Mail } from 'lucide-react';
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const { state } = useLocation();
   const navigate = useNavigate();
 
+  // Inputs
+  const [email, setEmail] = useState(state?.email || '');
+  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const isStaff = state?.requiresPin || false;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,13 +30,17 @@ const ResetPassword = () => {
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      await api.post(`/api/auth/reset-password?token=${token}`, { password });
+      await api.post('/api/auth/reset-password', { 
+        email, 
+        code, 
+        newPassword: password 
+      });
       setSuccessMsg('Your password has been reset successfully. Redirecting to login...');
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Password reset failed. The link might have expired.');
+      setErrorMsg(err.response?.data?.message || 'Password reset failed. Please verify the code/PIN is correct.');
     } finally {
       setLoading(false);
     }
@@ -46,9 +55,9 @@ const ResetPassword = () => {
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-500/20">
             <Sparkles className="h-6 w-6" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">New Password</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Verify Recovery</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center font-medium">
-            Please enter your new secure password below.
+            {state?.message || 'Please enter verification details below to reset your password.'}
           </p>
         </div>
 
@@ -67,6 +76,42 @@ const ResetPassword = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email input (editable only if state wasn't passed, e.g. direct url navigation) */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Email Address / Username</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input 
+                type="text"
+                required
+                disabled={!!state?.email}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email or username"
+                className="w-full rounded-lg border border-slate-200 bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white focus:border-blue-500 disabled:bg-slate-50 dark:disabled:bg-slate-850 dark:disabled:text-slate-400 text-slate-700"
+              />
+            </div>
+          </div>
+
+          {/* Verification Code input */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">
+              {isStaff ? 'Secret Recovery PIN' : 'Verification Code (OTP)'}
+            </label>
+            <div className="relative">
+              <Key className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input 
+                type="text"
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder={isStaff ? 'Enter 6-digit Security PIN' : 'Enter 6-digit OTP'}
+                className="w-full rounded-lg border border-slate-200 bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors dark:border-slate-800 dark:text-white focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* New Password */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">New Password</label>
             <div className="relative">
@@ -82,6 +127,7 @@ const ResetPassword = () => {
             </div>
           </div>
 
+          {/* Confirm Password */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2">Confirm Password</label>
             <div className="relative">
@@ -107,9 +153,9 @@ const ResetPassword = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <Link to="/login" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
+          <Link to="/forgot-password" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
             <ArrowLeft className="h-4 w-4" />
-            Back to login
+            Back to recover
           </Link>
         </div>
 

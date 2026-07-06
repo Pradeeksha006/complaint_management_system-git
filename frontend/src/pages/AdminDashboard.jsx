@@ -15,6 +15,7 @@ const AdminDashboard = () => {
   const [recentComplaints, setRecentComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [trendType, setTrendType] = useState('month'); // 'day' | 'week' | 'month'
 
   useEffect(() => {
     fetchDashboardData();
@@ -66,7 +67,13 @@ const AdminDashboard = () => {
 
   const filedDeptData = getFiledDeptData();
   const resolvedDeptData = getResolvedDeptData();
-  const monthlyTrends = stats?.monthlyTrends || [];
+  
+  const getActiveTrends = () => {
+    if (trendType === 'day') return stats?.dailyTrends || [];
+    if (trendType === 'week') return stats?.weeklyTrends || [];
+    return stats?.monthlyTrends || [];
+  };
+  const activeTrends = getActiveTrends();
 
   return (
     <div className="space-y-8">
@@ -181,18 +188,54 @@ const AdminDashboard = () => {
           )}
         </div>
 
-        {/* Monthly Trend Line Chart */}
+        {/* Registration & Resolution Trends */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Monthly Registration & Resolution Trends</h3>
-          {monthlyTrends.length === 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h3 className="font-bold text-slate-800 dark:text-white">
+              {trendType === 'day' ? 'Daily' : trendType === 'week' ? 'Weekly' : 'Monthly'} Registration & Resolution Trends
+            </h3>
+            <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800 self-start sm:self-auto">
+              <button
+                onClick={() => setTrendType('day')}
+                className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
+                  trendType === 'day'
+                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setTrendType('week')}
+                className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
+                  trendType === 'week'
+                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setTrendType('month')}
+                className={`rounded-md px-3 py-1 text-[10px] font-bold transition-all ${
+                  trendType === 'month'
+                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-900 dark:text-blue-400'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                }`}
+              >
+                Month
+              </button>
+            </div>
+          </div>
+          {activeTrends.length === 0 ? (
             <div className="text-center text-slate-500 py-12">No trend logs recorded yet.</div>
           ) : (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthlyTrends}>
+                <LineChart data={activeTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
+                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
                   <Tooltip />
                   <Legend />
                   <Line type="monotone" dataKey="Filed" stroke="#3b82f6" strokeWidth={2.5} activeDot={{ r: 8 }} />

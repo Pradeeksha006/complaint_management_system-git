@@ -33,16 +33,14 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<MessageResponse> forgotPassword(@RequestBody Map<String, String> body) {
+    public ResponseEntity<ForgotPasswordResponse> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
-        userService.initiateForgotPassword(email);
-        return ResponseEntity.ok(new MessageResponse("Password reset link sent to your email."));
+        return ResponseEntity.ok(userService.initiateOtpForgotPassword(email));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<MessageResponse> resetPassword(@RequestParam String token, @RequestBody Map<String, String> body) {
-        String password = body.get("password");
-        userService.resetPassword(token, password);
+    public ResponseEntity<MessageResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+        userService.verifyAndResetPassword(request);
         return ResponseEntity.ok(new MessageResponse("Password reset successful. You can now log in with your new password."));
     }
 }

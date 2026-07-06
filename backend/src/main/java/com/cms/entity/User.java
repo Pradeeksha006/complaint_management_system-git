@@ -48,6 +48,15 @@ public class User {
     @Column(name = "reset_password_token", length = 100)
     private String resetPasswordToken;
 
+    @Column(name = "reset_otp", length = 10)
+    private String resetOtp;
+
+    @Column(name = "reset_otp_expiry")
+    private LocalDateTime resetOtpExpiry;
+
+    @Column(name = "security_pin", length = 10)
+    private String securityPin;
+
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private boolean emailVerified = false;

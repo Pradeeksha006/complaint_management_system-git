@@ -80,6 +80,17 @@ public class EmailService {
         sendEmail(email, "Reset Your Password - CMS", content);
     }
 
+    public void sendResetOtpEmail(String email, String name, String otp) {
+        String content = getEmailTemplate(
+            "Password Reset Verification Code",
+            "Dear " + name + ",",
+            "You have requested to reset your password. Please use the following One-Time Password (OTP) to complete the verification:<br/><br/><span style='font-size: 24px; font-weight: bold; color: #2563eb; letter-spacing: 4px;'>" + otp + "</span><br/><br/>This verification code is valid for 10 minutes.",
+            frontendUrl + "/reset-password?email=" + email,
+            "Reset Password"
+        );
+        sendEmail(email, "Your OTP Password Reset Code - CMS", content);
+    }
+
     public void sendComplaintSubmittedEmail(String email, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(

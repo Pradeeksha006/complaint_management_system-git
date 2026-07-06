@@ -70,8 +70,50 @@ public class AnalyticsService {
                 .orElse(0.0);
         stats.put("averageResolutionTimeDays", Math.round(avgResolutionDays * 10.0) / 10.0);
 
-        // Compute monthly trends dynamically
+        // Compute daily, weekly, and monthly trends dynamically
         java.time.LocalDate now = java.time.LocalDate.now();
+        
+        // 1. Daily Trends (last 7 days)
+        List<Map<String, Object>> dailyTrends = new java.util.ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            java.time.LocalDate day = now.minusDays(i);
+            java.time.LocalDateTime start = day.atStartOfDay();
+            java.time.LocalDateTime end = day.atTime(23, 59, 59);
+
+            long filed = complaintRepository.countByCreatedAtBetween(start, end);
+            long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            String label = day.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM"));
+
+            Map<String, Object> trendRow = new HashMap<>();
+            trendRow.put("label", label);
+            trendRow.put("Filed", filed);
+            trendRow.put("Resolved", resolved);
+            dailyTrends.add(trendRow);
+        }
+        stats.put("dailyTrends", dailyTrends);
+
+        // 2. Weekly Trends (last 6 weeks)
+        List<Map<String, Object>> weeklyTrends = new java.util.ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            java.time.LocalDate weekStart = now.minusWeeks(i).with(java.time.DayOfWeek.MONDAY);
+            java.time.LocalDate weekEnd = weekStart.plusDays(6);
+
+            java.time.LocalDateTime start = weekStart.atStartOfDay();
+            java.time.LocalDateTime end = weekEnd.atTime(23, 59, 59);
+
+            long filed = complaintRepository.countByCreatedAtBetween(start, end);
+            long resolved = complaintRepository.countByResolvedAtBetween(start, end);
+            String label = weekStart.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM"));
+
+            Map<String, Object> trendRow = new HashMap<>();
+            trendRow.put("label", "Wk " + label);
+            trendRow.put("Filed", filed);
+            trendRow.put("Resolved", resolved);
+            weeklyTrends.add(trendRow);
+        }
+        stats.put("weeklyTrends", weeklyTrends);
+
+        // 3. Monthly Trends (last 6 months)
         List<Map<String, Object>> monthlyTrends = new java.util.ArrayList<>();
         for (int i = 5; i >= 0; i--) {
             java.time.LocalDate monthStart = now.minusMonths(i).withDayOfMonth(1);
@@ -85,7 +127,7 @@ public class AnalyticsService {
             String monthName = monthStart.getMonth().getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH);
 
             Map<String, Object> trendRow = new HashMap<>();
-            trendRow.put("month", monthName);
+            trendRow.put("label", monthName);
             trendRow.put("Filed", filed);
             trendRow.put("Resolved", resolved);
             monthlyTrends.add(trendRow);

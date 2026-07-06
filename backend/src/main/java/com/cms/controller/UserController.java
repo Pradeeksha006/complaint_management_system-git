@@ -50,4 +50,9 @@ public class UserController {
     public ResponseEntity<List<com.cms.entity.AuditLog>> getAuditLogs() {
         return ResponseEntity.ok(userService.getAuditLogs());
     }
+
+    @PutMapping("/profile/update")
+    public ResponseEntity<UserDto> updateProfile(@RequestBody com.cms.dto.ProfileUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateProfile(request));
+    }
 }
