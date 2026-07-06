@@ -15,7 +15,7 @@ const Settings = () => {
   const [loadingPass, setLoadingPass] = useState(false);
 
   // Forgot password flow states within settings
-  const [forgotMode, setForgotMode] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState('idle'); // 'idle' | 'prompt' | 'sent'
   const [requiresPin, setRequiresPin] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpStatus, setOtpStatus] = useState('');
@@ -29,7 +29,7 @@ const Settings = () => {
 
   const { register: regPass, handleSubmit: handlePassSubmit, reset: resetPass } = useForm();
 
-  const handleForgotPasswordLink = async () => {
+  const handleSendOtp = async () => {
     setOtpLoading(true);
     setPassSuccess('');
     setOtpStatus('');
@@ -38,7 +38,7 @@ const Settings = () => {
       const res = await api.post('/api/auth/forgot-password', { email: emailOrUser });
       setRequiresPin(res.data.requiresPin);
       setOtpStatus(res.data.message);
-      setForgotMode(true);
+      setRecoveryStep('sent');
     } catch (err) {
       alert('Failed to send verification code: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -71,7 +71,7 @@ const Settings = () => {
     setLoadingPass(true);
     setPassSuccess('');
     try {
-      if (forgotMode) {
+      if (recoveryStep === 'sent') {
         // Recovery path
         await api.post('/api/auth/reset-password', {
           email: user?.email || user?.username,
@@ -79,7 +79,7 @@ const Settings = () => {
           newPassword: data.newPassword
         });
         setPassSuccess('Security credentials recovered successfully!');
-        setForgotMode(false);
+        setRecoveryStep('idle');
         setOtpStatus('');
       } else {
         // Standard path
@@ -183,95 +183,161 @@ const Settings = () => {
           )}
 
           <form onSubmit={handlePassSubmit(onChangePassword)} className="space-y-4">
-            {forgotMode ? (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 uppercase">
-                    {requiresPin ? 'Secret Recovery PIN' : 'Verification Code (OTP)'}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPasswordLink}
-                    disabled={otpLoading}
-                    className="text-xs text-blue-600 font-bold hover:underline"
-                  >
-                    {otpLoading ? 'Resending...' : 'Resend Code'}
-                  </button>
+            {recoveryStep === 'idle' && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">Current Password</label>
+                    <button
+                      type="button"
+                      onClick={() => setRecoveryStep('prompt')}
+                      className="text-[11px] text-blue-600 font-bold hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input 
+                    type="password"
+                    required
+                    {...regPass('currentPassword')}
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
                 </div>
-                <input 
-                  type="text"
-                  required
-                  {...regPass('recoveryCode')}
-                  placeholder={requiresPin ? 'Enter Secret Recovery PIN' : 'Enter 6-digit OTP'}
-                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-                />
-                {otpStatus && (
-                  <p className="text-[10px] text-blue-600 font-semibold mt-1.5">{otpStatus}</p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase">Current Password</label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPasswordLink}
-                    disabled={otpLoading}
-                    className="text-[11px] text-blue-600 font-bold hover:underline"
-                  >
-                    {otpLoading ? 'Sending...' : 'Forgot password?'}
-                  </button>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">New Password</label>
+                  <input 
+                    type="password"
+                    required
+                    {...regPass('newPassword')}
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
                 </div>
-                <input 
-                  type="password"
-                  required
-                  {...regPass('currentPassword')}
-                  placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">Confirm New Password</label>
+                  <input 
+                    type="password"
+                    required
+                    {...regPass('confirmPassword')}
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loadingPass}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
+                >
+                  {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Change Password'}
+                </button>
+              </>
+            )}
+
+            {recoveryStep === 'prompt' && (
+              <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-4 text-center">
+                <p className="text-xs font-medium text-slate-650 dark:text-slate-350">
+                  {user?.role === 'ROLE_CITIZEN' 
+                    ? 'Verify your identity by sending a verification code (OTP) to your registered email address.' 
+                    : 'Verify your identity by entering your staff Secret Recovery PIN.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (user?.role === 'ROLE_CITIZEN') {
+                      await handleSendOtp();
+                    } else {
+                      setRequiresPin(true);
+                      setRecoveryStep('sent');
+                    }
+                  }}
+                  disabled={otpLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10"
+                >
+                  {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : user?.role === 'ROLE_CITIZEN' ? 'Send OTP' : 'Verify via PIN'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecoveryStep('idle')}
+                  className="text-xs text-slate-550 hover:text-slate-800 dark:text-slate-400 hover:underline block mx-auto font-medium"
+                >
+                  Back to password change
+                </button>
               </div>
             )}
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">New Password</label>
-              <input 
-                type="password"
-                required
-                {...regPass('newPassword')}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">Confirm New Password</label>
-              <input 
-                type="password"
-                required
-                {...regPass('confirmPassword')}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
-              />
-            </div>
+            {recoveryStep === 'sent' && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 uppercase">
+                      {requiresPin ? 'Secret Recovery PIN' : 'Verification Code (OTP)'}
+                    </label>
+                    {!requiresPin && (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={otpLoading}
+                        className="text-xs text-blue-600 font-bold hover:underline"
+                      >
+                        {otpLoading ? 'Resending...' : 'Resend Code'}
+                      </button>
+                    )}
+                  </div>
+                  <input 
+                    type="text"
+                    required
+                    {...regPass('recoveryCode')}
+                    placeholder={requiresPin ? 'Enter Secret Recovery PIN' : 'Enter 6-digit OTP'}
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
+                  {otpStatus && (
+                    <p className="text-[10px] text-blue-600 font-semibold mt-1.5">{otpStatus}</p>
+                  )}
+                </div>
 
-            <button
-              type="submit"
-              disabled={loadingPass}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
-            >
-              {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : forgotMode ? 'Verify & Reset Password' : 'Change Password'}
-            </button>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">New Password</label>
+                  <input 
+                    type="password"
+                    required
+                    {...regPass('newPassword')}
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase mb-2">Confirm New Password</label>
+                  <input 
+                    type="password"
+                    required
+                    {...regPass('confirmPassword')}
+                    placeholder="••••••••"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
+                </div>
 
-            {forgotMode && (
-              <button
-                type="button"
-                onClick={() => {
-                  setForgotMode(false);
-                  setOtpStatus('');
-                }}
-                className="text-center w-full block text-xs text-slate-500 hover:text-slate-800 hover:underline mt-2 font-medium"
-              >
-                Cancel password recovery
-              </button>
+                <button
+                  type="submit"
+                  disabled={loadingPass}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
+                >
+                  {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify & Reset Password'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryStep('idle');
+                    setOtpStatus('');
+                  }}
+                  className="text-center w-full block text-xs text-slate-500 hover:text-slate-800 hover:underline mt-2 font-medium"
+                >
+                  Cancel password recovery
+                </button>
+              </>
             )}
           </form>
         </div>
