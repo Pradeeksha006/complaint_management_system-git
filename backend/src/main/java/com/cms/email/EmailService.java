@@ -91,6 +91,17 @@ public class EmailService {
         sendEmail(email, "Your OTP Password Reset Code - CMS", content);
     }
 
+    public void sendRegistrationOtpEmail(String email, String name, String otp) {
+        String content = getEmailTemplate(
+            "Account Registration Verification Code",
+            "Dear " + name + ",",
+            "Thank you for starting your registration. Please use the following One-Time Password (OTP) to verify your email address and activate your account:<br/><br/><span style='font-size: 24px; font-weight: bold; color: #10b981; letter-spacing: 4px;'>" + otp + "</span><br/><br/>This verification code is valid for 15 minutes.",
+            null,
+            null
+        );
+        sendEmail(email, "Verify Your Email - OTP Verification Code - CMS", content);
+    }
+
     public void sendComplaintSubmittedEmail(String email, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(

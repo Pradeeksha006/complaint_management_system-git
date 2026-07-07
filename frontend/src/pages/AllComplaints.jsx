@@ -250,14 +250,29 @@ const AllComplaints = () => {
                         {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'N/A (Anonymous)'}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.translatedTitle && c.translatedTitle !== c.title ? `${c.translatedTitle} (Original: ${c.title})` : c.title}>
-                          {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
-                          {c.translatedTitle && c.translatedTitle !== c.title && (
-                            <span className="ml-1 text-[10px] font-bold text-blue-500">(AI Translated)</span>
+                        <div className="flex items-center gap-3">
+                          {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
+                            <img 
+                              src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
+                              alt="Proof" 
+                              className="h-10 w-10 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
+                            />
+                          ) : (
+                            <div className="h-10 w-10 bg-slate-105 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
+                              <ClipboardList className="h-4 w-4 text-slate-400" />
+                            </div>
                           )}
-                        </div>
-                        <div className="text-xs text-slate-400 mt-0.5">
-                          By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
+                          <div>
+                            <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.translatedTitle && c.translatedTitle !== c.title ? `${c.translatedTitle} (Original: ${c.title})` : c.title}>
+                              {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
+                              {c.translatedTitle && c.translatedTitle !== c.title && (
+                                <span className="ml-1 text-[10px] font-bold text-blue-500">(AI Translated)</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">

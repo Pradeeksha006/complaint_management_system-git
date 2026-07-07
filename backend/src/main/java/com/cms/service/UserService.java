@@ -52,7 +52,7 @@ public class UserService {
             throw new BadRequestException("Email address is already in use");
         }
 
-        String verificationToken = UUID.randomUUID().toString();
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -61,15 +61,16 @@ public class UserService {
                 .fullName(request.getFullName())
                 .phoneNumber(request.getPhoneNumber())
                 .role(Role.ROLE_CITIZEN)
-                .status(UserStatus.ACTIVE)
-                .verificationToken(null)
-                .emailVerified(true)
+                .status(UserStatus.INACTIVE)
+                .emailVerified(false)
+                .resetOtp(otp)
+                .resetOtpExpiry(LocalDateTime.now().plusMinutes(15))
                 .build();
 
         User savedUser = userRepository.save(user);
         
-        // Send Verification Email
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getFullName(), verificationToken);
+        // Send OTP Registration Email
+        emailService.sendRegistrationOtpEmail(savedUser.getEmail(), savedUser.getFullName(), otp);
 
         return MapperUtils.toDto(savedUser);
     }
@@ -390,5 +391,56 @@ public class UserService {
                 .ipAddress("127.0.0.1")
                 .build();
         auditLogRepository.save(audit);
+    }
+
+    @Transactional
+    public void verifyRegistrationOtp(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        if (user.isEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        if (user.getResetOtp() == null || !user.getResetOtp().equals(code)) {
+            throw new BadRequestException("Invalid verification code");
+        }
+
+        if (user.getResetOtpExpiry() == null || user.getResetOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Verification code has expired");
+        }
+
+        // Activate user
+        user.setEmailVerified(true);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setResetOtp(null);
+        user.setResetOtpExpiry(null);
+        userRepository.save(user);
+
+        // Save Audit Log
+        AuditLog auditLog = AuditLog.builder()
+                .user(user)
+                .action("VERIFY_EMAIL_REGISTER")
+                .details("User successfully verified email during registration.")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(auditLog);
+    }
+
+    @Transactional
+    public void resendRegistrationOtp(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        if (user.isEmailVerified()) {
+            throw new BadRequestException("Email is already verified");
+        }
+
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setResetOtp(otp);
+        user.setResetOtpExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
     }
 }

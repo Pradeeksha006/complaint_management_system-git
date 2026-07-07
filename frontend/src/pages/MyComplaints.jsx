@@ -75,7 +75,22 @@ const MyComplaints = () => {
                 {complaints.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">{c.id}</td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-slate-200 max-w-xs truncate">{c.title}</td>
+                    <td className="px-6 py-4 text-slate-700 dark:text-slate-200 max-w-xs">
+                      <div className="flex items-center gap-3">
+                        {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
+                          <img 
+                            src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
+                            alt="Proof" 
+                            className="h-10 w-10 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
+                          />
+                        ) : (
+                          <div className="h-10 w-10 bg-slate-105 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
+                            <FileText className="h-4 w-4 text-slate-400" />
+                          </div>
+                        )}
+                        <span className="truncate">{c.title}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{c.departmentName}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${

@@ -27,6 +27,13 @@ const Register = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // OTP step states
+  const [registrationPending, setRegistrationPending] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSuccess, setOtpSuccess] = useState('');
+
   // Password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -43,14 +50,52 @@ const Register = () => {
     try {
       const { confirmPassword, ...submitData } = data;
       await api.post('/api/auth/register', submitData);
-      setSuccessMsg('Registration successful! Please sign in using your new credentials.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setRegisteredEmail(submitData.email);
+      setRegistrationPending(true);
+      setSuccessMsg('Account details saved. Please check your email for the verification code.');
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Registration failed. Try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim()) return;
+
+    setOtpLoading(true);
+    setErrorMsg('');
+    setOtpSuccess('');
+    try {
+      await api.post('/api/auth/register/verify-otp', {
+        email: registeredEmail,
+        code: otpCode
+      });
+      setOtpSuccess('Email verified successfully! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Verification failed. Try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpLoading(true);
+    setErrorMsg('');
+    setOtpSuccess('');
+    try {
+      await api.post('/api/auth/register/resend-otp', {
+        email: registeredEmail
+      });
+      setOtpSuccess('A new verification code has been sent to your email.');
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || 'Failed to resend code.');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -101,150 +146,212 @@ const Register = () => {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Full Name */}
-            <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-                <input 
-                  type="text"
-                  {...register('fullName')}
-                  placeholder="Enter Your Name"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.fullName 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
-                />
-              </div>
-              {errors.fullName && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.fullName.message}</span>}
+        {/* Step implementation */}
+        {registrationPending ? (
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <div className="text-center p-4 bg-slate-50 dark:bg-[#0c1912]/80 rounded-xl border border-slate-200 dark:border-[#0b3a20] space-y-3">
+              <p className="text-xs font-semibold text-slate-700 dark:text-emerald-100/90 leading-relaxed">
+                We sent a 6-digit verification code to your email:<br />
+                <strong className="text-blue-600 dark:text-[#ac734c]">{registeredEmail}</strong>.
+              </p>
+              <p className="text-[11px] text-slate-400 dark:text-emerald-300/60">
+                Please enter the code below to verify your email and activate your account.
+              </p>
             </div>
 
-            {/* Username */}
-            <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Username</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-                <input 
-                  type="text"
-                  {...register('username')}
-                  placeholder="Enter Your Username"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.username 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
-                />
+            {otpSuccess && (
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/20 p-3 text-xs text-green-650 dark:text-green-400 border border-green-200 dark:border-green-900/30">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <p className="font-bold">{otpSuccess}</p>
               </div>
-              {errors.username && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.username.message}</span>}
-            </div>
-          </div>
+            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Email */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Email</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Verification Code</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
-                  type="email"
-                  {...register('email')}
-                  placeholder="Enter Your Email"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.email 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
-                />
-              </div>
-              {errors.email && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.email.message}</span>}
-            </div>
-
-            {/* Phone Number */}
-            <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Phone Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-                <input 
                   type="text"
-                  {...register('phoneNumber')}
-                  placeholder="+919876543210"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.phoneNumber 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
+                  required
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37]"
                 />
               </div>
-              {errors.phoneNumber && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.phoneNumber.message}</span>}
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Password */}
-            <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-                <input 
-                  type={showPassword ? 'text' : 'password'}
-                  {...register('password')}
-                  placeholder="••••••••"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.password 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 dark:hover:text-emerald-400 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
+            <button
+              type="submit"
+              disabled={otpLoading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#062c19] hover:bg-[#041d10] dark:bg-[#ac734c] dark:hover:bg-[#8f5e3e] py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 cursor-pointer"
+            >
+              {otpLoading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : 'Verify & Activate'}
+            </button>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold pt-2">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={otpLoading}
+                className="text-blue-600 dark:text-[#ac734c] hover:underline"
+              >
+                Resend Code
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegistrationPending(false)}
+                className="text-slate-500 dark:text-[#f2e6d0]/60 hover:underline"
+              >
+                Edit Registration Info
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Full Name */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type="text"
+                    {...register('fullName')}
+                    placeholder="Enter Your Name"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.fullName 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                </div>
+                {errors.fullName && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.fullName.message}</span>}
               </div>
-              {errors.password && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.password.message}</span>}
-            </div>
 
-            {/* Confirm Password */}
-            <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Confirm Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-                <input 
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  {...register('confirmPassword')}
-                  placeholder="••••••••"
-                  className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                    errors.confirmPassword 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
-                      : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 dark:hover:text-emerald-400 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
+              {/* Username */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type="text"
+                    {...register('username')}
+                    placeholder="Enter Your Username"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.username 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                </div>
+                {errors.username && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.username.message}</span>}
               </div>
-              {errors.confirmPassword && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.confirmPassword.message}</span>}
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#062c19] hover:bg-[#041d10] dark:bg-[#ac734c] dark:hover:bg-[#8f5e3e] py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-md shadow-emerald-950/10 dark:shadow-[#ac734c]/20 cursor-pointer"
-          >
-            {loading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : 'Register'}
-          </button>
-        </form>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Email */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type="email"
+                    {...register('email')}
+                    placeholder="Enter Your Email"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.email 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                </div>
+                {errors.email && <span className="text-xs text-red-655 font-bold mt-1.5 block">{errors.email.message}</span>}
+              </div>
+
+              {/* Phone Number */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Phone Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type="text"
+                    {...register('phoneNumber')}
+                    placeholder="+919876543210"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.phoneNumber 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                </div>
+                {errors.phoneNumber && <span className="text-xs text-red-655 font-bold mt-1.5 block">{errors.phoneNumber.message}</span>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Password */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    {...register('password')}
+                    placeholder="••••••••"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.password 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 dark:hover:text-emerald-400 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+                {errors.password && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.password.message}</span>}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="group text-left">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Confirm Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
+                  <input 
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    {...register('confirmPassword')}
+                    placeholder="••••••••"
+                    className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
+                      errors.confirmPassword 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                        : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 dark:hover:text-emerald-400 transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <span className="text-xs text-red-655 font-bold mt-1.5 block">{errors.confirmPassword.message}</span>}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#062c19] hover:bg-[#041d10] dark:bg-[#ac734c] dark:hover:bg-[#8f5e3e] py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-md shadow-emerald-950/10 dark:shadow-[#ac734c]/20 cursor-pointer"
+            >
+              {loading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : 'Register & Send OTP'}
+            </button>
+          </form>
+        )}
 
         <p className="mt-8 text-center text-sm text-slate-600 dark:text-emerald-100/60 font-semibold">
           Already have an account?{' '}
