@@ -222,19 +222,18 @@ const CreateComplaint = () => {
         navigate('/dashboard');
       }, 2500);
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Submission failed. Saving to offline drafts.');
-      saveToOfflineDrafts(data);
+      if (!err.response) {
+        setErrorMsg('Network issue or Offline. Saved as Offline Draft successfully.');
+        saveToOfflineDrafts(data);
+      } else {
+        setErrorMsg(err.response?.data?.message || 'Submission failed. Please check form fields.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   const onSubmit = async (data) => {
-    if (!navigator.onLine) {
-      saveToOfflineDrafts(data);
-      return;
-    }
-
     executeSubmit(data);
   };
 
