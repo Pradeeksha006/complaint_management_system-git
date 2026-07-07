@@ -134,21 +134,43 @@ public class ComplaintService {
             deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
         }
 
+        // Sanitize database field lengths to prevent SQL truncation 500 errors
+        String safeTitle = title;
+        if (safeTitle != null && safeTitle.length() > 150) {
+            safeTitle = safeTitle.substring(0, 147) + "...";
+        }
+        String safeTranslatedTitle = translatedTitle;
+        if (safeTranslatedTitle != null && safeTranslatedTitle.length() > 150) {
+            safeTranslatedTitle = safeTranslatedTitle.substring(0, 147) + "...";
+        }
+        String safeDescription = description;
+        if (safeDescription != null && safeDescription.length() > 2000) {
+            safeDescription = safeDescription.substring(0, 1997) + "...";
+        }
+        String safeTranslatedDesc = translatedDesc;
+        if (safeTranslatedDesc != null && safeTranslatedDesc.length() > 2000) {
+            safeTranslatedDesc = safeTranslatedDesc.substring(0, 1997) + "...";
+        }
+        String safeAddress = address;
+        if (safeAddress != null && safeAddress.length() > 255) {
+            safeAddress = safeAddress.substring(0, 252) + "...";
+        }
+
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
                 .citizen(citizen)
                 .department(dept)
-                .title(title)
-                .description(description)
-                .translatedDescription(translatedDesc)
-                .translatedTitle(translatedTitle)
+                .title(safeTitle)
+                .description(safeDescription)
+                .translatedDescription(safeTranslatedDesc)
+                .translatedTitle(safeTranslatedTitle)
                 .summary(summary)
                 .category(dept.getName())
                 .priority(priority)
                 .status(ComplaintStatus.SUBMITTED)
                 .latitude(latitude)
                 .longitude(longitude)
-                .address(address)
+                .address(safeAddress)
                 .isAnonymous(isAnonymous)
                 .deadline(deadline)
                 .attachments(new ArrayList<>())

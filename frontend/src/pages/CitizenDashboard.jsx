@@ -71,14 +71,25 @@ const CitizenDashboard = () => {
   const submitDraft = async (draft, index) => {
     try {
       const formData = new FormData();
-      formData.append('title', draft.title);
-      formData.append('description', draft.description);
-      formData.append('category', draft.category);
-      formData.append('isAnonymous', 'false');
-      if (draft.latitude) formData.append('latitude', draft.latitude.toString());
-      if (draft.longitude) formData.append('longitude', draft.longitude.toString());
-      if (draft.address) formData.append('address', draft.address);
-      if (draft.departmentId) formData.append('departmentId', draft.departmentId);
+      formData.append('title', draft.title || '');
+      formData.append('description', draft.description || '');
+      formData.append('category', draft.category || 'Auto');
+      
+      const isAnon = draft.isAnonymous ? 'true' : 'false';
+      formData.append('isAnonymous', isAnon);
+
+      if (draft.latitude !== undefined && draft.latitude !== null && draft.latitude !== '') {
+        formData.append('latitude', draft.latitude.toString());
+      }
+      if (draft.longitude !== undefined && draft.longitude !== null && draft.longitude !== '') {
+        formData.append('longitude', draft.longitude.toString());
+      }
+      if (draft.address) {
+        formData.append('address', draft.address);
+      }
+      if (draft.departmentId && draft.departmentId !== 'null' && draft.departmentId !== 'undefined' && draft.departmentId !== '') {
+        formData.append('departmentId', draft.departmentId.toString());
+      }
 
       await api.post('/api/complaints', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
