@@ -104,6 +104,12 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Check size limit: Max 1 MB (1024 * 1024 bytes)
+    if (file.size > 1024 * 1024) {
+      alert("Selected photo exceeds the 1 MB limit. Please select a smaller image.");
+      return;
+    }
+
     // 1. Optimistic Update (Render local preview URL instantly)
     const previewUrl = URL.createObjectURL(file);
     setLocalAvatarPreview(previewUrl);
@@ -253,8 +259,9 @@ const Settings = () => {
               )}
             </div>
 
-            <div className="text-center">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Click picture to change avatar</span>
+            <div className="text-center space-y-1">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Click picture to change avatar</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Supported formats: JPG, PNG (Max size: 1 MB)</span>
             </div>
             <input 
               type="file" 
