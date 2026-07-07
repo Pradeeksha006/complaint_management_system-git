@@ -91,7 +91,7 @@ public class GeminiService {
     }
 
     public String translateToEnglish(String text) {
-        String prompt = "Translate the following text to English if it is written in Tamil, Hindi, Telugu, Malayalam, or any other non-English language. " +
+        String prompt = "Translate the following text to English if it is written in Tamil, Hindi, Telugu, Malayalam, Kannada, or any other non-English language. " +
                 "If the text is already entirely in English, return it exactly as it is without any changes. " +
                 "Return ONLY the plain translated text. Do not add labels, greetings, comments, or notes. Text: " + text;
         
@@ -111,6 +111,7 @@ public class GeminiService {
                         else if (langName.contains("hindi")) sourceLang = "hi";
                         else if (langName.contains("telugu")) sourceLang = "te";
                         else if (langName.contains("malayalam")) sourceLang = "ml";
+                        else if (langName.contains("kannada")) sourceLang = "kn";
                     }
                 }
                 

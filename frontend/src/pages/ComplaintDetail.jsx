@@ -207,7 +207,7 @@ const ComplaintDetail = () => {
             </div>
 
             {/* AI Summary Banner */}
-            {complaint.summary && (
+            {isStaff && complaint.summary && (
               <div className="rounded-lg bg-blue-50/30 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/20 p-3.5 flex items-start gap-2.5 text-xs text-blue-750 dark:text-blue-400 font-semibold leading-relaxed">
                 <Sparkles className="h-4.5 w-4.5 text-blue-600 shrink-0 mt-0.5" />
                 <div>
