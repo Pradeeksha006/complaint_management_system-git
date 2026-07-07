@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import api from '../services/api';
 import { updateUser } from '../redux/authSlice';
-import { Sparkles, User, KeyRound, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, User, KeyRound, Loader2, CheckCircle2, Camera } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useSelector((state) => state.auth);
@@ -13,6 +13,7 @@ const Settings = () => {
   const [passSuccess, setPassSuccess] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPass, setLoadingPass] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Forgot password flow states within settings
   const [recoveryStep, setRecoveryStep] = useState('idle'); // 'idle' | 'prompt' | 'sent'
@@ -28,6 +29,28 @@ const Settings = () => {
   });
 
   const { register: regPass, handleSubmit: handlePassSubmit, reset: resetPass } = useForm();
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    setProfileSuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await api.post('/api/users/profile/upload-avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      dispatch(updateUser(res.data));
+      setProfileSuccess('Profile picture updated successfully!');
+    } catch (err) {
+      alert('Failed to upload picture: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSendOtp = async () => {
     setOtpLoading(true);
@@ -108,11 +131,53 @@ const Settings = () => {
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Profile Card */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
           <h3 className="flex items-center gap-2 text-md font-bold text-slate-800 dark:text-white">
             <User className="h-5 w-5 text-blue-600" />
             Profile Information
           </h3>
+
+          {/* Profile Picture Upload Section */}
+          <div className="flex flex-col items-center space-y-3 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatarInput').click()}>
+              <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-md relative flex items-center justify-center bg-slate-200 dark:bg-slate-700">
+                {user?.profilePictureUrl ? (
+                  <img 
+                    src={user.profilePictureUrl} 
+                    alt="Profile Avatar" 
+                    className="h-full w-full object-cover" 
+                  />
+                ) : (
+                  <span className="text-3xl font-black text-slate-400 dark:text-slate-500 uppercase">
+                    {user?.fullName?.charAt(0) || user?.username?.charAt(0)}
+                  </span>
+                )}
+                
+                {/* Upload Overlay */}
+                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-[10px] font-bold">
+                  <Camera className="h-4 w-4 mb-1" />
+                  EDIT PHOTO
+                </div>
+              </div>
+
+              {uploadingAvatar && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                </div>
+              )}
+            </div>
+
+            <div className="text-center">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Click picture to change avatar</span>
+            </div>
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleAvatarChange} 
+              className="hidden" 
+              id="avatarInput" 
+            />
+          </div>
 
           {profileSuccess && (
             <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-xs text-green-600 dark:bg-green-950/20 dark:text-green-400 border border-green-200 dark:border-green-900/30">
@@ -161,7 +226,7 @@ const Settings = () => {
             <button
               type="submit"
               disabled={loadingProfile}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10 transition-colors"
             >
               {loadingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Profile'}
             </button>
@@ -191,7 +256,7 @@ const Settings = () => {
                     <button
                       type="button"
                       onClick={() => setRecoveryStep('prompt')}
-                      className="text-[11px] text-blue-600 font-bold hover:underline"
+                      className="text-xs text-blue-600 font-bold hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -229,16 +294,26 @@ const Settings = () => {
                 <button
                   type="submit"
                   disabled={loadingPass}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10 transition-colors"
                 >
                   {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Change Password'}
                 </button>
+
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRecoveryStep('prompt')}
+                    className="text-xs text-blue-600 font-bold hover:underline"
+                  >
+                    Try another way
+                  </button>
+                </div>
               </>
             )}
 
             {recoveryStep === 'prompt' && (
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-4 text-center">
-                <p className="text-xs font-medium text-slate-650 dark:text-slate-350">
+                <p className="text-xs font-medium text-slate-655 dark:text-slate-355">
                   {user?.role === 'ROLE_CITIZEN' 
                     ? 'Verify your identity by sending a verification code (OTP) to your registered email address.' 
                     : 'Verify your identity by entering your staff Secret Recovery PIN.'}
@@ -272,7 +347,7 @@ const Settings = () => {
               <>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-slate-650 dark:text-slate-350 uppercase">
+                    <label className="block text-xs font-semibold text-slate-655 dark:text-slate-355 uppercase">
                       {requiresPin ? 'Secret Recovery PIN' : 'Verification Code (OTP)'}
                     </label>
                     {!requiresPin && (
@@ -322,7 +397,7 @@ const Settings = () => {
                 <button
                   type="submit"
                   disabled={loadingPass}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10 transition-colors"
                 >
                   {loadingPass ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verify & Reset Password'}
                 </button>
@@ -333,7 +408,7 @@ const Settings = () => {
                     setRecoveryStep('idle');
                     setOtpStatus('');
                   }}
-                  className="text-center w-full block text-xs text-slate-500 hover:text-slate-800 hover:underline mt-2 font-medium"
+                  className="text-center w-full block text-xs text-slate-550 hover:text-slate-800 hover:underline mt-2 font-medium"
                 >
                   Cancel password recovery
                 </button>

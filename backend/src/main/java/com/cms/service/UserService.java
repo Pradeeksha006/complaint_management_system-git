@@ -19,6 +19,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.util.Map;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +41,7 @@ public class UserService {
     private final JwtTokenProvider tokenProvider;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final CloudinaryService cloudinaryService;
 
     @Transactional
     public UserDto registerUser(RegisterRequest request) {
@@ -267,6 +271,11 @@ public class UserService {
             user.setFullName(request.getFullName());
         }
 
+        // Update profile picture url if provided
+        if (request.getProfilePictureUrl() != null) {
+            user.setProfilePictureUrl(request.getProfilePictureUrl());
+        }
+
         // Handle password change if requested
         if (request.getNewPassword() != null && !request.getNewPassword().isBlank()) {
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
@@ -287,7 +296,35 @@ public class UserService {
         AuditLog audit = AuditLog.builder()
                 .user(user)
                 .action("UPDATE_PROFILE")
-                .details("User updated phone/password settings.")
+                .details("User updated profile settings.")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(audit);
+
+        return MapperUtils.toDto(saved);
+    }
+
+    @Transactional
+    public UserDto uploadAvatar(MultipartFile file) throws IOException {
+        String username = SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new BadRequestException("Not authenticated"));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("File is empty");
+        }
+
+        Map<String, String> uploadRes = cloudinaryService.uploadFile(file, "avatars/" + username);
+        String avatarUrl = uploadRes.get("url");
+
+        user.setProfilePictureUrl(avatarUrl);
+        User saved = userRepository.save(user);
+
+        AuditLog audit = AuditLog.builder()
+                .user(user)
+                .action("UPLOAD_AVATAR")
+                .details("User uploaded profile picture.")
                 .ipAddress("127.0.0.1")
                 .build();
         auditLogRepository.save(audit);

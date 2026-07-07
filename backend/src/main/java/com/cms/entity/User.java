@@ -61,6 +61,9 @@ public class User {
     @Builder.Default
     private boolean emailVerified = false;
 
+    @Column(name = "profile_picture_url", length = 500)
+    private String profilePictureUrl;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

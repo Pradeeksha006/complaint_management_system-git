@@ -256,9 +256,17 @@ const Navbar = () => {
         {/* Profile User Settings */}
         <button 
           onClick={() => navigate('/settings')}
-          className="rounded-lg p-2 text-slate-400 hover:bg-neutral-850 hover:text-white"
+          className="rounded-full overflow-hidden h-8 w-8 flex items-center justify-center border border-neutral-700 hover:border-neutral-500 transition-colors shrink-0 bg-neutral-800"
         >
-          <User className="h-4 w-4" />
+          {user?.profilePictureUrl ? (
+            <img 
+              src={user.profilePictureUrl} 
+              alt="Profile Avatar" 
+              className="h-full w-full object-cover" 
+            />
+          ) : (
+            <User className="h-4 w-4 text-slate-400" />
+          )}
         </button>
 
         {/* Logout Button */}

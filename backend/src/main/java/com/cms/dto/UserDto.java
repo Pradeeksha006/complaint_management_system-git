@@ -18,4 +18,5 @@ public class UserDto {
     private String role;
     private String status;
     private boolean emailVerified;
+    private String profilePictureUrl;
 }

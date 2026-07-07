@@ -60,4 +60,9 @@ public class UserController {
     public ResponseEntity<UserDto> updateProfile(@RequestBody com.cms.dto.ProfileUpdateRequest request) {
         return ResponseEntity.ok(userService.updateProfile(request));
     }
+
+    @PostMapping(value = "/profile/upload-avatar", consumes = {"multipart/form-data"})
+    public ResponseEntity<UserDto> uploadAvatar(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws java.io.IOException {
+        return ResponseEntity.ok(userService.uploadAvatar(file));
+    }
 }

@@ -21,6 +21,7 @@ public class MapperUtils {
                 .role(user.getRole().name())
                 .status(user.getStatus().name())
                 .emailVerified(user.isEmailVerified())
+                .profilePictureUrl(user.getProfilePictureUrl())
                 .build();
     }
 
