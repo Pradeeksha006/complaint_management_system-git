@@ -52,17 +52,17 @@ const Login = () => {
         
         {/* Logo/Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 relative h-16 w-16 rounded-full border border-slate-200 dark:border-[#052414] bg-white shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
+          <div className="mb-4 relative h-16 w-16 rounded-full border border-slate-200 dark:border-[#052414] bg-[#f2e6d0] shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
             <img 
               src={logoImage} 
               alt="Shield Seal Logo" 
               className="h-full w-full object-contain p-1"
             />
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase font-serif">
+          <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-white uppercase font-serif">
             Welcome back
           </h2>
-          <p className="text-sm text-slate-600 dark:text-emerald-100/70 mt-2 font-semibold">
+          <p className="text-sm text-slate-600 dark:text-[#f2e6d0]/80 mt-2 font-semibold">
             Sign in to your PSCN account
           </p>
         </div>
@@ -84,7 +84,7 @@ const Login = () => {
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="group text-left">
-            <label className="block text-xs font-bold text-slate-700 dark:text-emerald-450 uppercase tracking-widest mb-2">
+            <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">
               Username or Email
             </label>
             <div className="relative">

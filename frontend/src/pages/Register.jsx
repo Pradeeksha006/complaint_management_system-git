@@ -64,7 +64,7 @@ const Register = () => {
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
-          <div className="mb-3 relative h-16 w-16 rounded-full border border-slate-200 dark:border-[#052414] bg-white shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
+          <div className="mb-3 relative h-16 w-16 rounded-full border border-slate-200 dark:border-[#052414] bg-[#f2e6d0] shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
             <img 
               src={logoImage} 
               alt="Shield Seal Logo" 
@@ -72,7 +72,7 @@ const Register = () => {
             />
           </div>
           <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-white uppercase font-serif">Create Account</h2>
-          <p className="text-sm text-slate-600 dark:text-emerald-100/70 mt-2 font-semibold">Register to start submitting complaints</p>
+          <p className="text-sm text-slate-600 dark:text-[#f2e6d0]/80 mt-2 font-semibold">Register to start submitting complaints</p>
         </div>
 
         {/* Feedback */}
@@ -94,7 +94,7 @@ const Register = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Full Name */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Full Name</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Full Name</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -103,7 +103,7 @@ const Register = () => {
                   placeholder="Enter Your Name"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.fullName 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
@@ -113,7 +113,7 @@ const Register = () => {
 
             {/* Username */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Username</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Username</label>
               <div className="relative">
                 <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -122,7 +122,7 @@ const Register = () => {
                   placeholder="Enter Your Username"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.username 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
@@ -134,7 +134,7 @@ const Register = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Email */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Email</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -143,7 +143,7 @@ const Register = () => {
                   placeholder="Enter Your Email"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.email 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
@@ -153,7 +153,7 @@ const Register = () => {
 
             {/* Phone Number */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Phone Number</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Phone Number</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -162,7 +162,7 @@ const Register = () => {
                   placeholder="+919876543210"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.phoneNumber 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
@@ -174,7 +174,7 @@ const Register = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Password */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Password</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -183,7 +183,7 @@ const Register = () => {
                   placeholder="••••••••"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.password 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
@@ -200,7 +200,7 @@ const Register = () => {
 
             {/* Confirm Password */}
             <div className="group text-left">
-              <label className="block text-xs font-bold text-slate-700 dark:text-emerald-455 uppercase tracking-widest mb-2">Confirm Password</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">Confirm Password</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
                 <input 
@@ -209,7 +209,7 @@ const Register = () => {
                   placeholder="••••••••"
                   className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
                     errors.confirmPassword 
-                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-550/20' 
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-555/20' 
                       : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
                   }`}
                 />
