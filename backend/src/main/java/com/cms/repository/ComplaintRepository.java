@@ -33,7 +33,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
             @Param("minLon") Double minLon,
             @Param("maxLon") Double maxLon);
 
-    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED') " +
+    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN (com.cms.entity.ComplaintStatus.RESOLVED, com.cms.entity.ComplaintStatus.CLOSED, com.cms.entity.ComplaintStatus.REJECTED) " +
            "AND c.latitude BETWEEN :minLat AND :maxLat " +
            "AND c.longitude BETWEEN :minLon AND :maxLon")
     List<Complaint> findPotentialDuplicatesAllDepts(
@@ -42,7 +42,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
             @Param("minLon") Double minLon,
             @Param("maxLon") Double maxLon);
 
-    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
+    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN (com.cms.entity.ComplaintStatus.RESOLVED, com.cms.entity.ComplaintStatus.CLOSED, com.cms.entity.ComplaintStatus.REJECTED)")
     List<Complaint> findAllActiveComplaints();
 
     long countByStatus(ComplaintStatus status);
