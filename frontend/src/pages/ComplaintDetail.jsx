@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock, Users, Printer
+  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock, Users, Printer, AlertCircle
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -38,6 +38,7 @@ const ComplaintDetail = () => {
   const [selectedDeptId, setSelectedDeptId] = useState('');
   const [modifying, setModifying] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchDetail();
@@ -84,10 +85,7 @@ const ComplaintDetail = () => {
     }
   };
 
-  const handleDeleteComplaint = async () => {
-    if (!window.confirm('Are you sure you want to permanently delete this complaint? This action cannot be undone.')) {
-      return;
-    }
+  const executeDeleteComplaint = async () => {
     setDeleting(true);
     try {
       await api.delete(`/api/complaints/${id}`);
@@ -609,11 +607,11 @@ const ComplaintDetail = () => {
                     The 5-minute modification window has expired. If this complaint is no longer valid, you can permanently delete it.
                   </p>
                   <button
-                    onClick={handleDeleteComplaint}
+                    onClick={() => setShowDeleteConfirm(true)}
                     disabled={deleting}
                     className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition-colors shadow-md shadow-red-500/10"
                   >
-                    {deleting ? 'Deleting...' : 'Delete Complaint Permanently'}
+                    Delete Complaint Permanently
                   </button>
                 </div>
               )}
@@ -752,6 +750,50 @@ const ComplaintDetail = () => {
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-6 text-left">
+            
+            {/* Warning Header */}
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0 border border-red-100 dark:border-red-900/30">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-md font-bold text-slate-800 dark:text-white">Delete Complaint</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  Are you sure you want to permanently delete this complaint? This action cannot be undone. All attachments and timeline records will be permanently removed from municipal systems.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  executeDeleteComplaint();
+                }}
+                disabled={deleting}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors shadow-md shadow-red-500/10 flex items-center gap-1.5"
+              >
+                {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Yes, Delete Permanently
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
