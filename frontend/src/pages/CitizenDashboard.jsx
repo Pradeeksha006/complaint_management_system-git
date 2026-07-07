@@ -182,20 +182,22 @@ const CitizenDashboard = () => {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <button 
                     onClick={() => submitDraft(draft, idx)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                    className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-2 text-xs font-bold text-white hover:bg-amber-600 shadow-sm transition-all shrink-0"
                     title="Sync/Publish"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-3.5 w-3.5" />
+                    Sync Now
                   </button>
                   <button 
                     onClick={() => deleteDraft(idx)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40"
+                    className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-650 hover:bg-red-100 px-3.5 py-2 text-xs font-bold dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40 transition-colors shrink-0"
                     title="Delete Draft"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
                   </button>
                 </div>
               </div>
