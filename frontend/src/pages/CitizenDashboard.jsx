@@ -100,13 +100,6 @@ const CitizenDashboard = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400">File complaints, track progress, and view resolution histories.</p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => setChatbotOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            <Bot className="h-4 w-4 text-blue-600" />
-            AI Assistant
-          </button>
           <Link 
             to="/file-complaint"
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-md shadow-blue-500/10"
@@ -270,8 +263,6 @@ const CitizenDashboard = () => {
         )}
       </div>
 
-      {/* Embedded Chatbot */}
-      <ChatbotWidget isOpen={chatbotOpen} onClose={() => setChatbotOpen(false)} />
     </div>
   );
 };
