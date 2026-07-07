@@ -52,17 +52,11 @@ const Login = () => {
         
         {/* Logo/Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 relative h-16 w-16 overflow-hidden rounded-full border border-emerald-850 bg-white shrink-0">
+          <div className="mb-4 relative h-16 w-16 rounded-full border border-emerald-850 bg-white shrink-0 flex items-center justify-center overflow-hidden">
             <img 
               src={logoImage} 
               alt="Shield Seal Logo" 
-              className="absolute max-w-none h-full"
-              style={{ 
-                left: '-5px', 
-                top: '0px',
-                transform: 'scale(1.25)', 
-                transformOrigin: 'left center' 
-              }} 
+              className="h-full w-full object-contain p-1"
             />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Welcome back</h2>

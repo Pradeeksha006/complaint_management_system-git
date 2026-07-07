@@ -79,17 +79,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="relative h-10 w-10 overflow-hidden rounded-full border border-emerald-800 bg-white shrink-0">
+          <div className="relative h-10 w-10 rounded-full border border-emerald-800 bg-white shrink-0 flex items-center justify-center overflow-hidden">
             <img 
               src={logoImage} 
               alt="Shield Seal Logo" 
-              className="absolute max-w-none h-full"
-              style={{ 
-                left: '-3px', 
-                top: '0px',
-                transform: 'scale(1.25)', 
-                transformOrigin: 'left center' 
-              }} 
+              className="h-full w-full object-contain p-0.5"
             />
           </div>
           <div>

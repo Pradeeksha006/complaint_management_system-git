@@ -35,18 +35,11 @@ const Home = () => {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Logo & Network Title block */}
           <div className="flex items-center gap-3">
-            {/* CSS Crop to show ONLY the handshake shield from the logo.png */}
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-emerald-800 bg-white shrink-0">
+            <div className="relative h-12 w-12 rounded-full border-2 border-emerald-800 bg-white shrink-0 flex items-center justify-center overflow-hidden">
               <img 
                 src={logoImage} 
                 alt="Shield Seal Logo" 
-                className="absolute max-w-none h-full"
-                style={{ 
-                  left: '-4px', 
-                  top: '0px',
-                  transform: 'scale(1.25)', 
-                  transformOrigin: 'left center' 
-                }} 
+                className="h-full w-full object-contain p-0.5"
               />
             </div>
             {/* Text details */}
