@@ -5,8 +5,9 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { 
-  Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, User, Phone, Loader2, Eye, EyeOff 
+  Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, User, Phone, Loader2, Eye, EyeOff, Sun, Moon 
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import logoImage from '../assets/logo.png';
 
 const schema = yup.object().shape({
@@ -29,6 +30,7 @@ const Register = () => {
   // Password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { darkMode, toggleTheme } = useTheme();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
@@ -60,7 +62,17 @@ const Register = () => {
       <div className="absolute bottom-1/4 right-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-amber-500/5 dark:bg-[#ac734c]/10 blur-[150px] animate-blob animation-delay-2000" />
 
       {/* Register Card */}
-      <div className="w-full max-w-xl rounded-3xl border border-slate-200 dark:border-[#052414] bg-white dark:bg-[#03140c] p-8 shadow-xl dark:shadow-[0_0_50px_rgba(6,44,25,0.3)] transition-all duration-300 hover:border-slate-350 dark:hover:border-[#0b3a20]">
+      <div className="relative w-full max-w-xl rounded-3xl border border-slate-200 dark:border-[#052414] bg-white dark:bg-[#03140c] p-8 shadow-xl dark:shadow-[0_0_50px_rgba(6,44,25,0.3)] transition-all duration-300 hover:border-slate-350 dark:hover:border-[#0b3a20]">
+        
+        {/* Theme Switcher Button */}
+        <button 
+          onClick={toggleTheme}
+          type="button"
+          className="absolute top-6 right-6 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-slate-700 dark:text-[#f2e6d0] transition-colors"
+          title="Toggle Theme"
+        >
+          {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+        </button>
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
