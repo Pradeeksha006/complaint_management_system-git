@@ -5,10 +5,13 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import api from '../services/api';
+import { useSelector } from 'react-redux';
 import { 
-  Sparkles, MapPin, Upload, AlertCircle, Eye, Info, Loader2, CheckCircle2, X
+  Sparkles, MapPin, Upload, AlertCircle, Eye, Info, Loader2, CheckCircle2, X,
+  FolderOpen, ArrowRight, ArrowLeft, HelpCircle, FileText, Check, Shield, Search
 } from 'lucide-react';
+import api from '../services/api';
+import logoImage from '../assets/logo.png';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet marker icon issues in Vite packaging
@@ -29,8 +32,14 @@ const schema = yup.object().shape({
 
 const CreateComplaint = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  
+  // Multi-step state: 1 = Describe, 2 = Evidence, 3 = Contacts, 4 = Review
+  const [activeStep, setActiveStep] = useState(1);
+  
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState('');
+  const [isManualDeptSelection, setIsManualDeptSelection] = useState(false);
   
   // Geo coordinates state (default center: Mumbai coordinates)
   const [position, setPosition] = useState([19.0760, 72.8777]);
@@ -41,25 +50,35 @@ const CreateComplaint = () => {
   
   // Language configuration
   const [language, setLanguage] = useState('English');
+
+  // Date & Time incident configuration
+  const [incidentDate, setIncidentDate] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  });
+  const [incidentTime, setIncidentTime] = useState('12:00');
   
-  // Duplicate check state
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [duplicateData, setDuplicateData] = useState(null);
-  const [pendingSubmitData, setPendingSubmitData] = useState(null);
+  // Anonymity configuration
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  
+  // Duplicate state
   const [duplicates, setDuplicates] = useState([]);
+  const [duplicateMessage, setDuplicateMessage] = useState('');
   
-  // Status states
+  // Submission & status states
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
+  const { register, handleSubmit, watch, formState: { errors, isValid } } = useForm({
+    resolver: yupResolver(schema),
+    mode: 'onChange'
   });
 
   const descriptionWatch = watch('description');
   const titleWatch = watch('title');
-  const [isManualDeptSelection, setIsManualDeptSelection] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
@@ -72,38 +91,13 @@ const CreateComplaint = () => {
     const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
     if (!content.trim()) return;
 
-    // Define department keyword mapping
     const deptKeywords = {
-      WT: [
-        'water', 'leak', 'pipe', 'drain', 'sewer', 'plumb', 'tap', 'contamination', 'drainage', 'flooding',
-        'குடிநீர்', 'தண்ணீர்', 'தண்ணி', 'குழாய்', 'கசிவு', 'சாக்கடை', 'கழிவுநீர்', 'பைப்', 'குழாயில்', 'நீர்',
-        'पानी', 'जल', 'नाला', 'पाइप', 'सीवर', 'निकास'
-      ],
-      RD: [
-        'road', 'pothole', 'highway', 'street', 'bridge', 'sidewalk', 'curb', 'pavement',
-        'சாலை', 'பள்ளம்', 'பாதை', 'தெரு', 'தார்', 'ரோடு', 'பள்ளங்கள்',
-        'सड़क', 'गड्ढा', 'रास्ता', 'मार्ग', 'गलियां'
-      ],
-      EL: [
-        'electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'electrician', 'shock', 'streetlight',
-        'மின்சாரம்', 'மின்சார', 'கரண்ட்', 'கம்பம்', 'விளக்கு', 'ஒயர்', 'மின்', 'தெருவிளக்கு', 'மின்ஒயர்',
-        'बिजली', 'तार', 'खंभा', 'लाइट', 'पावर', 'ट्रांसफार्मर'
-      ],
-      SN: [
-        'garbage', 'trash', 'waste', 'sanitation', 'clean', 'sweeping', 'dump', 'litter', 'overflow',
-        'குப்பை', 'குப்பைகள்', 'அசுத்தம்', 'கழிவுகள்', 'சுத்தம்', 'சுத்தப்படுத்த', 'நாற்றம்',
-        'कचरा', 'कूड़ा', 'सफाई', 'कचरे', 'गंदगी'
-      ],
-      PL: [
-        'police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault',
-        'போலீஸ்', 'திருட்டு', 'சண்டை', 'பாதுகாப்பு', 'திருடன்', 'அச்சுறுத்தல்',
-        'पुलिस', 'चोरी', 'लड़ाई', 'सुरक्षा', 'अपराध'
-      ],
-      HL: [
-        'stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'vet', 'hygiene', 'food',
-        'நாய்', 'நாய்கள்', 'கொசு', 'கொசுக்கள்', 'காய்ச்சல்', 'நோய்', 'விலங்கு', 'சுகாதாரம்',
-        'कुत्ता', 'मच्छर', 'बीमारी', 'जानवर', 'स्वास्थ्य'
-      ]
+      WT: ['water', 'leak', 'pipe', 'drain', 'sewer', 'plumb', 'tap', 'contamination', 'drainage', 'flooding', 'குடிநீர்', 'தண்ணீர்', 'குழாய்', 'கசிவு', 'சாக்கடை'],
+      RD: ['road', 'pothole', 'highway', 'street', 'bridge', 'sidewalk', 'curb', 'pavement', 'சாலை', 'பள்ளம்', 'பாதை', 'தெரு'],
+      EL: ['electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'streetlight', 'மின்சார', 'விளக்கு', 'தெருவிளக்கு'],
+      SN: ['garbage', 'trash', 'waste', 'sanitation', 'clean', 'dump', 'litter', 'குப்பை', 'அசுத்தம்', 'கழிவுகள்'],
+      PL: ['police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault', 'drinking', 'alcohol', 'drunk', 'போலீஸ்', 'திருட்டு', 'சண்டை', 'மது'],
+      HL: ['stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'hygiene', 'நாய்', 'கொசு', 'நோய்']
     };
 
     let predictedCode = '';
@@ -131,7 +125,6 @@ const CreateComplaint = () => {
     }
   };
 
-  // Map events helper to handle click events on the Leaflet map
   const MapClickHandler = () => {
     useMapEvents({
       click(e) {
@@ -164,27 +157,40 @@ const CreateComplaint = () => {
     }
   };
 
-  // Duplicate Check logic using Gemini AI
   const handleCheckDuplicates = async () => {
     if (!descriptionWatch || descriptionWatch.length < 10) {
       alert("Please enter a description first.");
       return;
     }
     setSubmitting(true);
+    setDuplicateMessage('');
     try {
       const res = await api.post('/api/ai/detect-duplicates', {
-        title: titleWatch || "General Complaint",
+        title: titleWatch || "General Incident",
         description: descriptionWatch,
         latitude: position[0],
         longitude: position[1]
       });
-      setDuplicateData(res.data);
-      setShowDuplicateModal(true);
+      if (res.data && res.data.length > 0) {
+        setDuplicates(res.data);
+        setDuplicateMessage(`Warning: Found ${res.data.length} similar complaints in this area.`);
+      } else {
+        setDuplicates([]);
+        setDuplicateMessage("No duplicates detected. Your report is unique!");
+      }
     } catch (err) {
-      alert('Failed to execute duplicate checks: ' + err.message);
+      setDuplicateMessage('Could not run duplicate check: ' + err.message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onSubmit = async (data) => {
+    if (activeStep < 4) {
+      setActiveStep(activeStep + 1);
+      return;
+    }
+    executeSubmit(data);
   };
 
   const executeSubmit = async (data) => {
@@ -193,13 +199,16 @@ const CreateComplaint = () => {
     try {
       const formData = new FormData();
       formData.append('title', data.title);
-      // Prepend language prefix if not English
+      
+      // Combine description with incident date time details
+      const formattedIncidentDetail = `[Incident Date: ${incidentDate} Time: ${incidentTime}] ${data.description}`;
       const finalDesc = language !== 'English' 
-        ? `[Language: ${language}] ${data.description}` 
-        : data.description;
+        ? `[Language: ${language}] ${formattedIncidentDetail}` 
+        : formattedIncidentDetail;
+      
       formData.append('description', finalDesc);
       formData.append('category', 'Auto');
-      formData.append('isAnonymous', 'false');
+      formData.append('isAnonymous', isAnonymous ? 'true' : 'false');
       formData.append('latitude', position[0].toString());
       formData.append('longitude', position[1].toString());
       formData.append('address', address);
@@ -233,10 +242,6 @@ const CreateComplaint = () => {
     }
   };
 
-  const onSubmit = async (data) => {
-    executeSubmit(data);
-  };
-
   const saveToOfflineDrafts = (data) => {
     const draft = {
       title: data.title,
@@ -246,6 +251,9 @@ const CreateComplaint = () => {
       latitude: position[0],
       longitude: position[1],
       address: address,
+      incidentDate,
+      incidentTime,
+      isAnonymous,
       createdAt: new Date().toISOString()
     };
 
@@ -254,10 +262,9 @@ const CreateComplaint = () => {
     localStorage.setItem('offline_drafts', JSON.stringify(existing));
 
     setSuccess(true);
-    setErrorMsg('Network issue detected or Offline. Save as Offline Draft successful!');
     setTimeout(() => {
       navigate('/dashboard');
-    }, 3000);
+    }, 2500);
   };
 
   const handleFileChange = (e) => {
@@ -266,280 +273,533 @@ const CreateComplaint = () => {
   };
 
   return (
-    <div className="relative max-w-4xl mx-auto space-y-8">
-      {/* Close Button */}
-      <Link 
-        to="/dashboard" 
-        className="absolute top-12 right-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-white rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-        title="Cancel and Go Back"
-      >
-        <X className="h-5 w-5" />
-      </Link>
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-white">Register a Complaint</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Pinpoint coordinates, upload images/files, and write details.</p>
-      </div>
-
-      {success && (
-        <div className="flex items-center gap-3 rounded-xl bg-green-50 p-4 text-green-700 dark:bg-green-950/20 dark:text-green-400 border border-green-200">
-          <CheckCircle2 className="h-6 w-6" />
-          <div>
-            <h4 className="font-bold">Complaint Filed Successfully!</h4>
-            <p className="text-xs">{errorMsg ? errorMsg : 'Your ticket is now registered. Redirecting to console...'}</p>
-          </div>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-8 md:grid-cols-2">
-        {/* Form panel */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Complaint Language</label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="English">English</option>
-              <option value="Tamil">Tamil (தமிழ்)</option>
-              <option value="Hindi">Hindi (हिन्दी)</option>
-              <option value="Telugu">Telugu (తెలుగు)</option>
-              <option value="Malayalam">Malayalam (മലയാളം)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Complaint Title</label>
-            <input 
-              type="text"
-              {...register('title')}
-              placeholder="Brief summary of the issue..."
-              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800 dark:text-white focus:border-blue-500"
-            />
-            {errors.title && <span className="text-xs text-red-500 mt-1 block">{errors.title.message}</span>}
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
-            <select 
-              value={selectedDept}
-              onChange={(e) => {
-                setSelectedDept(e.target.value);
-                setIsManualDeptSelection(true); // Stop auto-detect once the user changes it manually
-              }}
-              className="w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="" className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-                -- Auto-Detect (Let AI Assign) --
-              </option>
-              {departments.map(d => (
-                <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detailed Description</label>
-              <button 
-                type="button" 
-                onClick={handleCheckDuplicates}
-                className="text-xs text-blue-600 hover:underline flex items-center gap-1 dark:text-blue-400"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Scan Duplicates
-              </button>
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020b06] text-slate-800 dark:text-white flex flex-col font-sans transition-colors duration-300">
+      
+      {/* 1. Header Navbar (Forest Green) */}
+      <header className="bg-[#062c19] text-white px-6 py-4 shadow-md w-full sticky top-0 z-50 border-b border-emerald-950">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative h-12 w-12 rounded-full border-2 border-emerald-800 bg-white shrink-0 flex items-center justify-center overflow-hidden">
+              <img src={logoImage} alt="Shield Logo" className="h-full w-full object-contain p-0.5" />
             </div>
-            <textarea 
-              rows={4}
-              {...register('description')}
-              placeholder="Provide exact details of the situation. Mention safety concerns..."
-              className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2 text-sm dark:border-slate-800 dark:text-white focus:border-blue-500"
-            />
-            {errors.description && <span className="text-xs text-red-500 mt-1 block">{errors.description.message}</span>}
-          </div>
-
-          {/* Attachments */}
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attach Files (Images, PDFs)</label>
-            <label className="flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-lg p-5 cursor-pointer hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/40">
-              <Upload className="h-7 w-7 text-slate-400" />
-              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">Select media files for validation</span>
-              <input 
-                type="file" 
-                multiple
-                onChange={handleFileChange}
-                className="hidden" 
-              />
-              {uploadedFiles.length > 0 && (
-                <div className="text-xs font-semibold text-blue-600 mt-3">
-                  Selected {uploadedFiles.length} file(s)
-                </div>
-              )}
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10"
-          >
-            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'File Complaint'}
-          </button>
-        </div>
-
-        {/* Location & Map panel */}
-        <div className="space-y-6">
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Location</label>
-              <button 
-                type="button"
-                onClick={triggerLocationFetch}
-                className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
-              >
-                <MapPin className="h-3.5 w-3.5" />
-                Fetch GPS Location
-              </button>
-            </div>
-            
-            {/* Leaflet Map */}
-            <div className="h-72 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-              <MapContainer center={position} zoom={13} scrollWheelZoom={false}>
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                <Marker position={position} />
-                <MapClickHandler />
-              </MapContainer>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-450 uppercase mb-2">Location Address / Landmark Details (Editable)</label>
-              <textarea 
-                rows={3}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Click GPS Location above, select on map, or type address details manually here..."
-                className="w-full text-xs text-slate-800 dark:text-white font-medium leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 focus:border-blue-500 outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Potential duplicate warnings */}
-          {duplicates.length > 0 && (
-            <div className="rounded-xl border border-red-200 bg-red-50/20 p-5 dark:border-red-900/30">
-              <h4 className="flex items-center gap-2 text-sm font-bold text-red-700 dark:text-red-400">
-                <AlertCircle className="h-5 w-5" />
-                Duplicate Complaint Warning ({duplicates.length})
-              </h4>
-              <p className="text-xs text-red-600 dark:text-red-500 mt-1 leading-relaxed">
-                The AI system detected existing active complaints with similar descriptions in this location. Review them below to prevent double filing.
-              </p>
-              <div className="mt-4 space-y-2">
-                {duplicates.map(dup => (
-                  <div key={dup.id} className="rounded-lg bg-white p-3 border border-red-100 dark:bg-slate-900 dark:border-slate-800 text-xs flex justify-between items-center">
-                    <div>
-                      <strong className="text-slate-800 dark:text-white">{dup.id}</strong> - {dup.title}
-                      <p className="text-[10px] text-slate-400 mt-0.5">Status: {dup.status}</p>
-                    </div>
-                    <a 
-                      href={`/track-complaint/${dup.id}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-blue-600 hover:underline font-semibold"
-                    >
-                      View
-                    </a>
-                  </div>
-                ))}
+            <div className="flex flex-col">
+              <h1 className="text-md md:text-lg font-bold tracking-tight leading-tight uppercase font-serif text-[#f2e6d0]">
+                Public Service Complaint Network
+              </h1>
+              <div className="text-[9px] font-semibold text-emerald-100 tracking-wider uppercase opacity-90 mt-0.5 leading-none">
+                Building Trust • Ensuring Quality
+              </div>
+              <div className="text-[8px] font-bold text-[#d4af37] tracking-widest uppercase opacity-85 mt-0.5 leading-none">
+                Efficiency • Accountability • Feedback
               </div>
             </div>
-          )}
-        </div>
-      </form>
+          </div>
 
-      {/* AI Duplicate Warning Modal */}
-      {showDuplicateModal && duplicateData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-slate-900 space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
-              <AlertCircle className="h-6 w-6" />
-              <h3 className="text-lg font-bold">AI Duplicate Detected!</h3>
-            </div>
+          <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-semibold text-slate-100">
+            <Link to="/" className="hover:text-[#d4af37] transition-colors">Home</Link>
+            <Link to="/file-complaint" className="text-[#d4af37] font-semibold">File a Complaint</Link>
+            <Link to="/track" className="hover:text-[#d4af37] transition-colors">Track Status</Link>
             
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-              Our AI duplicate scanner detected a highly similar complaint already registered in your immediate vicinity.
-            </p>
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white px-3.5 py-1.5 rounded-md font-bold transition-all shadow-sm">
+                Dashboard
+              </Link>
+            ) : (
+              <Link to="/login" className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white px-3.5 py-1.5 rounded-md font-bold transition-all shadow-sm">
+                Login
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
 
-            <div className="rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border border-amber-150 dark:border-amber-900/30 p-4 space-y-2 text-xs">
-              {duplicateData.isDuplicate ? (
-                <>
-                  <div className="font-bold text-slate-800 dark:text-white">
-                    Matching Ticket ID: {duplicateData.matchedComplaintId || 'N/A'}
-                  </div>
-                  {duplicateData.matchedComplaintTitle && (
-                    <div className="font-semibold text-slate-700 dark:text-slate-350">
-                      Title: "{duplicateData.matchedComplaintTitle}"
-                    </div>
-                  )}
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-1 italic">
-                    Reason: {duplicateData.reason}
-                  </div>
-                </>
-              ) : (
-                <div className="text-slate-650 dark:text-slate-300">
-                  {duplicateData.reason || "No exact duplicates found, but check complete."}
+      {/* 2. Main Step Wizard Content */}
+      <main className="max-w-7xl mx-auto px-6 py-12 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        {/* Column 1: Stepper Navigation */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="sticky top-28 bg-white dark:bg-[#03140c] border border-slate-200 dark:border-[#052414] rounded-2xl p-6 shadow-sm">
+            <h3 className="text-xs font-bold text-slate-450 dark:text-emerald-500 uppercase tracking-widest mb-6">
+              Submission Progress
+            </h3>
+            
+            <div className="relative flex flex-col gap-6">
+              {/* Vertical line connector */}
+              <div className="absolute left-[15px] top-3 bottom-3 w-[2px] bg-slate-200 dark:bg-emerald-950 -z-10" />
+
+              {/* Step 1 */}
+              <div className="flex items-center gap-4 text-left">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border font-bold text-xs shrink-0 transition-all ${
+                  activeStep === 1 
+                    ? 'bg-[#062c19] text-white border-emerald-500 ring-2 ring-emerald-500/20' 
+                    : activeStep > 1 
+                      ? 'bg-emerald-600 border-emerald-500 text-white' 
+                      : 'bg-white border-slate-300 text-slate-450 dark:bg-slate-900 dark:border-slate-800'
+                }`}>
+                  {activeStep > 1 ? <Check className="h-4 w-4" /> : '1'}
                 </div>
-              )}
-            </div>
+                <div>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider ${activeStep === 1 ? 'text-[#062c19] dark:text-[#f2e6d0]' : 'text-slate-400'}`}>
+                    Describe Incident
+                  </h4>
+                </div>
+              </div>
 
-            <div className="flex gap-3 justify-end text-xs font-bold pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDuplicateModal(false);
-                  setDuplicateData(null);
-                  setPendingSubmitData(null);
-                }}
-                className="rounded-lg border border-slate-200 bg-transparent px-4 py-2.5 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-850"
-              >
-                Cancel
-              </button>
+              {/* Step 2 */}
+              <div className="flex items-center gap-4 text-left">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border font-bold text-xs shrink-0 transition-all ${
+                  activeStep === 2 
+                    ? 'bg-[#062c19] text-white border-emerald-500 ring-2 ring-emerald-500/20' 
+                    : activeStep > 2 
+                      ? 'bg-emerald-600 border-emerald-500 text-white' 
+                      : 'bg-white border-slate-300 text-slate-450 dark:bg-slate-900 dark:border-slate-800'
+                }`}>
+                  {activeStep > 2 ? <Check className="h-4 w-4" /> : '2'}
+                </div>
+                <div>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider ${activeStep === 2 ? 'text-[#062c19] dark:text-[#f2e6d0]' : 'text-slate-400'}`}>
+                    Submit Evidence
+                  </h4>
+                </div>
+              </div>
 
-              {duplicateData.isDuplicate && duplicateData.matchedComplaintId && (
-                <a
-                  href={`/track-complaint/${duplicateData.matchedComplaintId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-lg bg-blue-50 px-4 py-2.5 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-400"
-                >
-                  View Existing
-                </a>
-              )}
+              {/* Step 3 */}
+              <div className="flex items-center gap-4 text-left">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border font-bold text-xs shrink-0 transition-all ${
+                  activeStep === 3 
+                    ? 'bg-[#062c19] text-white border-emerald-500 ring-2 ring-emerald-500/20' 
+                    : activeStep > 3 
+                      ? 'bg-emerald-600 border-emerald-500 text-white' 
+                      : 'bg-white border-slate-300 text-slate-450 dark:bg-slate-900 dark:border-slate-800'
+                }`}>
+                  {activeStep > 3 ? <Check className="h-4 w-4" /> : '3'}
+                </div>
+                <div>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider ${activeStep === 3 ? 'text-[#062c19] dark:text-[#f2e6d0]' : 'text-slate-400'}`}>
+                    Add Contacts
+                  </h4>
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDuplicateModal(false);
-                  if (pendingSubmitData) {
-                    executeSubmit(pendingSubmitData);
-                  } else {
-                    alert("Duplicate scan acknowledged.");
-                  }
-                }}
-                className="rounded-lg bg-blue-600 px-4 py-2.5 text-white hover:bg-blue-700"
-              >
-                File Anyway
-              </button>
+              {/* Step 4 */}
+              <div className="flex items-center gap-4 text-left">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border font-bold text-xs shrink-0 transition-all ${
+                  activeStep === 4 
+                    ? 'bg-[#062c19] text-white border-emerald-500 ring-2 ring-emerald-500/20' 
+                    : 'bg-white border-slate-300 text-slate-450 dark:bg-slate-900 dark:border-slate-800'
+                }`}>
+                  '4'
+                </div>
+                <div>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider ${activeStep === 4 ? 'text-[#062c19] dark:text-[#f2e6d0]' : 'text-slate-400'}`}>
+                    Review & Submit
+                  </h4>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
-      )}
+
+        {/* Column 2 & 3: Form Card Panel */}
+        <div className="lg:col-span-2">
+          
+          <div className="bg-white dark:bg-[#0c1912] border border-slate-200 dark:border-[#0b3a20] rounded-2xl p-8 shadow-md">
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8 text-left border-b border-slate-100 dark:border-emerald-950 pb-4">
+              File a New Complaint
+            </h2>
+
+            {success && (
+              <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-green-700 dark:bg-emerald-950/30 dark:text-[#d4af37] border border-green-200 dark:border-[#0b3a20] animate-pulse">
+                <CheckCircle2 className="h-6 w-6 shrink-0" />
+                <div>
+                  <h4 className="font-bold">Complaint Registered!</h4>
+                  <p className="text-xs">{errorMsg ? errorMsg : 'Successfully posted complaint. Redirecting to dashboard console...'}</p>
+                </div>
+              </div>
+            )}
+
+            {errorMsg && !success && (
+              <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 p-4 text-red-700 border border-red-200">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p className="text-xs font-semibold">{errorMsg}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
+              
+              {/* STEP 1: Describe Incident */}
+              {activeStep === 1 && (
+                <div className="space-y-6">
+                  {/* Language */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                      Complaint Language
+                    </label>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-[#1a2b22] text-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                    >
+                      <option value="English">English</option>
+                      <option value="Tamil">Tamil (தமிழ்)</option>
+                      <option value="Hindi">Hindi (हिन्दी)</option>
+                      <option value="Telugu">Telugu (తెలుగు)</option>
+                      <option value="Malayalam">Malayalam (മലയാളം)</option>
+                      <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
+                    </select>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                      Complaint Title
+                    </label>
+                    <input 
+                      type="text"
+                      {...register('title')}
+                      placeholder="Brief title summarizing the issue..."
+                      className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                    />
+                    {errors.title && <span className="text-xs text-red-500 mt-1 block">{errors.title.message}</span>}
+                  </div>
+
+                  {/* Location & Map Pin */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider">
+                        Incident Location / Landmark
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={triggerLocationFetch}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-[#d4af37] hover:underline"
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        Fetch GPS Location
+                      </button>
+                    </div>
+
+                    <div className="h-56 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+                      <MapContainer center={position} zoom={13} scrollWheelZoom={false}>
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                        <Marker position={position} />
+                        <MapClickHandler />
+                      </MapContainer>
+                    </div>
+
+                    <textarea 
+                      rows={2}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Select on the map above or enter incident address manual details here..."
+                      className="w-full text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-[#1a2b22]/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                    />
+                  </div>
+
+                  {/* Date & Time */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                        Date of Incident
+                      </label>
+                      <input 
+                        type="date"
+                        value={incidentDate}
+                        onChange={(e) => setIncidentDate(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                        Time of Incident
+                      </label>
+                      <input 
+                        type="time"
+                        value={incidentTime}
+                        onChange={(e) => setIncidentTime(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Detailed Description */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider">
+                        Detailed Description of Complaint
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={handleCheckDuplicates}
+                        className="text-xs text-[#ac734c] dark:text-[#d4af37] hover:underline flex items-center gap-1"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        Scan Duplicates
+                      </button>
+                    </div>
+                    <textarea 
+                      rows={4}
+                      {...register('description')}
+                      placeholder="Describe the issue in detail, including street names, public hazards or identifiers..."
+                      className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                    />
+                    {errors.description && <span className="text-xs text-red-500 mt-1 block">{errors.description.message}</span>}
+                    
+                    {/* Real-time duplicate alerts */}
+                    {duplicateMessage && (
+                      <div className="mt-3 p-3 rounded-lg border border-dashed border-emerald-800 bg-emerald-950/20 text-xs font-semibold text-emerald-600 dark:text-emerald-450 animate-pulse">
+                        {duplicateMessage}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex justify-end">
+                    <button
+                      type="submit"
+                      className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2 shadow"
+                    >
+                      <span>Next Step: Attach Evidence</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: Submit Evidence */}
+              {activeStep === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                      Attach Evidence (Images, Videos, PDFs)
+                    </label>
+                    
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-350 dark:border-emerald-900 bg-slate-50 dark:bg-[#1a2b22]/20 rounded-xl p-8 cursor-pointer hover:bg-slate-100 dark:hover:bg-[#1a2b22]/40 transition-colors">
+                      <Upload className="h-10 w-10 text-slate-400 dark:text-[#d4af37]" />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-3">Select and upload files</span>
+                      <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, PDF, or MP4 allowed (Max size 10MB)</p>
+                      
+                      <input 
+                        type="file" 
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden" 
+                      />
+                    </label>
+
+                    {uploadedFiles.length > 0 && (
+                      <div className="mt-4 p-4 rounded-xl border border-[#ac734c]/20 bg-[#f5e6d3]/20 space-y-2">
+                        <h4 className="text-xs font-bold text-[#ac734c] dark:text-[#d4af37]">Selected Files ({uploadedFiles.length}):</h4>
+                        <ul className="text-xs space-y-1 list-disc pl-4 text-slate-600 dark:text-slate-300 font-semibold">
+                          {uploadedFiles.map((file, idx) => (
+                            <li key={idx} className="truncate">{file.name} ({Math.round(file.size / 1024)} KB)</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep(1)}
+                      className="border border-slate-300 text-slate-650 hover:bg-slate-50 dark:border-emerald-900 dark:text-emerald-450 dark:hover:bg-emerald-950/20 font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep(3)}
+                      className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2 shadow"
+                    >
+                      <span>Next Step: Add Contacts</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: Add Contacts */}
+              {activeStep === 3 && (
+                <div className="space-y-6">
+                  <div className="rounded-xl border border-slate-200 dark:border-emerald-950 bg-slate-50 dark:bg-[#1a2b22]/30 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">File Anonymously</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-450 mt-0.5">Your email and identity will be hidden from departments.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isAnonymous}
+                          onChange={(e) => setIsAnonymous(e.target.checked)}
+                          className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+                      </label>
+                    </div>
+
+                    {!isAnonymous && user && (
+                      <div className="pt-4 border-t border-slate-250 dark:border-emerald-950/40 text-xs space-y-2">
+                        <p><strong className="text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider">Registered Citizen:</strong> {user.fullName}</p>
+                        <p><strong className="text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider">Contact Email:</strong> {user.email}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep(2)}
+                      className="border border-slate-300 text-slate-650 hover:bg-slate-50 dark:border-emerald-900 dark:text-emerald-450 dark:hover:bg-emerald-950/20 font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep(4)}
+                      className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2 shadow"
+                    >
+                      <span>Next Step: Review & Submit</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Review & Submit */}
+              {activeStep === 4 && (
+                <div className="space-y-6">
+                  <div className="bg-slate-50 dark:bg-[#1a2b22]/30 p-6 rounded-xl border border-slate-200 dark:border-[#0b3a20] space-y-4 text-xs font-semibold leading-relaxed">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-white border-b border-slate-200 dark:border-emerald-950 pb-2">
+                      Review Form Summary
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Title</span>
+                        <span className="text-slate-800 dark:text-white font-bold text-sm block mt-0.5">{titleWatch}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Language</span>
+                        <span className="text-slate-800 dark:text-white block mt-0.5">{language}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Incident Date & Time</span>
+                        <span className="text-slate-800 dark:text-white block mt-0.5">{incidentDate} @ {incidentTime}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Anonymity status</span>
+                        <span className="text-slate-800 dark:text-white block mt-0.5">{isAnonymous ? 'Anonymous Filing' : 'Public Profile Linked'}</span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Address / Location details</span>
+                        <span className="text-slate-800 dark:text-white block mt-0.5 leading-normal">{address}</span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Detailed description</span>
+                        <p className="text-slate-800 dark:text-white block mt-1 leading-normal font-medium max-h-36 overflow-y-auto whitespace-pre-wrap bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                          {descriptionWatch}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Attachments</span>
+                        <span className="text-slate-800 dark:text-white block mt-0.5">{uploadedFiles.length} file(s) attached</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex flex-col md:flex-row justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setActiveStep(3)}
+                      className="border border-slate-300 text-slate-650 hover:bg-slate-50 dark:border-emerald-900 dark:text-emerald-450 dark:hover:bg-emerald-950/20 font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center justify-center gap-2"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back</span>
+                    </button>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSubmit(saveToOfflineDrafts)}
+                        className="border border-emerald-600 hover:bg-emerald-50 text-emerald-700 dark:border-[#d4af37] dark:text-[#f2e6d0] dark:hover:bg-[#d4af37]/10 font-bold text-xs uppercase tracking-wider px-5 py-3 rounded-lg flex items-center justify-center gap-2"
+                      >
+                        <FolderOpen className="h-4 w-4" />
+                        <span>Save Draft</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={handleSubmit(executeSubmit)}
+                        className="bg-[#ac734c] hover:bg-[#8f5e3e] disabled:bg-slate-400 text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center justify-center gap-2 shadow"
+                      >
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                        <span>Submit Complaint</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </form>
+          </div>
+        </div>
+
+        {/* Column 4: Help Links & Tips Sidebar */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Help Card */}
+          <div className="bg-white dark:bg-[#03140c]/50 border border-slate-200 dark:border-[#052414] rounded-2xl p-6 shadow-sm text-left">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-emerald-950 pb-2">
+              Need Help?
+            </h3>
+            <ul className="space-y-3 text-xs font-semibold">
+              <li>
+                <Link to="/guidelines" className="text-slate-650 hover:text-[#ac734c] dark:text-[#f2e6d0]/80 dark:hover:text-[#d4af37] underline transition-colors">
+                  Complaint Guidelines
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-slate-650 hover:text-[#ac734c] dark:text-[#f2e6d0]/80 dark:hover:text-[#d4af37] underline transition-colors">
+                  Frequently Asked Questions
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Success Tips Card */}
+          <div className="relative bg-white dark:bg-[#03140c]/50 border border-slate-200 dark:border-[#052414] rounded-2xl p-6 shadow-sm text-left overflow-hidden">
+            <h3 className="text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-emerald-950 pb-2">
+              Tips for Success
+            </h3>
+            <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-[#f2e6d0]/70 list-disc pl-4">
+              <li>Be as specific as possible.</li>
+              <li>Upload photos if available.</li>
+              <li>Anonymity options are available.</li>
+            </ul>
+
+            {/* Premium Gold Star Decoration from Mockup */}
+            <div className="absolute right-4 bottom-4 text-slate-200 dark:text-emerald-950/20 text-3xl font-black select-none pointer-events-none">
+              ✦
+            </div>
+          </div>
+        </div>
+
+      </main>
+      
+      {/* 3. About Us Footer Block */}
+      <footer id="about" className="bg-slate-950 text-slate-400 py-8 px-6 border-t border-emerald-950">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs font-medium gap-4">
+          <p>&copy; {new Date().getFullYear()} Public Service Complaint Network. All Rights Reserved.</p>
+          <p>Email: support@pscn.gov | Helpline: 1800-345-0011</p>
+        </div>
+      </footer>
+
     </div>
   );
 };

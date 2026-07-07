@@ -51,12 +51,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
 
-        {/* Citizen endpoints */}
-        <Route path="file-complaint" element={
-          <ProtectedRoute allowedRoles={['ROLE_CITIZEN']}>
-            <CreateComplaint />
-          </ProtectedRoute>
-        } />
         <Route path="my-complaints" element={
           <ProtectedRoute allowedRoles={['ROLE_CITIZEN']}>
             <MyComplaints />
@@ -124,6 +118,12 @@ const AppRoutes = () => {
         {/* Error mappings inside dashboard frame */}
         <Route path="unauthorized" element={<Error403 />} />
       </Route>
+
+      <Route path="/file-complaint" element={
+        <ProtectedRoute allowedRoles={['ROLE_CITIZEN']}>
+          <CreateComplaint />
+        </ProtectedRoute>
+      } />
 
       {/* Fallback */}
       <Route path="*" element={<Error404 />} />
