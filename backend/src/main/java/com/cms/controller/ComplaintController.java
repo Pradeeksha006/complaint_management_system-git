@@ -42,7 +42,7 @@ public class ComplaintController {
             @RequestParam("latitude") Double latitude,
             @RequestParam("longitude") Double longitude,
             @RequestParam("description") String description) {
-        return ResponseEntity.ok(complaintService.detectDuplicates(departmentId, latitude, longitude, description));
+        return ResponseEntity.ok(complaintService.detectDuplicates(departmentId, latitude, longitude, description, null));
     }
 
     @GetMapping

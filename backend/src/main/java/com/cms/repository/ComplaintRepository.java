@@ -42,6 +42,9 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
             @Param("minLon") Double minLon,
             @Param("maxLon") Double maxLon);
 
+    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
+    List<Complaint> findAllActiveComplaints();
+
     long countByStatus(ComplaintStatus status);
 
     @Query("SELECT c.status, COUNT(c) FROM Complaint c GROUP BY c.status")

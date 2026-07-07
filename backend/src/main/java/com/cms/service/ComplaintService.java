@@ -71,9 +71,22 @@ public class ComplaintService {
         // Always predict priority automatically using AI
         Priority priority = AiHelper.predictPriority(title, description);
 
-        // A. Duplicate Check - Merge duplicate submissions into a single Master Complaint
+        // Calculate translation first so we can use it for cross-lingual duplicate checks!
+        String language = "English";
+        if (description != null && description.startsWith("[Language: ")) {
+            int closeBracket = description.indexOf(']');
+            if (closeBracket > 0) {
+                language = description.substring(11, closeBracket).trim();
+            }
+        }
+
+        String translatedDesc = geminiService.translateToEnglish(description, language);
+        String summary = geminiService.generateSummary(translatedDesc);
+        String translatedTitle = geminiService.translateToEnglish(title, language);
+
+        // A. Duplicate Check - Merge duplicate submissions into a single Master Complaint (using cross-lingual translation)
         if (latitude != null && longitude != null) {
-            List<ComplaintDto> duplicates = detectDuplicates(dept.getId(), latitude, longitude, description);
+            List<ComplaintDto> duplicates = detectDuplicates(dept.getId(), latitude, longitude, description, translatedDesc);
             if (!duplicates.isEmpty()) {
                 ComplaintDto duplicateDto = duplicates.get(0);
                 Complaint master = complaintRepository.findById(duplicateDto.getId()).orElse(null);
@@ -120,18 +133,6 @@ public class ComplaintService {
         } else {
             deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
         }
-
-        String language = "English";
-        if (description != null && description.startsWith("[Language: ")) {
-            int closeBracket = description.indexOf(']');
-            if (closeBracket > 0) {
-                language = description.substring(11, closeBracket).trim();
-            }
-        }
-
-        String translatedDesc = geminiService.translateToEnglish(description, language);
-        String summary = geminiService.generateSummary(translatedDesc);
-        String translatedTitle = geminiService.translateToEnglish(title, language);
 
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
@@ -195,44 +196,81 @@ public class ComplaintService {
     }
 
     @Transactional(readOnly = true)
-    public List<ComplaintDto> detectDuplicates(Long departmentId, Double latitude, Double longitude, String description) {
-        if (latitude == null || longitude == null) {
-            return Collections.emptyList();
-        }
-
-        // Search boundaries (approx 500 meters delta lat/lon)
-        double delta = 0.005;
-        double minLat = latitude - delta;
-        double maxLat = latitude + delta;
-        double minLon = longitude - delta;
-        double maxLon = longitude + delta;
-
-        List<Complaint> candidates = complaintRepository.findPotentialDuplicatesAllDepts(minLat, maxLat, minLon, maxLon);
+    public List<ComplaintDto> detectDuplicates(Long departmentId, Double latitude, Double longitude, 
+                                               String description, String translatedDescription) {
+        List<Complaint> candidates = complaintRepository.findAllActiveComplaints();
         List<ComplaintDto> duplicates = new ArrayList<>();
 
+        if (candidates.isEmpty()) {
+            return duplicates;
+        }
+
+        // 1. Prepare candidates info for semantic AI duplicate analysis
+        List<Map<String, String>> candidatesInfo = new ArrayList<>();
         for (Complaint cand : candidates) {
-            if (cand.getLatitude() == null || cand.getLongitude() == null) continue;
+            Map<String, String> item = new HashMap<>();
+            item.put("id", cand.getId());
+            item.put("title", cand.getTranslatedTitle() != null ? cand.getTranslatedTitle() : cand.getTitle());
+            item.put("description", cand.getTranslatedDescription() != null ? cand.getTranslatedDescription() : cand.getDescription());
+            candidatesInfo.add(item);
+        }
+
+        try {
+            String candidatesJson = objectMapper.writeValueAsString(candidatesInfo);
+            String aiResult = geminiService.detectDuplicates(
+                (translatedDescription != null && !translatedDescription.isBlank()) ? translatedDescription : description, 
+                candidatesJson
+            );
+            JsonNode root = objectMapper.readTree(aiResult);
+            boolean isDuplicate = root.path("isDuplicate").asBoolean(false);
+            String matchedId = root.path("matchedComplaintId").isNull() ? null : root.path("matchedComplaintId").asText();
             
+            if (isDuplicate && matchedId != null && !matchedId.isEmpty()) {
+                complaintRepository.findById(matchedId).ifPresent(c -> {
+                    duplicates.add(MapperUtils.toDto(c));
+                });
+                return duplicates;
+            }
+        } catch (Exception e) {
+            log.error("AI duplicate evaluation failed, falling back to local checks", e);
+        }
+
+        // 2. Local fallback duplicate check if AI fails/rate-limited
+        for (Complaint cand : candidates) {
+            if (cand.getLatitude() == null || cand.getLongitude() == null || latitude == null || longitude == null) {
+                // If coordinates are missing, compare translated description similarity
+                double similarity = AiHelper.calculateSimilarity(
+                    (translatedDescription != null) ? translatedDescription : description,
+                    (cand.getTranslatedDescription() != null) ? cand.getTranslatedDescription() : cand.getDescription()
+                );
+                if (similarity >= 0.50) {
+                    duplicates.add(MapperUtils.toDto(cand));
+                    break;
+                }
+                continue;
+            }
+
             double distanceMeters = AiHelper.calculateDistance(latitude, longitude, cand.getLatitude(), cand.getLongitude());
-            
-            // Tier 1: Very close proximity (<= 50 meters) reporting similar type/department
             boolean sameDepartment = departmentId != null && departmentId > 0 && 
                                      cand.getDepartment() != null && 
                                      cand.getDepartment().getId().equals(departmentId);
             
+            String text1 = (translatedDescription != null) ? translatedDescription : description;
+            String text2 = (cand.getTranslatedDescription() != null) ? cand.getTranslatedDescription() : cand.getDescription();
+            
             if (distanceMeters <= 50.0) {
-                double similarity = AiHelper.calculateSimilarity(description, cand.getDescription());
+                double similarity = AiHelper.calculateSimilarity(text1, text2);
                 if (sameDepartment || similarity >= 0.20) {
                     duplicates.add(MapperUtils.toDto(cand));
-                    continue;
+                    break;
                 }
             }
             
-            // Tier 2: General vicinity (50m - 500m) with high description text similarity
             if (distanceMeters > 50.0 && distanceMeters <= 500.0) {
-                double textSimilarity = AiHelper.calculateSimilarity(description, cand.getDescription());
+                double textSimilarity = AiHelper.calculateSimilarity(text1, text2);
                 if (textSimilarity >= 0.35) {
                     duplicates.add(MapperUtils.toDto(cand));
+                    break;
                 }
             }
         }

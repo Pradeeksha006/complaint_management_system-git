@@ -235,7 +235,55 @@ public class GeminiService {
         }
         return aiResult;
     }
-
+    public String detectDuplicates(String newText, String candidatesJson) {
+        String prompt = "You are an AI duplicate checker for a City Complaint Management System. " +
+                "Analyze this new complaint description:\n" +
+                "\"" + newText + "\"\n\n" +
+                "Compare it against this list of active complaints in the database:\n" +
+                candidatesJson + "\n\n" +
+                "Rules:\n" +
+                "1. Extract and compare the core issue (aim) AND physical location (e.g. Gandhi Street, bus stop, near market) from the text.\n" +
+                "2. Wording, sentences, and languages can be different. Do not require exact word matching. Treat them as duplicates if they report the same issue at the same physical location.\n" +
+                "3. Return a JSON object containing:\n" +
+                "{\n" +
+                "  \"isDuplicate\": true or false,\n" +
+                "  \"matchedComplaintId\": \"ID of the duplicate complaint or null if isDuplicate is false\",\n" +
+                "  \"reason\": \"brief explanation highlighting the matching location and issue\"\n" +
+                "}";
+        String aiResult = callGemini(prompt, true);
+        if (aiResult == null || aiResult.trim().isEmpty() || aiResult.equals("{}")) {
+            // Local fallback duplicate check
+            try {
+                JsonNode candidates = objectMapper.readTree(candidatesJson);
+                boolean found = false;
+                String matchedId = null;
+                String reason = "No similar complaints found nearby.";
+                
+                for (JsonNode cand : candidates) {
+                    String candId = cand.path("id").asText();
+                    String candDesc = cand.path("description").asText("");
+                    
+                    double score = calculateSimilarity(newText, candDesc);
+                    if (score >= 0.50) {
+                        found = true;
+                        matchedId = candId;
+                        reason = "AI Local Fallback: Detected high text similarity match of " + 
+                                Math.round(score * 100) + "% with Ticket ID " + candId;
+                        break;
+                    }
+                }
+                
+                ObjectNode fallbackJson = objectMapper.createObjectNode();
+                fallbackJson.put("isDuplicate", found);
+                fallbackJson.put("matchedComplaintId", matchedId);
+                fallbackJson.put("reason", reason);
+                return objectMapper.writeValueAsString(fallbackJson);
+            } catch (Exception e) {
+                log.warn("Local duplicate scan failed: {}", e.getMessage());
+            }
+        }
+        return aiResult;
+    }
     private double calculateSimilarity(String s1, String s2) {
         if (s1 == null || s2 == null) return 0.0;
         String clean1 = s1.toLowerCase().replaceAll("[^a-zA-Z0-9\\s\\u0B80-\\u0BFF\\u0900-\\u097F]", "");
