@@ -235,30 +235,6 @@ const CreateComplaint = () => {
       return;
     }
 
-    // AI duplicate check on submit if not checked already
-    if (!duplicateData) {
-      setSubmitting(true);
-      try {
-        const res = await api.post('/api/ai/detect-duplicates', {
-          title: data.title,
-          description: data.description,
-          latitude: position[0],
-          longitude: position[1]
-        });
-        if (res.data.isDuplicate) {
-          setDuplicateData(res.data);
-          setPendingSubmitData(data);
-          setShowDuplicateModal(true);
-          setSubmitting(false);
-          return;
-        }
-      } catch (err) {
-        console.error("Duplicate checking failed on submit, proceeding", err);
-      } finally {
-        setSubmitting(false);
-      }
-    }
-
     executeSubmit(data);
   };
 

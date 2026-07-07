@@ -95,4 +95,14 @@ public class Complaint {
     @Builder.Default
     @ToString.Exclude
     private List<Attachment> attachments = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "complaint_supports",
+        joinColumns = @JoinColumn(name = "complaint_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @Builder.Default
+    @ToString.Exclude
+    private List<User> supportingCitizens = new ArrayList<>();
 }

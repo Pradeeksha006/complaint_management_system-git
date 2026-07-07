@@ -71,6 +71,43 @@ public class ComplaintService {
         // Always predict priority automatically using AI
         Priority priority = AiHelper.predictPriority(title, description);
 
+        // A. Duplicate Check - Merge duplicate submissions into a single Master Complaint
+        if (latitude != null && longitude != null) {
+            List<ComplaintDto> duplicates = detectDuplicates(dept.getId(), latitude, longitude, description);
+            if (!duplicates.isEmpty()) {
+                ComplaintDto duplicateDto = duplicates.get(0);
+                Complaint master = complaintRepository.findById(duplicateDto.getId()).orElse(null);
+                if (master != null) {
+                    if (!isAnonymous && citizen != null) {
+                        boolean alreadySupporting = false;
+                        if (master.getCitizen() != null && master.getCitizen().getId().equals(citizen.getId())) {
+                            alreadySupporting = true;
+                        } else {
+                            if (master.getSupportingCitizens() == null) {
+                                master.setSupportingCitizens(new ArrayList<>());
+                            }
+                            for (User suUser : master.getSupportingCitizens()) {
+                                if (suUser.getId().equals(citizen.getId())) {
+                                    alreadySupporting = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!alreadySupporting) {
+                            master.getSupportingCitizens().add(citizen);
+                            complaintRepository.save(master);
+                            
+                            saveTimelineEvent(master, "SUPPORTED", "Citizen " + citizen.getFullName() + " registered support for this complaint (Duplicate report).", citizen);
+                            
+                            emailService.sendComplaintSubmittedEmail(citizen.getEmail(), citizen.getFullName(), master.getId(), master.getTitle());
+                        }
+                    }
+                    return MapperUtils.toDto(master);
+                }
+            }
+        }
+
         // 3. Generate Complaint ID: e.g. WT-20260703-0001
         String complaintId = generateComplaintId(dept.getCode());
 
@@ -219,9 +256,16 @@ public class ComplaintService {
 
         saveTimelineEvent(saved, "ASSIGNED", "Complaint assigned to officer " + officer.getUser().getFullName() + " (" + officer.getDesignation() + ").", currentUser);
 
-        // Notify Citizen
-        if (!saved.isAnonymous() && saved.getCitizen() != null) {
-            emailService.sendComplaintAssignedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+        // Notify Citizen(s)
+        if (!saved.isAnonymous()) {
+            if (saved.getCitizen() != null) {
+                emailService.sendComplaintAssignedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+            }
+            if (saved.getSupportingCitizens() != null) {
+                for (User suUser : saved.getSupportingCitizens()) {
+                    emailService.sendComplaintAssignedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
+                }
+            }
         }
 
         return MapperUtils.toDto(saved);
@@ -260,12 +304,23 @@ public class ComplaintService {
         
         saveTimelineEvent(saved, statusStr.toUpperCase(), remarks, currentUser);
 
-        // Email notifications
-        if (!saved.isAnonymous() && saved.getCitizen() != null) {
-            if (status == ComplaintStatus.RESOLVED) {
-                emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
-            } else if (status == ComplaintStatus.CLOSED) {
-                emailService.sendComplaintClosedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId());
+        // Email notifications to all linked citizens
+        if (!saved.isAnonymous()) {
+            if (saved.getCitizen() != null) {
+                if (status == ComplaintStatus.RESOLVED) {
+                    emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+                } else if (status == ComplaintStatus.CLOSED) {
+                    emailService.sendComplaintClosedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId());
+                }
+            }
+            if (saved.getSupportingCitizens() != null) {
+                for (User suUser : saved.getSupportingCitizens()) {
+                    if (status == ComplaintStatus.RESOLVED) {
+                        emailService.sendComplaintResolvedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
+                    } else if (status == ComplaintStatus.CLOSED) {
+                        emailService.sendComplaintClosedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId());
+                    }
+                }
             }
         }
 
@@ -304,7 +359,14 @@ public class ComplaintService {
         Specification<Complaint> spec = Specification.where(null);
 
         if (citizenId != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("citizen").get("id"), citizenId));
+            spec = spec.and((root, query, cb) -> {
+                User u = new User();
+                u.setId(citizenId);
+                return cb.or(
+                    cb.equal(root.get("citizen").get("id"), citizenId),
+                    cb.isMember(u, root.get("supportingCitizens"))
+                );
+            });
         }
         if (deptId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("department").get("id"), deptId));

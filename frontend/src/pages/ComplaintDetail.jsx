@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock
+  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock, Users
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -213,6 +213,17 @@ const ComplaintDetail = () => {
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block mb-1">AI Brief Summary</span>
                   {complaint.summary}
+                </div>
+              </div>
+            )}
+
+            {/* Master Complaint Proximity & Support Indicator */}
+            {complaint.supportCount > 1 && (
+              <div className="rounded-lg bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 p-3.5 flex items-start gap-2.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold leading-relaxed">
+                <Users className="h-4.5 w-4.5 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <span className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider block mb-1">Duplicate Merge (Master Complaint)</span>
+                  This ticket has been designated as a **Master Complaint**. **{complaint.supportCount} citizens** have reported this identical issue at this location and are merged into this ticket. All linked users will receive automated email updates upon resolution.
                 </div>
               </div>
             )}

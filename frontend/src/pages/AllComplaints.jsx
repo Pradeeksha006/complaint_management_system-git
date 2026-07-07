@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { 
-  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles, X
+  Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles, X, Users
 } from 'lucide-react';
 
 const AllComplaints = () => {
@@ -226,6 +226,7 @@ const AllComplaints = () => {
                   <th className="px-6 py-4">Ticket ID</th>
                   <th className="px-6 py-4">Customer ID</th>
                   <th className="px-6 py-4">Title & Citizen</th>
+                  <th className="px-6 py-4">Support Count</th>
                   <th className="px-6 py-4 text-blue-600 dark:text-blue-400">
                     <span className="flex items-center gap-1">
                       <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" /> AI Summary
@@ -258,6 +259,12 @@ const AllComplaints = () => {
                         <div className="text-xs text-slate-400 mt-0.5">
                           By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 text-xs font-bold">
+                          <Users className="h-3.5 w-3.5" />
+                          {c.supportCount || 1} {c.supportCount === 1 ? 'Citizen' : 'Citizens'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-200 max-w-xs truncate" title={c.summary}>
                         {c.summary || 'Generating...'}

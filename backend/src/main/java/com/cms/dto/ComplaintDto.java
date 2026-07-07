@@ -40,4 +40,5 @@ public class ComplaintDto {
     private String summary;
     private String translatedDescription;
     private String translatedTitle;
+    private int supportCount;
 }

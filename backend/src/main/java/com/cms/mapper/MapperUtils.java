@@ -109,6 +109,7 @@ public class MapperUtils {
                 .summary(c.getSummary())
                 .translatedDescription(c.getTranslatedDescription())
                 .translatedTitle(c.getTranslatedTitle())
+                .supportCount(c.isAnonymous() ? 1 : ((c.getSupportingCitizens() != null ? c.getSupportingCitizens().size() : 0) + 1))
                 .build();
     }
 
