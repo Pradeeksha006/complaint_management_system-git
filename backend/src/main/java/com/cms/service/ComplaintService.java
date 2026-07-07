@@ -84,8 +84,8 @@ public class ComplaintService {
             deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
         }
 
-        String summary = geminiService.generateSummary(description);
         String translatedDesc = geminiService.translateToEnglish(description);
+        String summary = geminiService.generateSummary(translatedDesc);
         String translatedTitle = geminiService.translateToEnglish(title);
 
         Complaint complaint = Complaint.builder()

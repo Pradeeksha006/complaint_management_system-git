@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2
+  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles
 } from 'lucide-react';
 
 const DeptHeadDashboard = () => {
@@ -283,6 +283,15 @@ const DeptHeadDashboard = () => {
                         )}
                       </div>
                       {c.address && <p className="text-[10px] text-slate-400 mt-2">Address: {c.address}</p>}
+                      {c.summary && (
+                        <div className="rounded-lg bg-blue-50/25 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/10 p-2.5 flex items-start gap-2 text-xs text-blue-750 dark:text-blue-400 font-semibold leading-relaxed mt-2.5">
+                          <Sparkles className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[9px] text-slate-450 uppercase font-bold tracking-wider block mb-0.5">AI Summary</span>
+                            {c.summary}
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Direct inline attachments preview */}
                       {c.attachments && c.attachments.length > 0 && (

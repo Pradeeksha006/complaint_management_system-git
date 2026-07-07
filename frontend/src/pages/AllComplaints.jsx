@@ -226,6 +226,11 @@ const AllComplaints = () => {
                   <th className="px-6 py-4">Ticket ID</th>
                   <th className="px-6 py-4">Customer ID</th>
                   <th className="px-6 py-4">Title & Citizen</th>
+                  <th className="px-6 py-4 text-blue-600 dark:text-blue-400">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" /> AI Summary
+                    </span>
+                  </th>
                   <th className="px-6 py-4">Current Status</th>
                   <th className="px-6 py-4">Assigned Officer</th>
                   <th className="px-6 py-4">Transfer Department</th>
@@ -253,6 +258,9 @@ const AllComplaints = () => {
                         <div className="text-xs text-slate-400 mt-0.5">
                           By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-200 max-w-xs truncate" title={c.summary}>
+                        {c.summary || 'Generating...'}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-2xs font-semibold ${
