@@ -7,6 +7,7 @@ import api from '../services/api';
 import { 
   Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, User, Phone, Loader2, Eye, EyeOff 
 } from 'lucide-react';
+import logoImage from '../assets/logo.png';
 
 const schema = yup.object().shape({
   fullName: yup.string().required('Full name is required'),
@@ -63,8 +64,18 @@ const Register = () => {
         
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
-          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-650 text-white shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-transform duration-200">
-            <Sparkles className="h-7 w-7" />
+          <div className="mb-3 relative h-16 w-16 overflow-hidden rounded-full border border-emerald-850 bg-white shrink-0">
+            <img 
+              src={logoImage} 
+              alt="Shield Seal Logo" 
+              className="absolute max-w-none h-full"
+              style={{ 
+                left: '-5px', 
+                top: '0px',
+                transform: 'scale(1.25)', 
+                transformOrigin: 'left center' 
+              }} 
+            />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Create Account</h2>
           <p className="text-sm text-slate-400 mt-1 font-medium">Register to start submitting complaints</p>

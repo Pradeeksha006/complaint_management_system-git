@@ -14,6 +14,7 @@ import {
   Map,
   ShieldCheck
 } from 'lucide-react';
+import logoImage from '../assets/logo.png';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user } = useSelector((state) => state.auth);
@@ -78,12 +79,22 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Brand Logo */}
         <div className="flex items-center gap-3 px-2 mb-8">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20 font-black text-xs">
-            CMS
+          <div className="relative h-10 w-10 overflow-hidden rounded-full border border-emerald-800 bg-white shrink-0">
+            <img 
+              src={logoImage} 
+              alt="Shield Seal Logo" 
+              className="absolute max-w-none h-full"
+              style={{ 
+                left: '-3px', 
+                top: '0px',
+                transform: 'scale(1.25)', 
+                transformOrigin: 'left center' 
+              }} 
+            />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-white">CMS</h2>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Govt & Org</p>
+            <h2 className="text-sm font-black tracking-tight text-[#062c19] dark:text-emerald-450 font-serif leading-none">PSCN</h2>
+            <p className="text-[8px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Complaint Network</p>
           </div>
         </div>
 

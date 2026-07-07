@@ -20,11 +20,15 @@ import DeptHeadDashboard from '../pages/DeptHeadDashboard';
 import DeptStatistics from '../pages/DeptStatistics';
 import { Error404, Error403 } from '../pages/ErrorPages';
 import MainLayout from '../layouts/MainLayout';
+import Home from '../pages/Home';
 import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Public Landing Page */}
+      <Route path="/" element={<Home />} />
+
       {/* Auth Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -32,12 +36,8 @@ const AppRoutes = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-
-
       {/* Main Authenticated shell */}
-      <Route path="/" element={<MainLayout />}>
-        {/* Default route */}
-        <Route index element={<Navigate to="/dashboard" replace />} />
+      <Route element={<MainLayout />}>
         
         <Route path="dashboard" element={
           <ProtectedRoute>

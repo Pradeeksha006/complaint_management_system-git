@@ -7,6 +7,7 @@ import * as yup from 'yup';
 import api from '../services/api';
 import { loginStart, loginSuccess, loginFailure } from '../redux/authSlice';
 import { Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
+import logoImage from '../assets/logo.png';
 
 const schema = yup.object().shape({
   usernameOrEmail: yup.string().required('Username or email is required'),
@@ -51,11 +52,21 @@ const Login = () => {
         
         {/* Logo/Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 transform hover:scale-105 transition-transform duration-200 font-black text-sm">
-            CMS
+          <div className="mb-4 relative h-16 w-16 overflow-hidden rounded-full border border-emerald-850 bg-white shrink-0">
+            <img 
+              src={logoImage} 
+              alt="Shield Seal Logo" 
+              className="absolute max-w-none h-full"
+              style={{ 
+                left: '-5px', 
+                top: '0px',
+                transform: 'scale(1.25)', 
+                transformOrigin: 'left center' 
+              }} 
+            />
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white">Welcome back</h2>
-          <p className="text-sm text-slate-400 mt-1.5 font-medium">Sign in to your CMS account</p>
+          <p className="text-sm text-slate-400 mt-1.5 font-medium">Sign in to your PSCN account</p>
         </div>
 
         {/* Feedback Messages */}
