@@ -55,7 +55,7 @@ const Register = () => {
   };
 
   return (
-    <div className="bg-slate-50 dark:bg-[#020b06] flex min-h-screen items-center justify-center px-4 overflow-hidden py-12 transition-colors duration-300">
+    <div className="premium-light-bg dark:premium-dark-bg flex min-h-screen items-center justify-center px-4 overflow-hidden py-12 transition-colors duration-300">
       
       {/* Extra floating background depth layers (glowing blobs) */}
       <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-emerald-500/5 dark:bg-[#062c19]/20 blur-[130px] animate-blob" />
