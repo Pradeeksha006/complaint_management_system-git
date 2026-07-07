@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import api from '../services/api';
@@ -14,6 +14,7 @@ const Settings = () => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingPass, setLoadingPass] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [localAvatarPreview, setLocalAvatarPreview] = useState(null);
 
   // Forgot password flow states within settings
   const [recoveryStep, setRecoveryStep] = useState('idle'); // 'idle' | 'prompt' | 'sent'
@@ -21,32 +22,111 @@ const Settings = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpStatus, setOtpStatus] = useState('');
 
-  const { register: regProfile, handleSubmit: handleProfileSubmit } = useForm({
+  const { register: regProfile, handleSubmit: handleProfileSubmit, reset: resetProfile } = useForm({
     defaultValues: {
-      fullName: user?.fullName,
-      phoneNumber: user?.phoneNumber
+      fullName: user?.fullName || '',
+      phoneNumber: user?.phoneNumber || ''
     }
   });
 
   const { register: regPass, handleSubmit: handlePassSubmit, reset: resetPass } = useForm();
 
+  // Keep details form synchronized when user is loaded/changed in Redux store
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        fullName: user.fullName || '',
+        phoneNumber: user.phoneNumber || ''
+      });
+    }
+  }, [user, resetProfile]);
+
+  // Clean up optimistic blob preview on unmount
+  useEffect(() => {
+    return () => {
+      if (localAvatarPreview) {
+        URL.revokeObjectURL(localAvatarPreview);
+      }
+    };
+  }, [localAvatarPreview]);
+
+  // Client-side canvas compression utility (resizes to 250x250 and outputs a compressed JPEG blob)
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 250;
+          const MAX_HEIGHT = 250;
+          let width = img.width;
+          let height = img.height;
+
+          // Maintain aspect ratio while sizing to maximum 250x250
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          }, 'image/jpeg', 0.75); // 75% quality JPEG
+        };
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 1. Optimistic Update (Render local preview URL instantly)
+    const previewUrl = URL.createObjectURL(file);
+    setLocalAvatarPreview(previewUrl);
+
     setUploadingAvatar(true);
     setProfileSuccess('');
     try {
+      // 2. Compress the image file to reduce network payload from Megabytes to under 30KB
+      const compressedFile = await compressImage(file);
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressedFile);
 
       const res = await api.post('/api/users/profile/upload-avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       dispatch(updateUser(res.data));
       setProfileSuccess('Profile picture updated successfully!');
     } catch (err) {
       alert('Failed to upload picture: ' + (err.response?.data?.message || err.message));
+      // Revert optimistic preview if upload fails
+      setLocalAvatarPreview(null);
     } finally {
       setUploadingAvatar(false);
     }
@@ -140,8 +220,14 @@ const Settings = () => {
           {/* Profile Picture Upload Section */}
           <div className="flex flex-col items-center space-y-3 p-4 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
             <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatarInput').click()}>
-              <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-md relative flex items-center justify-center bg-slate-200 dark:bg-slate-700">
-                {user?.profilePictureUrl ? (
+              <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 shadow-md relative flex items-center justify-center bg-slate-200 dark:bg-slate-700 animate-fade-in">
+                {localAvatarPreview ? (
+                  <img 
+                    src={localAvatarPreview} 
+                    alt="Profile Avatar Preview" 
+                    className="h-full w-full object-cover" 
+                  />
+                ) : user?.profilePictureUrl ? (
                   <img 
                     src={user.profilePictureUrl} 
                     alt="Profile Avatar" 
