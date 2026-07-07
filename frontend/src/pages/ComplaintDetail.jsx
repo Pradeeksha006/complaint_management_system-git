@@ -39,6 +39,7 @@ const ComplaintDetail = () => {
   const [modifying, setModifying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useEffect(() => {
     fetchDetail();
@@ -89,8 +90,10 @@ const ComplaintDetail = () => {
     setDeleting(true);
     try {
       await api.delete(`/api/complaints/${id}`);
-      alert('Complaint deleted successfully!');
-      navigate('/dashboard');
+      setShowDeleteSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
     } catch (err) {
       alert('Failed to delete complaint: ' + (err.response?.data?.message || err.message));
     } finally {
@@ -609,7 +612,7 @@ const ComplaintDetail = () => {
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
                     disabled={deleting}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition-colors shadow-md shadow-red-500/10"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/10"
                   >
                     Delete Complaint Permanently
                   </button>
@@ -784,13 +787,27 @@ const ComplaintDetail = () => {
                   executeDeleteComplaint();
                 }}
                 disabled={deleting}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-semibold text-white transition-colors shadow-md shadow-red-500/10 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white transition-colors shadow-md shadow-emerald-500/10 flex items-center gap-1.5"
               >
                 {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 Yes, Delete Permanently
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {showDeleteSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl space-y-4 text-center animate-scale-up">
+            <div className="h-14 w-14 bg-green-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-2 border border-green-200 dark:border-emerald-900/30">
+              <CheckCircle className="h-7 w-7 text-green-600 dark:text-emerald-500" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Complaint Deleted</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Your complaint has been successfully and permanently removed. Redirecting to dashboard...
+            </p>
           </div>
         </div>
       )}
