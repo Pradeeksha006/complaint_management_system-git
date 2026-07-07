@@ -79,14 +79,6 @@ public class AiHelper {
         }
         
         return "IT"; // Default to IT/General support
-    }s("கொசு") || content.contains("நோய்") ||
-                   content.contains("कुत्ता") || content.contains("मच्छर") || content.contains("बीमारी")) {
-            return "HL"; // Health
-        } else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle")) {
-            return "TR"; // Transport
-        }
-        
-        return "IT"; // Default to IT/General support
     }
 
     /**

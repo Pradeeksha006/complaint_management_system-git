@@ -9,6 +9,8 @@ import com.cms.mapper.MapperUtils;
 import com.cms.repository.*;
 import com.cms.security.SecurityUtils;
 import com.cms.util.AiHelper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,6 +43,7 @@ public class ComplaintService {
     private final CloudinaryService cloudinaryService;
     private final EmailService emailService;
     private final GeminiService geminiService;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public ComplaintDto createComplaint(String title, String description, String category,
