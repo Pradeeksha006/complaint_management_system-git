@@ -8,7 +8,7 @@ import L from 'leaflet';
 import { useSelector } from 'react-redux';
 import { 
   Sparkles, MapPin, Upload, AlertCircle, Eye, Info, Loader2, CheckCircle2, X,
-  FolderOpen, ArrowRight, ArrowLeft, HelpCircle, FileText, Check, Shield, Search
+  FolderOpen, ArrowRight, ArrowLeft, HelpCircle, FileText, Check, Shield, Search, Printer
 } from 'lucide-react';
 import api from '../services/api';
 import logoImage from '../assets/logo.png';
@@ -61,6 +61,7 @@ const CreateComplaint = () => {
   // Submission & status states
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [submittedComplaint, setSubmittedComplaint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -264,14 +265,12 @@ const CreateComplaint = () => {
         });
       }
 
-      await api.post('/api/complaints', formData, {
+      const res = await api.post('/api/complaints', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      setSubmittedComplaint(res.data);
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2500);
     } catch (err) {
       if (!err.response) {
         setErrorMsg('Network issue or Offline. Saved as Offline Draft successfully.');
@@ -307,13 +306,255 @@ const CreateComplaint = () => {
     }, 2500);
   };
 
+  const handlePrint = (targetComplaint) => {
+    if (!targetComplaint) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print the complaint copy.');
+      return;
+    }
+
+    const formattedDate = new Date(targetComplaint.createdAt || new Date()).toLocaleString();
+    const printDate = new Date().toLocaleString();
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Complaint_${targetComplaint.id}_Receipt</title>
+          <style>
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color: #2d3748;
+              line-height: 1.5;
+              padding: 40px;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px double #cbd5e0;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              font-size: 24px;
+              font-weight: 800;
+              margin: 0;
+              color: #1e3a8a;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .header p {
+              margin: 5px 0 0 0;
+              font-size: 12px;
+              color: #64748b;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .section {
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 15px;
+              background-color: #f8fafc;
+            }
+            .section-title {
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #475569;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+              letter-spacing: 0.5px;
+            }
+            .field {
+              margin-bottom: 8px;
+              font-size: 12px;
+            }
+            .field-label {
+              font-weight: 700;
+              color: #475569;
+            }
+            .description-box {
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 15px;
+              margin-bottom: 30px;
+              background-color: #ffffff;
+            }
+            .description-box p {
+              font-size: 13px;
+              margin: 0;
+              white-space: pre-wrap;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 60px;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 15px;
+              font-size: 10px;
+              color: #94a3b8;
+            }
+            .stamp-box {
+              float: right;
+              border: 2px dashed #cbd5e0;
+              padding: 10px 20px;
+              font-size: 11px;
+              color: #94a3b8;
+              text-transform: uppercase;
+              font-weight: 800;
+              border-radius: 6px;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>CMS Municipal Authority</h1>
+            <p>Official Grievance & Complaint Redressal Certificate</p>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 10px;">Document Generated: ${printDate}</div>
+          </div>
+
+          <div class="grid">
+            <div class="section">
+              <div class="section-title">Ticket Registry Information</div>
+              <div class="field"><span class="field-label">Ticket ID:</span> ${targetComplaint.id}</div>
+              <div class="field"><span class="field-label">Current Status:</span> <span style="font-weight: 800; color: #1e3a8a;">${targetComplaint.status || 'PENDING'}</span></div>
+              <div class="field"><span class="field-label">Priority Level:</span> ${targetComplaint.priority || 'MEDIUM'}</div>
+              <div class="field"><span class="field-label">Date Filed:</span> ${formattedDate}</div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">Filer & Location Registry</div>
+              <div class="field"><span class="field-label">Registered By:</span> ${targetComplaint.isAnonymous ? 'Filed Anonymously' : targetComplaint.citizenName}</div>
+              <div class="field"><span class="field-label">Filer Contact:</span> ${targetComplaint.isAnonymous ? 'N/A' : (targetComplaint.citizenPhone || 'N/A')}</div>
+              <div class="field"><span class="field-label">Assigned Department:</span> ${targetComplaint.departmentName || 'General'}</div>
+              <div class="field"><span class="field-label">Incident Address:</span> ${targetComplaint.address || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div class="description-box">
+            <div class="section-title">Subject & Statement of Complaint</div>
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 10px; color: #1e3a8a;">
+              ${targetComplaint.title}
+            </div>
+            <p>${targetComplaint.description}</p>
+          </div>
+
+          <div style="margin-top: 40px; overflow: auto;">
+            <div class="stamp-box">
+              Official Digital Seal
+            </div>
+            <div style="font-size: 11px; color: #64748b; padding-top: 15px;">
+              This is a system-generated official receipt copy compiled under Section 4(b) of the Grievance Redressal Act.
+            </div>
+          </div>
+
+          <div class="footer">
+            Complaint Management System (CMS) &bull; Keep this copy for tracking and future reference.
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     setUploadedFiles(files);
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 w-full relative">
+    <div className="w-full max-w-5xl mx-auto">
+      {success && submittedComplaint ? (
+        <div className="max-w-2xl mx-auto bg-white dark:bg-[#0c1912] border border-slate-200 dark:border-[#0b3a20] rounded-2xl p-8 shadow-lg space-y-6 text-left">
+          {/* Header */}
+          <div className="text-center pb-6 border-b border-slate-100 dark:border-[#0b3a20]">
+            <div className="h-16 w-16 bg-green-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200 dark:border-[#0b3a20]">
+              <Check className="h-8 w-8 text-green-600 dark:text-emerald-500" />
+            </div>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">
+              Complaint Registered Successfully!
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Your grievance ticket has been officially logged in the system.
+            </p>
+          </div>
+
+          {/* Ticket Invoice details */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Official Ticket Receipt Copy</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-[#03140c] p-5 rounded-xl border border-slate-200 dark:border-[#052414] text-xs">
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Ticket ID</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedComplaint.id}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Submission Time</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{new Date(submittedComplaint.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Subject Title</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedComplaint.title}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Assigned Department</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedComplaint.departmentName}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Registered Citizen</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedComplaint.isAnonymous ? 'Filed Anonymously' : submittedComplaint.citizenName}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Priority Classification</span>
+                <span className="font-bold text-slate-850 dark:text-slate-200 uppercase">{submittedComplaint.priority}</span>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Incident Address</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{submittedComplaint.address || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-[#0b3a20]">
+            <button
+              onClick={() => handlePrint(submittedComplaint)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 py-3 text-xs font-bold text-white transition-colors shadow-md shadow-emerald-500/10"
+            >
+              <Printer className="h-4 w-4" />
+              Print Receipt Certificate
+            </button>
+            <Link
+              to={`/complaints/${submittedComplaint.id}`}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 py-3 text-xs font-bold text-white transition-colors shadow-md shadow-blue-500/10"
+            >
+              <FileText className="h-4 w-4" />
+              Go to Tracker Page
+            </Link>
+            <Link
+              to="/dashboard"
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-slate-200 dark:border-[#0b3a20] hover:bg-slate-50 dark:hover:bg-slate-800 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 w-full relative">
         
         {/* Column 1: Stepper Navigation */}
         <div className="lg:col-span-1 space-y-6">
@@ -767,6 +1008,8 @@ const CreateComplaint = () => {
             </form>
           </div>
         </div>
+      </div>
+      ) }
     </div>
   );
 };

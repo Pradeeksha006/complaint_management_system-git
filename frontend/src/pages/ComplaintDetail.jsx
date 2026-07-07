@@ -6,7 +6,7 @@ import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import api from '../services/api';
 import { 
-  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock, Users
+  Sparkles, Calendar, User, Shield, Info, ArrowLeft, Loader2, Star, CheckCircle, FileText, X, Clock, Users, Printer
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -141,7 +141,210 @@ const ComplaintDetail = () => {
       setFeedbackLoading(false);
     }
   };
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print the complaint copy.');
+      return;
+    }
 
+    const formattedDate = new Date(complaint.createdAt).toLocaleString();
+    const printDate = new Date().toLocaleString();
+
+    // Timeline rows
+    const timelineRows = timeline.map(item => `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 10px; font-size: 11px; color: #4a5568;">${new Date(item.createdAt).toLocaleString()}</td>
+        <td style="padding: 10px; font-size: 11px; font-weight: bold; color: #2d3748; text-transform: uppercase;">${item.status}</td>
+        <td style="padding: 10px; font-size: 11px; color: #4a5568;">${item.description || ''}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Complaint_${complaint.id}_Receipt</title>
+          <style>
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color: #2d3748;
+              line-height: 1.5;
+              padding: 40px;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 3px double #cbd5e0;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              font-size: 24px;
+              font-weight: 800;
+              margin: 0;
+              color: #1e3a8a;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .header p {
+              margin: 5px 0 0 0;
+              font-size: 12px;
+              color: #64748b;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .section {
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 15px;
+              background-color: #f8fafc;
+            }
+            .section-title {
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              color: #475569;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 5px;
+              margin-bottom: 10px;
+              letter-spacing: 0.5px;
+            }
+            .field {
+              margin-bottom: 8px;
+              font-size: 12px;
+            }
+            .field-label {
+              font-weight: 700;
+              color: #475569;
+            }
+            .description-box {
+              border: 1px solid #e2e8f0;
+              border-radius: 8px;
+              padding: 15px;
+              margin-bottom: 30px;
+              background-color: #ffffff;
+            }
+            .description-box p {
+              font-size: 13px;
+              margin: 0;
+              white-space: pre-wrap;
+            }
+            .table-container {
+              margin-bottom: 30px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            th {
+              background-color: #1e3a8a;
+              color: white;
+              text-align: left;
+              padding: 10px;
+              font-size: 11px;
+              text-transform: uppercase;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 50px;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 15px;
+              font-size: 10px;
+              color: #94a3b8;
+            }
+            .stamp-box {
+              float: right;
+              border: 2px dashed #cbd5e0;
+              padding: 10px 20px;
+              font-size: 11px;
+              color: #94a3b8;
+              text-transform: uppercase;
+              font-weight: 800;
+              border-radius: 6px;
+              margin-top: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>CMS Municipal Authority</h1>
+            <p>Official Grievance & Complaint Redressal Certificate</p>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 10px;">Document Generated: ${printDate}</div>
+          </div>
+
+          <div class="grid">
+            <div class="section">
+              <div class="section-title">Ticket Registry Information</div>
+              <div class="field"><span class="field-label">Ticket ID:</span> ${complaint.id}</div>
+              <div class="field"><span class="field-label">Current Status:</span> <span style="font-weight: 800; color: #1e3a8a;">${complaint.status}</span></div>
+              <div class="field"><span class="field-label">Priority Level:</span> ${complaint.priority}</div>
+              <div class="field"><span class="field-label">Date Filed:</span> ${formattedDate}</div>
+            </div>
+
+            <div class="section">
+              <div class="section-title">Filer & Location Registry</div>
+              <div class="field"><span class="field-label">Registered By:</span> ${complaint.isAnonymous ? 'Filed Anonymously' : complaint.citizenName}</div>
+              <div class="field"><span class="field-label">Filer Contact:</span> ${complaint.isAnonymous ? 'N/A' : (complaint.citizenPhone || 'N/A')}</div>
+              <div class="field"><span class="field-label">Assigned Department:</span> ${complaint.departmentName}</div>
+              <div class="field"><span class="field-label">Incident Address:</span> ${complaint.address || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div class="description-box">
+            <div class="section-title">Subject & Statement of Complaint</div>
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 10px; color: #1e3a8a;">
+              ${complaint.title}
+            </div>
+            <p>${complaint.description}</p>
+          </div>
+
+          <div class="table-container">
+            <div class="section-title">Grievance Resolution Lifecycle History</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Status Status</th>
+                  <th>Action Context</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${timelineRows || '<tr><td colspan="3" style="text-align: center; padding: 10px; font-size: 11px;">No timeline updates available.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top: 40px; overflow: auto;">
+            <div class="stamp-box">
+              Official Digital Seal
+            </div>
+            <div style="font-size: 11px; color: #64748b; padding-top: 15px;">
+              This is a system-generated official receipt copy compiled under Section 4(b) of the Grievance Redressal Act.
+            </div>
+          </div>
+
+          <div class="footer">
+            Complaint Management System (CMS) &bull; Keep this copy for tracking and future reference.
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
   if (loading) {
     return <div className="p-8 text-center text-slate-500">Loading complaint tracker...</div>;
   }
@@ -351,6 +554,21 @@ const ComplaintDetail = () => {
 
         {/* Sidebar: QR tracking & Timeline & Feedback */}
         <div className="space-y-6">
+
+          {/* Document Copy Print Panel */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3 text-left">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Document Copy</h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              Export a soft copy (PDF) or generate a hard copy of this complaint ticket with full tracking details.
+            </p>
+            <button
+              onClick={handlePrint}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-500/10"
+            >
+              <Printer className="h-4 w-4" />
+              Print Complaint Copy
+            </button>
+          </div>
           
           {/* Citizen Edit/Delete panel */}
           {user?.role === 'ROLE_CITIZEN' && complaint.citizenId === user.id && (
