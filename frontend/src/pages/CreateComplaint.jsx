@@ -51,13 +51,6 @@ const CreateComplaint = () => {
   // Language configuration
   const [language, setLanguage] = useState('English');
 
-  // Date & Time incident configuration
-  const [incidentDate, setIncidentDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split('T')[0]; // YYYY-MM-DD
-  });
-  const [incidentTime, setIncidentTime] = useState('12:00');
-  
   // Anonymity configuration
   const [isAnonymous, setIsAnonymous] = useState(false);
   
@@ -251,11 +244,9 @@ const CreateComplaint = () => {
       const formData = new FormData();
       formData.append('title', data.title);
       
-      // Combine description with incident date time details
-      const formattedIncidentDetail = `[Incident Date: ${incidentDate} Time: ${incidentTime}] ${data.description}`;
       const finalDesc = language !== 'English' 
-        ? `[Language: ${language}] ${formattedIncidentDetail}` 
-        : formattedIncidentDetail;
+        ? `[Language: ${language}] ${data.description}` 
+        : data.description;
       
       formData.append('description', finalDesc);
       formData.append('category', 'Auto');
@@ -302,8 +293,6 @@ const CreateComplaint = () => {
       latitude: position[0],
       longitude: position[1],
       address: address,
-      incidentDate,
-      incidentTime,
       isAnonymous,
       createdAt: new Date().toISOString()
     };
@@ -539,31 +528,6 @@ const CreateComplaint = () => {
                     </div>
                   </div>
 
-                  {/* Date & Time */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
-                        Date of Incident
-                      </label>
-                      <input 
-                        type="date"
-                        value={incidentDate}
-                        onChange={(e) => setIncidentDate(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
-                        Time of Incident
-                      </label>
-                      <input 
-                        type="time"
-                        value={incidentTime}
-                        onChange={(e) => setIncidentTime(e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
-                      />
-                    </div>
-                  </div>
 
                   {/* Detailed Description */}
                   <div>
@@ -745,10 +709,7 @@ const CreateComplaint = () => {
                         <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Language</span>
                         <span className="text-slate-800 dark:text-white block mt-0.5">{language}</span>
                       </div>
-                      <div>
-                        <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Incident Date & Time</span>
-                        <span className="text-slate-800 dark:text-white block mt-0.5">{incidentDate} @ {incidentTime}</span>
-                      </div>
+
                       <div>
                         <span className="text-slate-400 uppercase tracking-widest text-[9px] block">Anonymity status</span>
                         <span className="text-slate-800 dark:text-white block mt-0.5">{isAnonymous ? 'Anonymous Filing' : 'Public Profile Linked'}</span>
