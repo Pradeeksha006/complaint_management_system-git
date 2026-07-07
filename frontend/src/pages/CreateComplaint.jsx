@@ -72,7 +72,7 @@ const CreateComplaint = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { register, handleSubmit, watch, formState: { errors, isValid } } = useForm({
+  const { register, handleSubmit, watch, trigger, formState: { errors, isValid } } = useForm({
     resolver: yupResolver(schema),
     mode: 'onChange'
   });
@@ -385,7 +385,7 @@ const CreateComplaint = () => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 text-left">
+            <form onSubmit={handleSubmit(executeSubmit)} className="space-y-6 text-left">
               
               {/* STEP 1: Describe Incident */}
               {activeStep === 1 && (
@@ -515,7 +515,13 @@ const CreateComplaint = () => {
 
                   <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex justify-end">
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={async () => {
+                        const isValid = await trigger(['title', 'description']);
+                        if (isValid) {
+                          setActiveStep(2);
+                        }
+                      }}
                       className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center gap-2 shadow"
                     >
                       <span>Next Step: Attach Evidence</span>
@@ -693,9 +699,8 @@ const CreateComplaint = () => {
                       </button>
 
                       <button
-                        type="button"
+                        type="submit"
                         disabled={submitting}
-                        onClick={handleSubmit(executeSubmit)}
                         className="bg-[#ac734c] hover:bg-[#8f5e3e] disabled:bg-slate-400 text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-lg flex items-center justify-center gap-2 shadow"
                       >
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
