@@ -114,12 +114,15 @@ public class GeminiService {
                     }
                 }
                 
-                String myMemoryUrl = "https://api.mymemory.translated.net/get?q=" + 
-                        java.net.URLEncoder.encode(cleanText, "UTF-8") + 
-                        "&langpair=" + (sourceLang.equals("auto") ? "ta" : sourceLang) + "|en";
+                String myMemoryUrl = "https://api.mymemory.translated.net/get?q={q}&langpair={langpair}";
                 
                 RestTemplate tempTemplate = new RestTemplate();
-                ResponseEntity<String> res = tempTemplate.getForEntity(myMemoryUrl, String.class);
+                ResponseEntity<String> res = tempTemplate.getForEntity(
+                        myMemoryUrl, 
+                        String.class, 
+                        cleanText, 
+                        (sourceLang.equals("auto") ? "ta" : sourceLang) + "|en"
+                );
                 if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
                     JsonNode root = objectMapper.readTree(res.getBody());
                     String match = root.path("responseData").path("translatedText").asText();

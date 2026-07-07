@@ -72,19 +72,46 @@ const CreateComplaint = () => {
     const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
     if (!content.trim()) return;
 
+    // Define department keyword mapping
+    const deptKeywords = {
+      WT: [
+        'water', 'leak', 'pipe', 'drain', 'sewer', 'plumb', 'tap', 'contamination', 'drainage', 'flooding',
+        'குடிநீர்', 'தண்ணீர்', 'தண்ணி', 'குழாய்', 'கசிவு', 'சாக்கடை', 'கழிவுநீர்', 'பைப்', 'குழாயில்', 'நீர்',
+        'पानी', 'जल', 'नाला', 'पाइप', 'सीवर', 'निकास'
+      ],
+      RD: [
+        'road', 'pothole', 'highway', 'street', 'bridge', 'sidewalk', 'curb', 'pavement',
+        'சாலை', 'பள்ளம்', 'பாதை', 'தெரு', 'தார்', 'ரோடு', 'பள்ளங்கள்',
+        'सड़क', 'गड्ढा', 'रास्ता', 'मार्ग', 'गलियां'
+      ],
+      EL: [
+        'electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'electrician', 'shock', 'streetlight',
+        'மின்சாரம்', 'மின்சார', 'கரண்ட்', 'கம்பம்', 'விளக்கு', 'ஒயர்', 'மின்', 'தெருவிளக்கு', 'மின்ஒயர்',
+        'बिजली', 'तार', 'खंभा', 'लाइट', 'पावर', 'ट्रांसफार्मर'
+      ],
+      SN: [
+        'garbage', 'trash', 'waste', 'sanitation', 'clean', 'sweeping', 'dump', 'litter', 'overflow',
+        'குப்பை', 'குப்பைகள்', 'அசுத்தம்', 'கழிவுகள்', 'சுத்தம்', 'சுத்தப்படுத்த', 'நாற்றம்',
+        'कचरा', 'कूड़ा', 'सफाई', 'कचरे', 'गंदगी'
+      ],
+      PL: [
+        'police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault',
+        'போலீஸ்', 'திருட்டு', 'சண்டை', 'பாதுகாப்பு', 'திருடன்', 'அச்சுறுத்தல்',
+        'पुलिस', 'चोरी', 'लड़ाई', 'सुरक्षा', 'अपराध'
+      ],
+      HL: [
+        'stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'vet', 'hygiene', 'food',
+        'நாய்', 'நாய்கள்', 'கொசு', 'கொசுக்கள்', 'காய்ச்சல்', 'நோய்', 'விலங்கு', 'சுகாதாரம்',
+        'कुत्ता', 'मच्छर', 'बीमारी', 'जानवर', 'स्वास्थ्य'
+      ]
+    };
+
     let predictedCode = '';
-    if (content.includes('water') || content.includes('leak') || content.includes('pipe') || content.includes('drain') || content.includes('sewer') || content.includes('plumb') || content.includes('tap') || content.includes('contamination') || content.includes('drainage')) {
-      predictedCode = 'WT';
-    } else if (content.includes('road') || content.includes('pothole') || content.includes('highway') || content.includes('street') || content.includes('bridge') || content.includes('sidewalk') || content.includes('curb') || content.includes('pavement')) {
-      predictedCode = 'RD';
-    } else if (content.includes('electricity') || content.includes('power') || content.includes('wire') || content.includes('spark') || content.includes('transformer') || content.includes('light') || content.includes('voltage') || content.includes('blackout') || content.includes('electrician') || content.includes('shock')) {
-      predictedCode = 'EL';
-    } else if (content.includes('garbage') || content.includes('trash') || content.includes('waste') || content.includes('sanitation') || content.includes('clean') || content.includes('sweeping') || content.includes('dump') || content.includes('litter') || content.includes('overflow')) {
-      predictedCode = 'SN';
-    } else if (content.includes('police') || content.includes('theft') || content.includes('robbery') || content.includes('crime') || content.includes('fight') || content.includes('security') || content.includes('guard') || content.includes('nuisance') || content.includes('assault')) {
-      predictedCode = 'PL';
-    } else if (content.includes('stray') || content.includes('dog') || content.includes('health') || content.includes('mosquito') || content.includes('pest') || content.includes('animal') || content.includes('disease') || content.includes('vet') || content.includes('hygiene') || content.includes('food')) {
-      predictedCode = 'HL';
+    for (const [code, words] of Object.entries(deptKeywords)) {
+      if (words.some(word => content.includes(word))) {
+        predictedCode = code;
+        break;
+      }
     }
 
     if (predictedCode) {
