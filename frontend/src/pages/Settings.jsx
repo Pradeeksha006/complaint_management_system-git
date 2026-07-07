@@ -57,7 +57,6 @@ const Settings = () => {
       reader.readAsDataURL(file);
       reader.onload = (event) => {
         const img = new Image();
-        img.src = event.target.result;
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const MAX_WIDTH = 250;
@@ -95,6 +94,7 @@ const Settings = () => {
             }
           }, 'image/jpeg', 0.75); // 75% quality JPEG
         };
+        img.src = event.target.result;
       };
       reader.onerror = () => resolve(file);
     });
@@ -107,6 +107,12 @@ const Settings = () => {
     // Check size limit: Max 5 MB (5 * 1024 * 1024 bytes)
     if (file.size > 5 * 1024 * 1024) {
       alert("Selected photo exceeds the 5 MB limit. Please select a smaller image.");
+      return;
+    }
+
+    // Verify file format is an image
+    if (!file.type.startsWith('image/')) {
+      alert("Invalid format! Please select an image file (e.g. JPG, PNG).");
       return;
     }
 
