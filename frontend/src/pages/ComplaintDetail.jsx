@@ -611,7 +611,7 @@ const ComplaintDetail = () => {
                   <button
                     onClick={handleDeleteComplaint}
                     disabled={deleting}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-red-650 py-2.5 text-xs font-bold text-white hover:bg-red-750 transition-colors shadow-md shadow-red-500/10"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-red-600 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition-colors shadow-md shadow-red-500/10"
                   >
                     {deleting ? 'Deleting...' : 'Delete Complaint Permanently'}
                   </button>
@@ -621,7 +621,7 @@ const ComplaintDetail = () => {
           )}
 
           {/* AI Resolution Predictor */}
-          {prediction && (
+          {isStaff && prediction && (
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
