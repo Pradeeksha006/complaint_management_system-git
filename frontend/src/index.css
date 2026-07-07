@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+@theme {
+  --color-blue-50: #f2f7f4;
+  --color-blue-100: #e2ede8;
+  --color-blue-200: #c1dece;
+  --color-blue-300: #9bcbb2;
+  --color-blue-400: #6cae8d;
+  --color-blue-500: #0a4f2e;
+  --color-blue-600: #062c19;
+  --color-blue-700: #052414;
+  --color-blue-800: #031c0f;
+  --color-blue-900: #02120a;
+
+  --color-indigo-50: #faf6f3;
+  --color-indigo-100: #faf1e8;
+  --color-indigo-200: #eadecd;
+  --color-indigo-500: #ac734c;
+  --color-indigo-600: #8f5e3e;
+  --color-indigo-700: #754b30;
+  --color-indigo-900: #4a2f1d;
+  
+  --color-brand-green: #062c19;
+  --color-brand-bronze: #ac734c;
+  --color-brand-gold: #d4af37;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -79,13 +104,13 @@
 }
 
 .premium-dark-bg {
-  background-color: #030712;
+  background-color: #020b06;
   background-image: 
-    radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.25) 0%, transparent 45%),
-    radial-gradient(circle at 85% 80%, rgba(139, 92, 246, 0.22) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    radial-gradient(circle at 15% 20%, rgba(6, 44, 25, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 85% 80%, rgba(172, 115, 76, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(212, 175, 55, 0.12) 0%, transparent 50%),
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 100% 100%, 100% 100%, 100% 100%, 56px 56px, 56px 56px;
   animation: gradient-drift 30s ease infinite alternate;
 }
