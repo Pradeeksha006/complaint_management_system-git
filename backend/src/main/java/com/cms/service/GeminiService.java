@@ -75,24 +75,80 @@ public class GeminiService {
     }
 
     public String generateSummary(String description) {
-        String prompt = "Summarize the following citizen complaint description in one short, clear sentence (maximum 12 words). " +
-                "Do not include any prefix, greeting, markdown formatting, quotes, or trailing explanations. " +
-                "Be straight to the point. Complaint description: " + description;
+        String prompt = "Write a complete, single-sentence summary of the following complaint description in English. " +
+                "The summary must be a fully formed, meaningful sentence that captures the core issue (e.g. \"There is a deep road pothole causing two-wheeler accidents in the main street.\") without cutting off. " +
+                "Do not include any prefix, greeting, markdown formatting, quotes, or trailing explanations. Max 15 words. " +
+                "Complaint description: " + description;
         String summary = callGemini(prompt, false);
         if (summary == null || summary.trim().isEmpty()) {
-            // Local fallback summary
-            if (description.length() <= 80) {
-                summary = description;
-            } else {
-                summary = description.substring(0, 77) + "...";
-            }
+            summary = extractCompleteSentence(description);
         }
         return summary;
     }
 
+    private String extractCompleteSentence(String text) {
+        if (text == null || text.trim().isEmpty()) return "";
+        String clean = text.trim();
+        if (clean.startsWith("[Language: ")) {
+            int closeBracket = clean.indexOf(']');
+            if (closeBracket > 0) {
+                clean = clean.substring(closeBracket + 1).trim();
+            }
+        }
+        
+        int dot = clean.indexOf('.');
+        int q = clean.indexOf('?');
+        int excl = clean.indexOf('!');
+        
+        int firstEnd = -1;
+        if (dot != -1) firstEnd = dot;
+        if (q != -1 && (firstEnd == -1 || q < firstEnd)) firstEnd = q;
+        if (excl != -1 && (firstEnd == -1 || excl < firstEnd)) firstEnd = excl;
+        
+        if (firstEnd != -1 && firstEnd > 15) {
+            return clean.substring(0, firstEnd + 1);
+        }
+        
+        if (clean.length() <= 80) {
+            return clean;
+        }
+        
+        String sub = clean.substring(0, 80);
+        int lastSpace = sub.lastIndexOf(' ');
+        if (lastSpace > 30) {
+            return sub.substring(0, lastSpace) + ".";
+        }
+        
+        return sub + ".";
+    }
+
     public String translateToEnglish(String text) {
-        String prompt = "Translate the following text to English if it is written in Tamil, Hindi, Telugu, Malayalam, Kannada, or any other non-English language. " +
-                "If the text is already entirely in English, return it exactly as it is without any changes. " +
+        String language = "English";
+        String cleanText = text;
+        if (text != null && text.startsWith("[Language: ")) {
+            int closeBracket = text.indexOf(']');
+            if (closeBracket > 0) {
+                language = text.substring(11, closeBracket).trim();
+                cleanText = text.substring(closeBracket + 1).trim();
+            }
+        }
+        return translateToEnglish(cleanText, language);
+    }
+
+    public String translateToEnglish(String text, String language) {
+        if (text == null || text.trim().isEmpty()) return "";
+        if (language == null || language.equalsIgnoreCase("English")) {
+            if (text.startsWith("[Language: ")) {
+                int closeBracket = text.indexOf(']');
+                if (closeBracket > 0) {
+                    return text.substring(closeBracket + 1).trim();
+                }
+            }
+            return text;
+        }
+
+        String prompt = "Translate the following text to English from " + language + ". " +
+                "If the text is already entirely in English, return it exactly as it is. " +
                 "Return ONLY the plain translated text. Do not add labels, greetings, comments, or notes. Text: " + text;
         
         String translation = callGemini(prompt, false);
@@ -101,19 +157,12 @@ public class GeminiService {
             // Local fallback using MyMemory Translation API (Free, no key needed)
             try {
                 String sourceLang = "auto";
-                String cleanText = text;
-                if (text.startsWith("[Language: ")) {
-                    int closeBracket = text.indexOf(']');
-                    if (closeBracket > 0) {
-                        String langName = text.substring(11, closeBracket).trim().toLowerCase();
-                        cleanText = text.substring(closeBracket + 1).trim();
-                        if (langName.contains("tamil")) sourceLang = "ta";
-                        else if (langName.contains("hindi")) sourceLang = "hi";
-                        else if (langName.contains("telugu")) sourceLang = "te";
-                        else if (langName.contains("malayalam")) sourceLang = "ml";
-                        else if (langName.contains("kannada")) sourceLang = "kn";
-                    }
-                }
+                String langLower = language.toLowerCase();
+                if (langLower.contains("tamil")) sourceLang = "ta";
+                else if (langLower.contains("hindi")) sourceLang = "hi";
+                else if (langLower.contains("telugu")) sourceLang = "te";
+                else if (langLower.contains("malayalam")) sourceLang = "ml";
+                else if (langLower.contains("kannada")) sourceLang = "kn";
                 
                 String myMemoryUrl = "https://api.mymemory.translated.net/get?q={q}&langpair={langpair}";
                 
@@ -121,8 +170,8 @@ public class GeminiService {
                 ResponseEntity<String> res = tempTemplate.getForEntity(
                         myMemoryUrl, 
                         String.class, 
-                        cleanText, 
-                        (sourceLang.equals("auto") ? "ta" : sourceLang) + "|en"
+                        text, 
+                        sourceLang + "|en"
                 );
                 if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
                     JsonNode root = objectMapper.readTree(res.getBody());

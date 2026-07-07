@@ -84,9 +84,17 @@ public class ComplaintService {
             deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
         }
 
-        String translatedDesc = geminiService.translateToEnglish(description);
+        String language = "English";
+        if (description != null && description.startsWith("[Language: ")) {
+            int closeBracket = description.indexOf(']');
+            if (closeBracket > 0) {
+                language = description.substring(11, closeBracket).trim();
+            }
+        }
+
+        String translatedDesc = geminiService.translateToEnglish(description, language);
         String summary = geminiService.generateSummary(translatedDesc);
-        String translatedTitle = geminiService.translateToEnglish(title);
+        String translatedTitle = geminiService.translateToEnglish(title, language);
 
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
@@ -167,7 +175,7 @@ public class ComplaintService {
 
         for (Complaint cand : candidates) {
             double textSimilarity = AiHelper.calculateSimilarity(description, cand.getDescription());
-            if (textSimilarity >= 0.70) {
+            if (textSimilarity >= 0.35) {
                 duplicates.add(MapperUtils.toDto(cand));
             }
         }

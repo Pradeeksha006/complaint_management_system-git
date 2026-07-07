@@ -91,23 +91,36 @@ public class AiHelper {
         return "NEUTRAL";
     }
 
-    /**
-     * Levenshtein Distance for similarity analysis
-     */
     public static double calculateSimilarity(String s1, String s2) {
         if (s1 == null || s2 == null) return 0.0;
+        String clean1 = s1.toLowerCase().replaceAll("[^a-zA-Z0-9\\s\\u0B80-\\u0BFF\\u0900-\\u097F]", "");
+        String clean2 = s2.toLowerCase().replaceAll("[^a-zA-Z0-9\\s\\u0B80-\\u0BFF\\u0900-\\u097F]", "");
         
-        String longer = s1.toLowerCase(), shorter = s2.toLowerCase();
-        if (s1.length() < s2.length()) {
-            longer = s2.toLowerCase();
-            shorter = s1.toLowerCase();
+        String[] w1 = clean1.split("\\s+");
+        String[] w2 = clean2.split("\\s+");
+        
+        Set<String> set1 = new HashSet<>();
+        for (String w : w1) {
+            if (w.length() > 2) set1.add(w);
         }
         
-        int longerLength = longer.length();
-        if (longerLength == 0) return 1.0; /* both are empty */
-
-        int editDistance = editDistance(longer, shorter);
-        return (longerLength - editDistance) / (double) longerLength;
+        Set<String> set2 = new HashSet<>();
+        for (String w : w2) {
+            if (w.length() > 2) set2.add(w);
+        }
+        
+        if (set1.isEmpty() && set2.isEmpty()) return 1.0;
+        if (set1.isEmpty() || set2.isEmpty()) return 0.0;
+        
+        int intersection = 0;
+        for (String w : set1) {
+            if (set2.contains(w)) {
+                intersection++;
+            }
+        }
+        
+        int union = set1.size() + set2.size() - intersection;
+        return (double) intersection / (double) union;
     }
 
     private static int editDistance(String s1, String s2) {
