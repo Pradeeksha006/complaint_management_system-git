@@ -110,9 +110,11 @@ const Settings = () => {
       return;
     }
 
-    // Verify file format is an image
-    if (!file.type.startsWith('image/')) {
-      alert("Invalid format! Please select an image file (e.g. JPG, PNG).");
+    // Verify file format is an image (by mime type or file extension)
+    const isImageMime = file.type && file.type.startsWith('image/');
+    const isImageExtension = /\.(jpg|jpeg|png|gif|webp|jfif|svg|bmp|tiff|ico)$/i.test(file.name);
+    if (!isImageMime && !isImageExtension) {
+      alert("Invalid format! Please select an image file (e.g. JPG, PNG, WEBP, JFIF).");
       return;
     }
 
@@ -267,11 +269,11 @@ const Settings = () => {
 
             <div className="text-center space-y-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Click picture to change avatar</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Supported formats: JPG, PNG (Max size: 5 MB)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Supported formats: JPG, PNG, WEBP, JFIF (Max size: 5 MB)</span>
             </div>
             <input 
               type="file" 
-              accept="image/*" 
+              accept="image/*,.webp,.jfif,.svg,.bmp,.tiff" 
               onChange={handleAvatarChange} 
               className="hidden" 
               id="avatarInput" 
