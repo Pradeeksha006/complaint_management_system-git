@@ -16,26 +16,32 @@ public class AiHelper {
     public static String predictDepartment(String title, String description) {
         String content = (title + " " + description).toLowerCase();
         
-        if (content.contains("water") || content.contains("leak") || content.contains("pipe") || content.contains("drain") || content.contains("sewer")) {
+        if (content.contains("water") || content.contains("leak") || content.contains("pipe") || content.contains("drain") || content.contains("sewer") ||
+            content.contains("குடிநீர்") || content.contains("தண்ணீர்") || content.contains("குழாய்") || content.contains("கசிவு") || content.contains("சாக்கடை") ||
+            content.contains("पानी") || content.contains("जल") || content.contains("पाइप") || content.contains("नाला")) {
             return "WT"; // Water Department
-        } else if (content.contains("road") || content.contains("pothole") || content.contains("highway") || content.contains("street") || content.contains("bridge")) {
+        } else if (content.contains("road") || content.contains("pothole") || content.contains("highway") || content.contains("street") || content.contains("bridge") ||
+                   content.contains("சாலை") || content.contains("பள்ளம்") || content.contains("பாதை") || content.contains("தெரு") || content.contains("ரோடு") ||
+                   content.contains("सड़क") || content.contains("गड्ढा") || content.contains("रास्ता")) {
             return "RD"; // Road
-        } else if (content.contains("electricity") || content.contains("power") || content.contains("wire") || content.contains("spark") || content.contains("transformer") || content.contains("light")) {
+        } else if (content.contains("electricity") || content.contains("power") || content.contains("wire") || content.contains("spark") || content.contains("transformer") || content.contains("light") ||
+                   content.contains("மின்சாரம்") || content.contains("கரண்ட்") || content.contains("கம்பம்") || content.contains("விளக்கு") ||
+                   content.contains("बिजली") || content.contains("तार") || content.contains("खंभा") || content.contains("लाइट")) {
             return "EL"; // Electricity
-        } else if (content.contains("garbage") || content.contains("trash") || content.contains("waste") || content.contains("sanitation") || content.contains("clean")) {
-            return "SN"; // Sanitation (Sanitation code SN)
-        } else if (content.contains("theft") || content.contains("robbery") || content.contains("police") || content.contains("crime") || content.contains("fight") || content.contains("security")) {
+        } else if (content.contains("garbage") || content.contains("trash") || content.contains("waste") || content.contains("sanitation") || content.contains("clean") ||
+                   content.contains("குப்பை") || content.contains("அசுத்தம்") || content.contains("கழிவுகள்") || content.contains("சுத்தம்") ||
+                   content.contains("कचरा") || content.contains("कूड़ा") || content.contains("सफाई")) {
+            return "SN"; // Sanitation
+        } else if (content.contains("theft") || content.contains("robbery") || content.contains("police") || content.contains("crime") || content.contains("fight") || content.contains("security") ||
+                   content.contains("போலீஸ்") || content.contains("திருட்டு") || content.contains("சண்டை") || content.contains("பாதுகாப்பு") ||
+                   content.contains("पुलिस") || content.contains("चोरी") || content.contains("लड़ाई")) {
             return "PL"; // Police
+        } else if (content.contains("stray") || content.contains("dog") || content.contains("health") || content.contains("disease") || content.contains("mosquito") ||
+                   content.contains("நாய்") || content.contains("கொசு") || content.contains("நோய்") ||
+                   content.contains("कुत्ता") || content.contains("मच्छर") || content.contains("बीमारी")) {
+            return "HL"; // Health
         } else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle")) {
             return "TR"; // Transport
-        } else if (content.contains("hospital") || content.contains("doctor") || content.contains("health") || content.contains("disease") || content.contains("medicine")) {
-            return "HL"; // Health
-        } else if (content.contains("school") || content.contains("college") || content.contains("education") || content.contains("teacher") || content.contains("student")) {
-            return "ED"; // Education
-        } else if (content.contains("tax") || content.contains("revenue") || content.contains("property") || content.contains("land")) {
-            return "RV"; // Revenue
-        } else if (content.contains("pollution") || content.contains("tree") || content.contains("forest") || content.contains("environment") || content.contains("air")) {
-            return "EN"; // Environment
         }
         
         return "IT"; // Default to IT/General support

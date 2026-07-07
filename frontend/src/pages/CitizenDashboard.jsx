@@ -78,6 +78,7 @@ const CitizenDashboard = () => {
       if (draft.latitude) formData.append('latitude', draft.latitude.toString());
       if (draft.longitude) formData.append('longitude', draft.longitude.toString());
       if (draft.address) formData.append('address', draft.address);
+      if (draft.departmentId) formData.append('departmentId', draft.departmentId);
 
       await api.post('/api/complaints', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
