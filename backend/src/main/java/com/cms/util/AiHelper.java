@@ -33,8 +33,10 @@ public class AiHelper {
                    content.contains("कचरा") || content.contains("कूड़ा") || content.contains("सफाई")) {
             return "SN"; // Sanitation
         } else if (content.contains("theft") || content.contains("robbery") || content.contains("police") || content.contains("crime") || content.contains("fight") || content.contains("security") ||
-                   content.contains("போலீஸ்") || content.contains("திருட்டு") || content.contains("சண்டை") || content.contains("பாதுகாப்பு") ||
-                   content.contains("पुलिस") || content.contains("चोरी") || content.contains("लड़ाई")) {
+                   content.contains("drinking") || content.contains("alcohol") || content.contains("drunk") || content.contains("liquor") || content.contains("wine") || content.contains("drugs") ||
+                   content.contains("nuisance") || content.contains("harassment") ||
+                   content.contains("போலீஸ்") || content.contains("திருட்டு") || content.contains("சண்டை") || content.contains("பாதுகாப்பு") || content.contains("மது") || content.contains("சாராயம்") || content.contains("குடி") ||
+                   content.contains("पुलिस") || content.contains("चोरी") || content.contains("लड़ाई") || content.contains("शराब")) {
             return "PL"; // Police
         } else if (content.contains("stray") || content.contains("dog") || content.contains("health") || content.contains("disease") || content.contains("mosquito") ||
                    content.contains("நாய்") || content.contains("கொசு") || content.contains("நோய்") ||
