@@ -429,7 +429,7 @@ public class GeminiService {
                 "{\"predictedCode\": \"DEPT_CODE\"}";
         String response = callGemini(prompt, true);
         if (response == null || response.trim().isEmpty()) {
-            return "{\"predictedCode\": \"IT\"}";
+            return null;
         }
         return response;
     }

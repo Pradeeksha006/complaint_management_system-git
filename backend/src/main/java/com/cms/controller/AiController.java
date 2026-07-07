@@ -258,8 +258,19 @@ public class AiController {
         try {
             String departmentsJson = objectMapper.writeValueAsString(candidates);
             String aiResult = geminiService.predictDepartment(title, description, departmentsJson);
+            if (aiResult == null || aiResult.trim().isEmpty()) {
+                throw new Exception("Gemini prediction returned null/empty response");
+            }
             JsonNode root = objectMapper.readTree(aiResult);
             String predictedCode = root.path("predictedCode").asText("IT");
+
+            // If predicted as IT, check if local keywords have a specific match
+            if ("IT".equals(predictedCode)) {
+                String localCode = com.cms.util.AiHelper.predictDepartment(title, description);
+                if (!"IT".equals(localCode)) {
+                    predictedCode = localCode;
+                }
+            }
 
             Department matchedDept = departmentRepository.findByCode(predictedCode)
                     .orElse(departmentRepository.findByCode("IT").orElse(null));

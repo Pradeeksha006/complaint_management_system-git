@@ -16,30 +16,70 @@ public class AiHelper {
     public static String predictDepartment(String title, String description) {
         String content = (title + " " + description).toLowerCase();
         
-        if (content.contains("water") || content.contains("leak") || content.contains("pipe") || content.contains("drain") || content.contains("sewer") ||
-            content.contains("குடிநீர்") || content.contains("தண்ணீர்") || content.contains("குழாய்") || content.contains("கசிவு") || content.contains("சாக்கடை") ||
-            content.contains("पानी") || content.contains("जल") || content.contains("पाइप") || content.contains("नाला")) {
+        // Water Supply & Sewage (WT)
+        if (content.contains("water") || content.contains("leak") || content.contains("pipe") || content.contains("drain") || content.contains("sewer") || content.contains("plumb") || content.contains("tap") ||
+            content.contains("குடிநீர்") || content.contains("தண்ணீர்") || content.contains("குழாய்") || content.contains("கசிவு") || content.contains("சாக்கடை") || content.contains("தண்ணி") ||
+            content.contains("पानी") || content.contains("जल") || content.contains("पाइप") || content.contains("नाला") || content.contains("लीक") ||
+            content.contains("నీరు") || content.contains("నీళ్లు") || content.contains("పైప్") || content.contains("లీకేజీ") ||
+            content.contains("വെള്ളം") || content.contains("ചോർച്ച") || content.contains("പൈപ്പ്") ||
+            content.contains("ಸೋರಿಕೆ") || content.contains("ನಳ್ಳಿ")) {
             return "WT"; // Water Department
-        } else if (content.contains("road") || content.contains("pothole") || content.contains("highway") || content.contains("street") || content.contains("bridge") ||
+        } 
+        // Road & Public Works (RD)
+        else if (content.contains("road") || content.contains("pothole") || content.contains("highway") || content.contains("street") || content.contains("bridge") || content.contains("tar") || content.contains("pavement") ||
                    content.contains("சாலை") || content.contains("பள்ளம்") || content.contains("பாதை") || content.contains("தெரு") || content.contains("ரோடு") ||
-                   content.contains("सड़क") || content.contains("गड्ढा") || content.contains("रास्ता")) {
+                   content.contains("सड़क") || content.contains("गड्ढा") || content.contains("रास्ता") || content.contains("मार्ग") ||
+                   content.contains("రోడ్డు") || content.contains("గుంత") || content.contains("రహదారి") ||
+                   content.contains("റോഡ്") || content.contains("കുഴി") || content.contains("വഴി") ||
+                   content.contains("ರಸ್ತೆ") || content.contains("ಗುಂಡಿ") || content.contains("ಮಾರ್ಗ")) {
             return "RD"; // Road
-        } else if (content.contains("electricity") || content.contains("power") || content.contains("wire") || content.contains("spark") || content.contains("transformer") || content.contains("light") ||
-                   content.contains("மின்சாரம்") || content.contains("கரண்ட்") || content.contains("கம்பம்") || content.contains("விளக்கு") ||
-                   content.contains("बिजली") || content.contains("तार") || content.contains("खंभा") || content.contains("लाइट")) {
+        } 
+        // Electricity & Lighting (EL)
+        else if (content.contains("electricity") || content.contains("power") || content.contains("wire") || content.contains("spark") || content.contains("transformer") || content.contains("light") || content.contains("voltage") ||
+                   content.contains("மின்சாரம்") || content.contains("கரண்ட்") || content.contains("கம்பம்") || content.contains("விளக்கு") || content.contains("பவர்") ||
+                   content.contains("बिजली") || content.contains("तार") || content.contains("खंभा") || content.contains("लाइट") || content.contains("ट्रांसफार्मर") ||
+                   content.contains("విద్యుత్") || content.contains("కరెంట్") || content.contains("వైరు") || content.contains("స్తంభం") ||
+                   content.contains("വൈദ്യുതി") || content.contains("ലൈറ്റ്") || content.contains("കറന്റ്") ||
+                   content.contains("ವಿದ್ಯುತ್") || content.contains("ಕಂಬ") || content.contains("ದೀಪ")) {
             return "EL"; // Electricity
-        } else if (content.contains("garbage") || content.contains("trash") || content.contains("waste") || content.contains("sanitation") || content.contains("clean") ||
+        } 
+        // Sanitation & Waste (SN)
+        else if (content.contains("garbage") || content.contains("trash") || content.contains("waste") || content.contains("sanitation") || content.contains("clean") || content.contains("dump") || content.contains("sweep") ||
                    content.contains("குப்பை") || content.contains("அசுத்தம்") || content.contains("கழிவுகள்") || content.contains("சுத்தம்") ||
-                   content.contains("कचरा") || content.contains("कूड़ा") || content.contains("सफाई")) {
+                   content.contains("कचरा") || content.contains("कूड़ा") || content.contains("सफाई") || content.contains("गंदगी") ||
+                   content.contains("చెత్త") || content.contains("వ్యర్థాలు") || content.contains("శుభ్రం") ||
+                   content.contains("മാലിന്യം") || content.contains("ചപ്പുചവറുകൾ") || content.contains("വൃത്തി") ||
+                   content.contains("ಕಸ") || content.contains("ಸ್ವಚ್ಛತೆ")) {
             return "SN"; // Sanitation
-        } else if (content.contains("theft") || content.contains("robbery") || content.contains("police") || content.contains("crime") || content.contains("fight") || content.contains("security") ||
-                   content.contains("drinking") || content.contains("alcohol") || content.contains("drunk") || content.contains("liquor") || content.contains("wine") || content.contains("drugs") ||
-                   content.contains("nuisance") || content.contains("harassment") ||
+        } 
+        // Police & Law (PL)
+        else if (content.contains("theft") || content.contains("robbery") || content.contains("police") || content.contains("crime") || content.contains("fight") || content.contains("security") ||
+                   content.contains("drinking") || content.contains("alcohol") || content.contains("drunk") || content.contains("liquor") || content.contains("drugs") ||
                    content.contains("போலீஸ்") || content.contains("திருட்டு") || content.contains("சண்டை") || content.contains("பாதுகாப்பு") || content.contains("மது") || content.contains("சாராயம்") || content.contains("குடி") ||
-                   content.contains("पुलिस") || content.contains("चोरी") || content.contains("लड़ाई") || content.contains("शराब")) {
+                   content.contains("पुलिस") || content.contains("चोरी") || content.contains("लड़ाई") || content.contains("शराब") ||
+                   content.contains("దొంగతనం") || content.contains("పోలీస్") || content.contains("గొడవ") ||
+                   content.contains("കള്ളൻ") || content.contains("പോലീസ്") || content.contains("അടിപിടി") ||
+                   content.contains("ಕಳ್ಳತನ") || content.contains("ಜಗಳ")) {
             return "PL"; // Police
-        } else if (content.contains("stray") || content.contains("dog") || content.contains("health") || content.contains("disease") || content.contains("mosquito") ||
+        } 
+        // Public Health (HL)
+        else if (content.contains("stray") || content.contains("dog") || content.contains("health") || content.contains("disease") || content.contains("mosquito") || content.contains("hygiene") ||
                    content.contains("நாய்") || content.contains("கொசு") || content.contains("நோய்") ||
+                   content.contains("कुत्ता") || content.contains("मच्छर") || content.contains("बीमारी") ||
+                   content.contains("కుక్క") || content.contains("దోమలు") ||
+                   content.contains("പട്ടി") || content.contains("കൊതുക്") || content.contains("രോഗം") ||
+                   content.contains("ನಾಯಿ") || content.contains("ಸೊಳ್ಳೆ") || content.contains("ಕಾಯಿಲೆ")) {
+            return "HL"; // Health
+        } 
+        // Transport & Traffic (TR)
+        else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle") ||
+                 content.contains("பேருந்து") || content.contains("வண்டி") || content.contains("போக்குவரத்து") ||
+                 content.contains("बस") || content.contains("यातायात") || content.contains("ગાડી")) {
+            return "TR"; // Transport
+        }
+        
+        return "IT"; // Default to IT/General support
+    }s("கொசு") || content.contains("நோய்") ||
                    content.contains("कुत्ता") || content.contains("मच्छर") || content.contains("बीमारी")) {
             return "HL"; // Health
         } else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle")) {
