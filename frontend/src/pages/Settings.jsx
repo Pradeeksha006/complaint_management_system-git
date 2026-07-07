@@ -104,9 +104,9 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check size limit: Max 1 MB (1024 * 1024 bytes)
-    if (file.size > 1024 * 1024) {
-      alert("Selected photo exceeds the 1 MB limit. Please select a smaller image.");
+    // Check size limit: Max 5 MB (5 * 1024 * 1024 bytes)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Selected photo exceeds the 5 MB limit. Please select a smaller image.");
       return;
     }
 
@@ -261,7 +261,7 @@ const Settings = () => {
 
             <div className="text-center space-y-1">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">Click picture to change avatar</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Supported formats: JPG, PNG (Max size: 1 MB)</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 block">Supported formats: JPG, PNG (Max size: 5 MB)</span>
             </div>
             <input 
               type="file" 
