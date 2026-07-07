@@ -39,4 +39,5 @@ public class ComplaintDto {
     private String citizenPhone;
     private String summary;
     private String translatedDescription;
+    private String translatedTitle;
 }

@@ -20,8 +20,10 @@ const ComplaintDetail = () => {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const isTranslated = complaint?.translatedDescription && 
-                       complaint?.translatedDescription !== complaint?.description;
+  const isTranslatedDesc = complaint?.translatedDescription && 
+                           complaint?.translatedDescription !== complaint?.description;
+  const isTranslatedTitle = complaint?.translatedTitle && 
+                            complaint?.translatedTitle !== complaint?.title;
   const isStaff = user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_DEPT_HEAD' || user?.role === 'ROLE_OFFICER';
 
   // Feedback states
@@ -188,8 +190,20 @@ const ComplaintDetail = () => {
                 }`}>
                   {complaint.status}
                 </span>
+                {isStaff && isTranslatedTitle && (
+                  <span className="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-[10px] font-bold">
+                    <Sparkles className="h-3 w-3 animate-pulse text-amber-500" /> Title AI Translated
+                  </span>
+                )}
               </div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white mt-2 leading-tight">{complaint.title}</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white mt-2 leading-tight">
+                {isStaff && isTranslatedTitle ? complaint.translatedTitle : complaint.title}
+              </h2>
+              {isStaff && isTranslatedTitle && (
+                <div className="text-xs text-slate-500 mt-1">
+                  Original Title: <span className="italic">"{complaint.title}"</span>
+                </div>
+              )}
             </div>
 
             {/* AI Summary Banner */}
@@ -227,17 +241,17 @@ const ComplaintDetail = () => {
             <div>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 Description
-                {isStaff && isTranslated && (
+                {isStaff && isTranslatedDesc && (
                   <span className="inline-flex items-center gap-1 rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-[10px] font-bold">
                     <Sparkles className="h-3 w-3 animate-pulse text-amber-500" /> AI Translated
                   </span>
                 )}
               </h4>
               <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
-                {isStaff && isTranslated ? complaint.translatedDescription : complaint.description}
+                {isStaff && isTranslatedDesc ? complaint.translatedDescription : complaint.description}
               </p>
 
-              {isStaff && isTranslated && (
+              {isStaff && isTranslatedDesc && (
                 <details className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer select-none">
                   <summary className="outline-none">View Original regional text</summary>
                   <p className="mt-2 p-3 bg-slate-50/40 dark:bg-slate-800/20 rounded-lg text-slate-650 dark:text-slate-350 border border-slate-100 dark:border-slate-800/50 leading-relaxed font-medium">

@@ -244,8 +244,11 @@ const AllComplaints = () => {
                         {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'N/A (Anonymous)'}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.title}>
-                          {c.title}
+                        <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.translatedTitle && c.translatedTitle !== c.title ? `${c.translatedTitle} (Original: ${c.title})` : c.title}>
+                          {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
+                          {c.translatedTitle && c.translatedTitle !== c.title && (
+                            <span className="ml-1 text-[10px] font-bold text-blue-500">(AI Translated)</span>
+                          )}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           By: {c.isAnonymous ? 'Anonymous' : c.citizenName}

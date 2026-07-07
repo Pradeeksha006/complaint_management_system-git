@@ -108,6 +108,7 @@ public class MapperUtils {
                 .citizenPhone(c.getCitizen() != null ? c.getCitizen().getPhoneNumber() : "N/A")
                 .summary(c.getSummary())
                 .translatedDescription(c.getTranslatedDescription())
+                .translatedTitle(c.getTranslatedTitle())
                 .build();
     }
 

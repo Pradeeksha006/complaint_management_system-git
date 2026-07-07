@@ -270,9 +270,19 @@ const DeptHeadDashboard = () => {
                           {c.priority}
                         </span>
                       </div>
-                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">{c.title}</h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-355">{c.description}</p>
-                      {c.address && <p className="text-[10px] text-slate-400 mt-1">Address: {c.address}</p>}
+                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1" title={c.translatedTitle && c.translatedTitle !== c.title ? `Original: ${c.title}` : ""}>
+                        {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
+                        {c.translatedTitle && c.translatedTitle !== c.title && (
+                          <span className="ml-1.5 text-[9px] font-bold text-blue-500 uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 px-1 py-0.5 rounded">(AI Translated Title)</span>
+                        )}
+                      </h4>
+                      <div className="text-xs text-slate-650 dark:text-slate-300 font-medium space-y-1 mt-1">
+                        <p>{c.translatedDescription && c.translatedDescription !== c.description ? c.translatedDescription : c.description}</p>
+                        {c.translatedDescription && c.translatedDescription !== c.description && (
+                          <span className="block text-[9px] font-semibold text-slate-400 italic">Original text: "{c.description}"</span>
+                        )}
+                      </div>
+                      {c.address && <p className="text-[10px] text-slate-400 mt-2">Address: {c.address}</p>}
                       
                       {/* Direct inline attachments preview */}
                       {c.attachments && c.attachments.length > 0 && (

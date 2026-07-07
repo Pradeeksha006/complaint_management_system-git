@@ -86,6 +86,7 @@ public class ComplaintService {
 
         String summary = geminiService.generateSummary(description);
         String translatedDesc = geminiService.translateToEnglish(description);
+        String translatedTitle = geminiService.translateToEnglish(title);
 
         Complaint complaint = Complaint.builder()
                 .id(complaintId)
@@ -94,6 +95,7 @@ public class ComplaintService {
                 .title(title)
                 .description(description)
                 .translatedDescription(translatedDesc)
+                .translatedTitle(translatedTitle)
                 .summary(summary)
                 .category(dept.getName())
                 .priority(priority)
