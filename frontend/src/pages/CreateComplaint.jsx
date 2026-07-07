@@ -273,48 +273,7 @@ const CreateComplaint = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020b06] text-slate-800 dark:text-white flex flex-col font-sans transition-colors duration-300">
-      
-      {/* 1. Header Navbar (Forest Green) */}
-      <header className="bg-[#062c19] text-white px-6 py-4 shadow-md w-full sticky top-0 z-50 border-b border-emerald-950">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative h-12 w-12 rounded-full border-2 border-emerald-800 bg-white shrink-0 flex items-center justify-center overflow-hidden">
-              <img src={logoImage} alt="Shield Logo" className="h-full w-full object-contain p-0.5" />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-md md:text-lg font-bold tracking-tight leading-tight uppercase font-serif text-[#f2e6d0]">
-                Public Service Complaint Network
-              </h1>
-              <div className="text-[9px] font-semibold text-emerald-100 tracking-wider uppercase opacity-90 mt-0.5 leading-none">
-                Building Trust • Ensuring Quality
-              </div>
-              <div className="text-[8px] font-bold text-[#d4af37] tracking-widest uppercase opacity-85 mt-0.5 leading-none">
-                Efficiency • Accountability • Feedback
-              </div>
-            </div>
-          </div>
-
-          <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-semibold text-slate-100">
-            <Link to="/" className="hover:text-[#d4af37] transition-colors">Home</Link>
-            <Link to="/file-complaint" className="text-[#d4af37] font-semibold">File a Complaint</Link>
-            <Link to="/track" className="hover:text-[#d4af37] transition-colors">Track Status</Link>
-            
-            {isAuthenticated ? (
-              <Link to="/dashboard" className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white px-3.5 py-1.5 rounded-md font-bold transition-all shadow-sm">
-                Dashboard
-              </Link>
-            ) : (
-              <Link to="/login" className="bg-[#ac734c] hover:bg-[#8f5e3e] text-white px-3.5 py-1.5 rounded-md font-bold transition-all shadow-sm">
-                Login
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
-
-      {/* 2. Main Step Wizard Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 w-full relative">
         
         {/* Column 1: Stepper Navigation */}
         <div className="lg:col-span-1 space-y-6">
@@ -789,17 +748,6 @@ const CreateComplaint = () => {
             </div>
           </div>
         </div>
-
-      </main>
-      
-      {/* 3. About Us Footer Block */}
-      <footer id="about" className="bg-slate-950 text-slate-400 py-8 px-6 border-t border-emerald-950">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs font-medium gap-4">
-          <p>&copy; {new Date().getFullYear()} Public Service Complaint Network. All Rights Reserved.</p>
-          <p>Email: support@pscn.gov | Helpline: 1800-345-0011</p>
-        </div>
-      </footer>
-
     </div>
   );
 };
