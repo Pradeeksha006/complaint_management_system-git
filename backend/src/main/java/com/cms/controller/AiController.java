@@ -240,4 +240,47 @@ public class AiController {
 
         return ResponseEntity.ok(predictionResponse);
     }
+
+    @PostMapping("/predict-department")
+    public ResponseEntity<Map<String, Object>> predictDepartment(@RequestBody Map<String, Object> payload) {
+        String title = (String) payload.get("title");
+        String description = (String) payload.get("description");
+
+        List<Department> departments = departmentRepository.findAll();
+        List<Map<String, String>> candidates = departments.stream().map(d -> {
+            Map<String, String> item = new HashMap<>();
+            item.put("code", d.getCode());
+            item.put("name", d.getName());
+            return item;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        try {
+            String departmentsJson = objectMapper.writeValueAsString(candidates);
+            String aiResult = geminiService.predictDepartment(title, description, departmentsJson);
+            JsonNode root = objectMapper.readTree(aiResult);
+            String predictedCode = root.path("predictedCode").asText("IT");
+
+            Department matchedDept = departmentRepository.findByCode(predictedCode)
+                    .orElse(departmentRepository.findByCode("IT").orElse(null));
+
+            if (matchedDept != null) {
+                response.put("departmentId", matchedDept.getId());
+                response.put("departmentName", matchedDept.getName());
+                response.put("departmentCode", matchedDept.getCode());
+            } else {
+                response.put("departmentId", null);
+            }
+        } catch (Exception e) {
+            log.error("AI department prediction calculation failed, executing fallback", e);
+            String predictedCode = com.cms.util.AiHelper.predictDepartment(title, description);
+            Department matchedDept = departmentRepository.findByCode(predictedCode).orElse(null);
+            if (matchedDept != null) {
+                response.put("departmentId", matchedDept.getId());
+                response.put("departmentName", matchedDept.getName());
+                response.put("departmentCode", matchedDept.getCode());
+            }
+        }
+        return ResponseEntity.ok(response);
+    }
 }

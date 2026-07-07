@@ -87,7 +87,27 @@ const CreateComplaint = () => {
   // Real-time AI auto-detection of department based on title & description
   useEffect(() => {
     if (isManualDeptSelection) return;
+    if (!titleWatch || titleWatch.trim().length < 5) return;
 
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const res = await api.post('/api/ai/predict-department', {
+          title: titleWatch,
+          description: descriptionWatch || ''
+        });
+        if (res.data && res.data.departmentId) {
+          setSelectedDept(res.data.departmentId.toString());
+        }
+      } catch (err) {
+        console.error("AI Department auto-detect failed, using local rules-based keywords", err);
+        runClientDepartmentFallback();
+      }
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [titleWatch, descriptionWatch, departments, isManualDeptSelection]);
+
+  const runClientDepartmentFallback = () => {
     const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
     if (!content.trim()) return;
 
@@ -114,7 +134,7 @@ const CreateComplaint = () => {
         setSelectedDept(match.id.toString());
       }
     }
-  }, [titleWatch, descriptionWatch, departments, isManualDeptSelection]);
+  };
 
   const fetchDepartments = async () => {
     try {
@@ -144,6 +164,21 @@ const CreateComplaint = () => {
       }
     } catch (err) {
       setAddress(`Latitude: ${lat.toFixed(5)}, Longitude: ${lon.toFixed(5)}`);
+    }
+  };
+
+  const geocodeAddress = async (query) => {
+    if (!query || query.trim().length < 5) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        setPosition([lat, lon]);
+      }
+    } catch (err) {
+      console.error("Geocoding failed", err);
     }
   };
 
@@ -194,6 +229,22 @@ const CreateComplaint = () => {
   };
 
   const executeSubmit = async (data) => {
+    if (!data.title || data.title.trim() === '') {
+      setErrorMsg('Complaint Title is a mandatory field.');
+      return;
+    }
+    if (!data.description || data.description.trim() === '') {
+      setErrorMsg('Description is a mandatory field.');
+      return;
+    }
+    if (!selectedDept) {
+      setErrorMsg('Department is a mandatory field.');
+      return;
+    }
+    if (!address || address.trim() === '') {
+      setErrorMsg('Address is a mandatory field.');
+      return;
+    }
     setSubmitting(true);
     setErrorMsg('');
     try {
@@ -360,8 +411,8 @@ const CreateComplaint = () => {
           </div>
         </div>
 
-        {/* Column 2 & 3: Form Card Panel */}
-        <div className="lg:col-span-2">
+        {/* Column 2, 3 & 4: Form Card Panel */}
+        <div className="lg:col-span-3">
           
           <div className="bg-white dark:bg-[#0c1912] border border-slate-200 dark:border-[#0b3a20] rounded-2xl p-8 shadow-md">
             <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight mb-8 text-left border-b border-slate-100 dark:border-emerald-950 pb-4">
@@ -423,6 +474,28 @@ const CreateComplaint = () => {
                     {errors.title && <span className="text-xs text-red-500 mt-1 block">{errors.title.message}</span>}
                   </div>
 
+                  {/* Target Department dropdown */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider mb-2">
+                      Target Department (Predicted automatically, editable)
+                    </label>
+                    <select
+                      value={selectedDept}
+                      onChange={(e) => {
+                        setSelectedDept(e.target.value);
+                        setIsManualDeptSelection(true);
+                      }}
+                      className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-sm dark:border-slate-800 dark:bg-[#1a2b22] text-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
+                    >
+                      <option value="">-- Select Department --</option>
+                      {departments.map((dept) => (
+                        <option key={dept.id} value={dept.id.toString()}>
+                          {dept.name} ({dept.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Location & Map Pin */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -447,13 +520,23 @@ const CreateComplaint = () => {
                       </MapContainer>
                     </div>
 
-                    <textarea 
-                      rows={2}
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Select on the map above or enter incident address manual details here..."
-                      className="w-full text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-[#1a2b22]/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
-                    />
+                    <div className="flex gap-2">
+                      <textarea 
+                        rows={2}
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        onBlur={(e) => geocodeAddress(e.target.value)}
+                        placeholder="Select on the map above or enter incident address manual details here..."
+                        className="w-full text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-[#1a2b22]/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37] flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => geocodeAddress(address)}
+                        className="bg-[#062c19] hover:bg-emerald-950 text-white font-bold text-[10px] uppercase px-4 py-2.5 rounded-lg flex items-center justify-center shrink-0 border border-emerald-800 shadow transition-colors"
+                      >
+                        Pin Map
+                      </button>
+                    </div>
                   </div>
 
                   {/* Date & Time */}
@@ -518,6 +601,15 @@ const CreateComplaint = () => {
                       type="button"
                       onClick={async () => {
                         const isValid = await trigger(['title', 'description']);
+                        if (!selectedDept) {
+                          setErrorMsg('Department is a mandatory field. Please select a department.');
+                          return;
+                        }
+                        if (!address || address.trim() === '') {
+                          setErrorMsg('Address is a mandatory field. Please pinpoint on the map or type in address.');
+                          return;
+                        }
+                        setErrorMsg('');
                         if (isValid) {
                           setActiveStep(2);
                         }
@@ -712,45 +804,6 @@ const CreateComplaint = () => {
               )}
 
             </form>
-          </div>
-        </div>
-
-        {/* Column 4: Help Links & Tips Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Help Card */}
-          <div className="bg-white dark:bg-[#03140c]/50 border border-slate-200 dark:border-[#052414] rounded-2xl p-6 shadow-sm text-left">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-emerald-950 pb-2">
-              Need Help?
-            </h3>
-            <ul className="space-y-3 text-xs font-semibold">
-              <li>
-                <Link to="/guidelines" className="text-slate-650 hover:text-[#ac734c] dark:text-[#f2e6d0]/80 dark:hover:text-[#d4af37] underline transition-colors">
-                  Complaint Guidelines
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="text-slate-650 hover:text-[#ac734c] dark:text-[#f2e6d0]/80 dark:hover:text-[#d4af37] underline transition-colors">
-                  Frequently Asked Questions
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Success Tips Card */}
-          <div className="relative bg-white dark:bg-[#03140c]/50 border border-slate-200 dark:border-[#052414] rounded-2xl p-6 shadow-sm text-left overflow-hidden">
-            <h3 className="text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-emerald-950 pb-2">
-              Tips for Success
-            </h3>
-            <ul className="space-y-2 text-xs font-semibold text-slate-600 dark:text-[#f2e6d0]/70 list-disc pl-4">
-              <li>Be as specific as possible.</li>
-              <li>Upload photos if available.</li>
-              <li>Anonymity options are available.</li>
-            </ul>
-
-            {/* Premium Gold Star Decoration from Mockup */}
-            <div className="absolute right-4 bottom-4 text-slate-200 dark:text-emerald-950/20 text-3xl font-black select-none pointer-events-none">
-              ✦
-            </div>
           </div>
         </div>
     </div>

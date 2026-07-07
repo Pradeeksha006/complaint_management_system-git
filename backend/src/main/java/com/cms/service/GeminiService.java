@@ -418,4 +418,19 @@ public class GeminiService {
         }
         return aiResponse;
     }
+
+    public String predictDepartment(String title, String description, String departmentsJson) {
+        String prompt = "You are a department routing assistant for a public services network. Analyze the following complaint title and description (which could be in Tamil, Hindi, Telugu, Malayalam, Kannada, English, or any other regional language). " +
+                "Determine the core issue and match it to the most relevant department from the candidates list. " +
+                "\n\nCandidate Departments:\n" + departmentsJson + "\n\n" +
+                "Complaint Title: \"" + title + "\"\n" +
+                "Complaint Description: \"" + description + "\"\n\n" +
+                "Return ONLY a JSON object in this format (no markdown formatting, no code blocks, no trailing comments): " +
+                "{\"predictedCode\": \"DEPT_CODE\"}";
+        String response = callGemini(prompt, true);
+        if (response == null || response.trim().isEmpty()) {
+            return "{\"predictedCode\": \"IT\"}";
+        }
+        return response;
+    }
 }
