@@ -141,6 +141,31 @@ public class AiController {
             return ResponseEntity.ok(response);
         }
 
+        // Proximity check (same location, same department aim)
+        String newDeptCode = com.cms.util.AiHelper.predictDepartment(title, description);
+        for (Complaint cand : candidates) {
+            if (cand.getLatitude() == null || cand.getLongitude() == null) continue;
+            
+            double distanceMeters = com.cms.util.AiHelper.calculateDistance(lat, lng, cand.getLatitude(), cand.getLongitude());
+            
+            // Check if they are reporting the same issue type (same department)
+            boolean sameDept = cand.getDepartment() != null && cand.getDepartment().getCode().equals(newDeptCode);
+            
+            if (distanceMeters <= 50.0) {
+                double textSimilarity = com.cms.util.AiHelper.calculateSimilarity(description, cand.getDescription());
+                
+                // If same department OR at least some minor text similarity (20% overlap)
+                if (sameDept || textSimilarity >= 0.20) {
+                    response.put("isDuplicate", true);
+                    response.put("matchedComplaintId", cand.getId());
+                    response.put("matchedComplaintTitle", cand.getTitle());
+                    response.put("reason", "Location Proximity: An unresolved complaint of similar nature was already reported within " + 
+                                 Math.round(distanceMeters) + " meters of this location.");
+                    return ResponseEntity.ok(response);
+                }
+            }
+        }
+
         List<Map<String, String>> candidatesInfo = candidates.stream().map(c -> {
             Map<String, String> item = new HashMap<>();
             item.put("id", c.getId());

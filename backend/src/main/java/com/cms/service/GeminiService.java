@@ -238,18 +238,34 @@ public class GeminiService {
 
     private double calculateSimilarity(String s1, String s2) {
         if (s1 == null || s2 == null) return 0.0;
-        String[] w1 = s1.toLowerCase().split("\\W+");
-        String[] w2 = s2.toLowerCase().split("\\W+");
-        java.util.Set<String> set1 = new java.util.HashSet<>(List.of(w1));
-        java.util.Set<String> set2 = new java.util.HashSet<>(List.of(w2));
-        int intersectionSize = 0;
+        String clean1 = s1.toLowerCase().replaceAll("[^a-zA-Z0-9\\s\\u0B80-\\u0BFF\\u0900-\\u097F]", "");
+        String clean2 = s2.toLowerCase().replaceAll("[^a-zA-Z0-9\\s\\u0B80-\\u0BFF\\u0900-\\u097F]", "");
+        
+        String[] w1 = clean1.split("\\s+");
+        String[] w2 = clean2.split("\\s+");
+        
+        java.util.Set<String> set1 = new java.util.HashSet<>();
+        for (String w : w1) {
+            if (w.length() > 2) set1.add(w);
+        }
+        
+        java.util.Set<String> set2 = new java.util.HashSet<>();
+        for (String w : w2) {
+            if (w.length() > 2) set2.add(w);
+        }
+        
+        if (set1.isEmpty() && set2.isEmpty()) return 1.0;
+        if (set1.isEmpty() || set2.isEmpty()) return 0.0;
+        
+        int intersection = 0;
         for (String w : set1) {
             if (set2.contains(w)) {
-                intersectionSize++;
+                intersection++;
             }
         }
-        int unionSize = set1.size() + set2.size() - intersectionSize;
-        return unionSize == 0 ? 0.0 : (double) intersectionSize / unionSize;
+        
+        int union = set1.size() + set2.size() - intersection;
+        return (double) intersection / (double) union;
     }
 
     public String chatCMS(String message, String historyJson) {

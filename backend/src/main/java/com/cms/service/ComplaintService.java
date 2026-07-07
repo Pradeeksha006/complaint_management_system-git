@@ -159,7 +159,7 @@ public class ComplaintService {
 
     @Transactional(readOnly = true)
     public List<ComplaintDto> detectDuplicates(Long departmentId, Double latitude, Double longitude, String description) {
-        if (latitude == null || longitude == null || departmentId == null) {
+        if (latitude == null || longitude == null) {
             return Collections.emptyList();
         }
 
@@ -170,13 +170,33 @@ public class ComplaintService {
         double minLon = longitude - delta;
         double maxLon = longitude + delta;
 
-        List<Complaint> candidates = complaintRepository.findPotentialDuplicates(departmentId, minLat, maxLat, minLon, maxLon);
+        List<Complaint> candidates = complaintRepository.findPotentialDuplicatesAllDepts(minLat, maxLat, minLon, maxLon);
         List<ComplaintDto> duplicates = new ArrayList<>();
 
         for (Complaint cand : candidates) {
-            double textSimilarity = AiHelper.calculateSimilarity(description, cand.getDescription());
-            if (textSimilarity >= 0.35) {
-                duplicates.add(MapperUtils.toDto(cand));
+            if (cand.getLatitude() == null || cand.getLongitude() == null) continue;
+            
+            double distanceMeters = AiHelper.calculateDistance(latitude, longitude, cand.getLatitude(), cand.getLongitude());
+            
+            // Tier 1: Very close proximity (<= 50 meters) reporting similar type/department
+            boolean sameDepartment = departmentId != null && departmentId > 0 && 
+                                     cand.getDepartment() != null && 
+                                     cand.getDepartment().getId().equals(departmentId);
+            
+            if (distanceMeters <= 50.0) {
+                double similarity = AiHelper.calculateSimilarity(description, cand.getDescription());
+                if (sameDepartment || similarity >= 0.20) {
+                    duplicates.add(MapperUtils.toDto(cand));
+                    continue;
+                }
+            }
+            
+            // Tier 2: General vicinity (50m - 500m) with high description text similarity
+            if (distanceMeters > 50.0 && distanceMeters <= 500.0) {
+                double textSimilarity = AiHelper.calculateSimilarity(description, cand.getDescription());
+                if (textSimilarity >= 0.35) {
+                    duplicates.add(MapperUtils.toDto(cand));
+                }
             }
         }
 

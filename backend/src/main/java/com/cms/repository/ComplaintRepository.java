@@ -33,6 +33,15 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
             @Param("minLon") Double minLon,
             @Param("maxLon") Double maxLon);
 
+    @Query("SELECT c FROM Complaint c WHERE c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED') " +
+           "AND c.latitude BETWEEN :minLat AND :maxLat " +
+           "AND c.longitude BETWEEN :minLon AND :maxLon")
+    List<Complaint> findPotentialDuplicatesAllDepts(
+            @Param("minLat") Double minLat,
+            @Param("maxLat") Double maxLat,
+            @Param("minLon") Double minLon,
+            @Param("maxLon") Double maxLon);
+
     long countByStatus(ComplaintStatus status);
 
     @Query("SELECT c.status, COUNT(c) FROM Complaint c GROUP BY c.status")
