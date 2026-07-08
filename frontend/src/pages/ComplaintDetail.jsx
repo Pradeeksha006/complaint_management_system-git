@@ -813,36 +813,36 @@ const ComplaintDetail = () => {
       )}
 
       {previewAttachment && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in p-4">
-          {/* Close button top right */}
-          <button
-            onClick={() => setPreviewAttachment(null)}
-            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all border-0 cursor-pointer outline-none"
-            aria-label="Close Preview"
-          >
-            <X className="h-6 w-6" />
-          </button>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in p-6">
+          {/* Centered preview container with relative close button */}
+          <div className="relative max-w-4xl max-h-[80vh] w-full flex flex-col items-center justify-center animate-scale-up">
+            {/* Close button aligned with the media content */}
+            <button
+              onClick={() => setPreviewAttachment(null)}
+              className="absolute -top-12 right-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all border-0 cursor-pointer outline-none flex items-center justify-center"
+              aria-label="Close Preview"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-          {/* Centered preview container */}
-          <div className="max-w-4xl max-h-[80vh] w-full flex items-center justify-center relative animate-scale-up">
             {previewAttachment.fileType === 'IMAGE' ? (
               <img
                 src={previewAttachment.fileUrl}
                 alt="Full Attachment Preview"
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/10"
               />
             ) : previewAttachment.fileType === 'PDF' ? (
               <iframe
                 src={previewAttachment.fileUrl}
                 title="PDF Preview"
-                className="w-full h-[75vh] rounded-lg border border-white/10"
+                className="w-full h-[70vh] rounded-lg border border-white/10"
               />
             ) : (
               <video
                 src={previewAttachment.fileUrl}
                 controls
                 autoPlay
-                className="max-w-full max-h-[80vh] rounded-lg shadow-2xl border border-white/10"
+                className="max-w-full max-h-[75vh] rounded-lg shadow-2xl border border-white/10"
               />
             )}
           </div>
