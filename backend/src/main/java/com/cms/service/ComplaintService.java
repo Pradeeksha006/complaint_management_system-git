@@ -147,7 +147,8 @@ public class ComplaintService {
                 .latitude(latitude)
                 .longitude(longitude)
                 .address(safeAddress)
-                .isAnonymous(isAnonymous)
+                .citizenName(isAnonymous ? "Anonymous Citizen" : (citizen != null ? citizen.getFullName() : "Anonymous Citizen"))
+                .citizenEmail(isAnonymous ? "Anonymous Email" : (citizen != null ? citizen.getEmail() : "N/A"))
                 .deadline(deadline)
                 .attachments(new ArrayList<>())
                 .masterComplaint(master)
@@ -331,7 +332,7 @@ public class ComplaintService {
         saveTimelineEvent(saved, "ASSIGNED", "Complaint assigned to officer " + officer.getUser().getFullName() + " (" + officer.getDesignation() + ").", currentUser);
 
         // Notify Citizen(s)
-        if (!saved.isAnonymous()) {
+        if (saved.getCitizenName() != null && !saved.getCitizenName().equals("Anonymous Citizen")) {
             if (saved.getCitizen() != null) {
                 emailService.sendComplaintAssignedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
             }
@@ -379,7 +380,7 @@ public class ComplaintService {
         saveTimelineEvent(saved, statusStr.toUpperCase(), remarks, currentUser);
 
         // Email notifications to all linked citizens and child report filers
-        if (!saved.isAnonymous() && saved.getCitizen() != null) {
+        if (saved.getCitizenName() != null && !saved.getCitizenName().equals("Anonymous Citizen") && saved.getCitizen() != null) {
             if (status == ComplaintStatus.RESOLVED) {
                 emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
             } else if (status == ComplaintStatus.CLOSED) {
@@ -407,7 +408,7 @@ public class ComplaintService {
 
                 saveTimelineEvent(child, statusStr.toUpperCase(), "Master incident status updated: " + remarks, currentUser);
 
-                if (!child.isAnonymous() && child.getCitizen() != null) {
+                if (child.getCitizenName() != null && !child.getCitizenName().equals("Anonymous Citizen") && child.getCitizen() != null) {
                     if (status == ComplaintStatus.RESOLVED) {
                         emailService.sendComplaintResolvedEmail(child.getCitizen().getEmail(), child.getCitizen().getFullName(), child.getId(), child.getTitle());
                     } else if (status == ComplaintStatus.CLOSED) {

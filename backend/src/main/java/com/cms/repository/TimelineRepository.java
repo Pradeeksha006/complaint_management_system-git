@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface TimelineRepository extends JpaRepository<Timeline, Long> {
     List<Timeline> findByComplaintIdOrderByCreatedAtAsc(String complaintId);
+    boolean existsByComplaintIdAndStatus(String complaintId, String status);
 }

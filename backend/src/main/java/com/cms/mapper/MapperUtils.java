@@ -87,7 +87,7 @@ public class MapperUtils {
         return ComplaintDto.builder()
                 .id(c.getId())
                 .citizenId(c.getCitizen() != null ? c.getCitizen().getId() : null)
-                .citizenName(c.getCitizen() != null ? (c.isAnonymous() ? "Anonymous Citizen" : c.getCitizen().getFullName()) : "Anonymous Citizen")
+                .citizenName(c.getCitizenName() != null ? c.getCitizenName() : "Anonymous Citizen")
                 .departmentId(source.getDepartment().getId())
                 .departmentName(source.getDepartment().getName())
                 .title(c.getTitle())
@@ -98,7 +98,7 @@ public class MapperUtils {
                 .latitude(c.getLatitude())
                 .longitude(c.getLongitude())
                 .address(c.getAddress())
-                .isAnonymous(c.isAnonymous())
+                .isAnonymous(c.getCitizenName() == null || c.getCitizenName().equals("Anonymous Citizen"))
                 .assignedOfficerId(source.getAssignedOfficer() != null ? source.getAssignedOfficer().getId() : null)
                 .assignedOfficerName(source.getAssignedOfficer() != null ? source.getAssignedOfficer().getUser().getFullName() : "Unassigned")
                 .createdAt(c.getCreatedAt())
@@ -108,7 +108,7 @@ public class MapperUtils {
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())
-                .citizenEmail(c.getCitizen() != null ? c.getCitizen().getEmail() : "N/A")
+                .citizenEmail(c.getCitizenEmail() != null ? c.getCitizenEmail() : "N/A")
                 .citizenPhone(c.getCitizen() != null ? c.getCitizen().getPhoneNumber() : "N/A")
                 .summary(c.getSummary())
                 .translatedDescription(c.getTranslatedDescription())

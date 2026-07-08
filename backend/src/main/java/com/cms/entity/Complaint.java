@@ -52,9 +52,11 @@ public class Complaint {
     @Column(length = 255)
     private String address;
 
-    @Column(name = "is_anonymous", nullable = false)
-    @Builder.Default
-    private boolean isAnonymous = false;
+    @Column(name = "citizen_name", length = 150)
+    private String citizenName;
+
+    @Column(name = "citizen_email", length = 150)
+    private String citizenEmail;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_officer_id")
@@ -73,14 +75,6 @@ public class Complaint {
 
     @Column(name = "deadline")
     private LocalDateTime deadline;
-
-    @Column(name = "near_deadline_alert_sent", nullable = false)
-    @Builder.Default
-    private boolean nearDeadlineAlertSent = false;
-
-    @Column(name = "over_deadline_alert_sent", nullable = false)
-    @Builder.Default
-    private boolean overDeadlineAlertSent = false;
 
     @Column(length = 255)
     private String summary;

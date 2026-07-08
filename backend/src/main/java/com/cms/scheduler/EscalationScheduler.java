@@ -71,7 +71,8 @@ public class EscalationScheduler {
             }
 
             // A. Check approaching deadline (within 4 hours)
-            if (!complaint.isNearDeadlineAlertSent() && now.isAfter(complaint.getDeadline().minusHours(4))) {
+            boolean nearAlertSent = timelineRepository.existsByComplaintIdAndStatus(complaint.getId(), "SLA_WARNING");
+            if (!nearAlertSent && now.isAfter(complaint.getDeadline().minusHours(4))) {
                 Duration remaining = Duration.between(now, complaint.getDeadline());
                 long hours = remaining.toHours();
                 long minutes = remaining.toMinutes() % 60;
@@ -92,18 +93,25 @@ public class EscalationScheduler {
                     notificationRepository.save(alert);
                 }
 
-                complaint.setNearDeadlineAlertSent(true);
-                complaintRepository.save(complaint);
+                // Log a timeline event as warning marker
+                Timeline warningEvent = Timeline.builder()
+                        .complaint(complaint)
+                        .status("SLA_WARNING")
+                        .description("Complaint is approaching its target SLA resolution deadline. Warning alert triggered.")
+                        .build();
+                timelineRepository.save(warningEvent);
+
                 log.info("SLA approaching deadline warning triggered for complaint {}", complaint.getId());
             }
 
             // B. Check crossed/exceeded deadline
-            if (!complaint.isOverDeadlineAlertSent() && now.isAfter(complaint.getDeadline())) {
+            boolean overAlertSent = timelineRepository.existsByComplaintIdAndStatus(complaint.getId(), "SLA_EXCEEDED");
+            if (!overAlertSent && now.isAfter(complaint.getDeadline())) {
                 // Send apology email to citizen (if not anonymous and email is present)
-                if (!complaint.isAnonymous() && complaint.getCitizen() != null) {
+                if (complaint.getCitizenEmail() != null && !complaint.getCitizenEmail().equals("Anonymous Email") && !complaint.getCitizenEmail().equals("N/A")) {
                     emailService.sendDeadlinePassedApologyEmail(
-                        complaint.getCitizen().getEmail(), 
-                        complaint.getCitizen().getFullName(), 
+                        complaint.getCitizenEmail(), 
+                        complaint.getCitizenName(), 
                         complaint.getId(), 
                         complaint.getTitle()
                     );
@@ -126,8 +134,6 @@ public class EscalationScheduler {
                         .build();
                 timelineRepository.save(event);
 
-                complaint.setOverDeadlineAlertSent(true);
-                complaintRepository.save(complaint);
                 log.info("SLA target exceeded warning triggered for complaint {}", complaint.getId());
             }
         }
