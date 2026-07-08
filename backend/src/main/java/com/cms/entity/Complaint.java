@@ -105,4 +105,13 @@ public class Complaint {
     @Builder.Default
     @ToString.Exclude
     private List<User> supportingCitizens = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "master_complaint_id")
+    private Complaint masterComplaint;
+
+    @OneToMany(mappedBy = "masterComplaint", cascade = CascadeType.ALL)
+    @Builder.Default
+    @ToString.Exclude
+    private List<Complaint> childReports = new ArrayList<>();
 }

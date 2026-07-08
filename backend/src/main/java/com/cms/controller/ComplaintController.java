@@ -41,8 +41,9 @@ public class ComplaintController {
             @RequestParam("departmentId") Long departmentId,
             @RequestParam("latitude") Double latitude,
             @RequestParam("longitude") Double longitude,
+            @RequestParam(value = "title", defaultValue = "") String title,
             @RequestParam("description") String description) {
-        return ResponseEntity.ok(complaintService.detectDuplicates(departmentId, latitude, longitude, description, null));
+        return ResponseEntity.ok(complaintService.detectDuplicates(departmentId, latitude, longitude, title, null, description, null));
     }
 
     @GetMapping

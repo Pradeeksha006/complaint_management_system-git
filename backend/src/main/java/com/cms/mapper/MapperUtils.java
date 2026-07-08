@@ -81,27 +81,30 @@ public class MapperUtils {
 
     public static ComplaintDto toDto(Complaint c) {
         if (c == null) return null;
+        Complaint source = c.getMasterComplaint() != null ? c.getMasterComplaint() : c;
+        int supportCount = (source.getChildReports() != null ? source.getChildReports().size() : 0) + 1;
+
         return ComplaintDto.builder()
                 .id(c.getId())
                 .citizenId(c.getCitizen() != null ? c.getCitizen().getId() : null)
                 .citizenName(c.getCitizen() != null ? (c.isAnonymous() ? "Anonymous Citizen" : c.getCitizen().getFullName()) : "Anonymous Citizen")
-                .departmentId(c.getDepartment().getId())
-                .departmentName(c.getDepartment().getName())
+                .departmentId(source.getDepartment().getId())
+                .departmentName(source.getDepartment().getName())
                 .title(c.getTitle())
                 .description(c.getDescription())
                 .category(c.getCategory())
-                .priority(c.getPriority().name())
-                .status(c.getStatus().name())
+                .priority(source.getPriority().name())
+                .status(source.getStatus().name())
                 .latitude(c.getLatitude())
                 .longitude(c.getLongitude())
                 .address(c.getAddress())
                 .isAnonymous(c.isAnonymous())
-                .assignedOfficerId(c.getAssignedOfficer() != null ? c.getAssignedOfficer().getId() : null)
-                .assignedOfficerName(c.getAssignedOfficer() != null ? c.getAssignedOfficer().getUser().getFullName() : "Unassigned")
+                .assignedOfficerId(source.getAssignedOfficer() != null ? source.getAssignedOfficer().getId() : null)
+                .assignedOfficerName(source.getAssignedOfficer() != null ? source.getAssignedOfficer().getUser().getFullName() : "Unassigned")
                 .createdAt(c.getCreatedAt())
-                .updatedAt(c.getUpdatedAt())
-                .resolvedAt(c.getResolvedAt())
-                .deadline(c.getDeadline())
+                .updatedAt(source.getUpdatedAt())
+                .resolvedAt(source.getResolvedAt())
+                .deadline(source.getDeadline())
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())
@@ -110,7 +113,8 @@ public class MapperUtils {
                 .summary(c.getSummary())
                 .translatedDescription(c.getTranslatedDescription())
                 .translatedTitle(c.getTranslatedTitle())
-                .supportCount(c.isAnonymous() ? 1 : ((c.getSupportingCitizens() != null ? c.getSupportingCitizens().size() : 0) + 1))
+                .supportCount(supportCount)
+                .masterComplaintId(c.getMasterComplaint() != null ? c.getMasterComplaint().getId() : null)
                 .build();
     }
 

@@ -188,18 +188,22 @@ public class GeminiService {
     }
 
     public String detectDuplicates(String newTitle, String newDescription, String candidatesJson) {
-        String prompt = "You are a duplicate checker for a Complaint Management System. " +
-                "Compare this new complaint:\n" +
-                "Title: \"" + newTitle + "\"\n" +
-                "Description: \"" + newDescription + "\"\n\n" +
-                "Against this list of nearby complaints in the same area:\n" +
+        String prompt = "You are a master duplicate checker for a Complaint Management System. " +
+                "Evaluate if the following new complaint is a duplicate of any existing complaints in the candidates list.\n\n" +
+                "NEW COMPLAINT DETAILS:\n" +
+                "- Title: \"" + newTitle + "\"\n" +
+                "- Description: \"" + newDescription + "\"\n\n" +
+                "CANDIDATES LIST:\n" +
                 candidatesJson + "\n\n" +
-                "Determine if the new complaint describes the exact same physical issue as any of the nearby complaints.\n" +
-                "Return a JSON object containing:\n" +
+                "RULES FOR MATCHING:\n" +
+                "1. Treat as a DUPLICATE if they report the exact same physical issue (e.g. garbage dump, pothole, street vendors blocking path, leak, water supply) at the same physical location (e.g. same street block, same road section, or within 150 meters).\n" +
+                "2. Wording, description details, and synonyms can differ (e.g. 'pedestrian path occupied by street vendors' vs 'illegal street vendors blocking footpath' at the same street location/road are DUPLICATES).\n" +
+                "3. If they describe different locations (e.g. different streets or different wards), they are NOT duplicates.\n\n" +
+                "Return a JSON object in this format (no markdown code blocks, no trailing notes):\n" +
                 "{\n" +
                 "  \"isDuplicate\": true or false,\n" +
                 "  \"matchedComplaintId\": \"ID of the duplicate complaint or null if isDuplicate is false\",\n" +
-                "  \"reason\": \"brief explanation of why it is or is not a duplicate\"\n" +
+                "  \"reason\": \"brief explanation highlighting the matching location and issue\"\n" +
                 "}";
         String aiResult = callGemini(prompt, true);
         if (aiResult == null || aiResult.trim().isEmpty() || aiResult.equals("{}")) {
@@ -236,53 +240,7 @@ public class GeminiService {
         return aiResult;
     }
     public String detectDuplicates(String newText, String candidatesJson) {
-        String prompt = "You are an AI duplicate checker for a City Complaint Management System. " +
-                "Analyze this new complaint description:\n" +
-                "\"" + newText + "\"\n\n" +
-                "Compare it against this list of active complaints in the database:\n" +
-                candidatesJson + "\n\n" +
-                "Rules:\n" +
-                "1. Extract and compare the core issue (aim) AND physical location (e.g. Gandhi Street, bus stop, near market) from the text.\n" +
-                "2. Wording, sentences, and languages can be different. Do not require exact word matching. Treat them as duplicates if they report the same issue at the same physical location.\n" +
-                "3. Return a JSON object containing:\n" +
-                "{\n" +
-                "  \"isDuplicate\": true or false,\n" +
-                "  \"matchedComplaintId\": \"ID of the duplicate complaint or null if isDuplicate is false\",\n" +
-                "  \"reason\": \"brief explanation highlighting the matching location and issue\"\n" +
-                "}";
-        String aiResult = callGemini(prompt, true);
-        if (aiResult == null || aiResult.trim().isEmpty() || aiResult.equals("{}")) {
-            // Local fallback duplicate check
-            try {
-                JsonNode candidates = objectMapper.readTree(candidatesJson);
-                boolean found = false;
-                String matchedId = null;
-                String reason = "No similar complaints found nearby.";
-                
-                for (JsonNode cand : candidates) {
-                    String candId = cand.path("id").asText();
-                    String candDesc = cand.path("description").asText("");
-                    
-                    double score = calculateSimilarity(newText, candDesc);
-                    if (score >= 0.50) {
-                        found = true;
-                        matchedId = candId;
-                        reason = "AI Local Fallback: Detected high text similarity match of " + 
-                                Math.round(score * 100) + "% with Ticket ID " + candId;
-                        break;
-                    }
-                }
-                
-                ObjectNode fallbackJson = objectMapper.createObjectNode();
-                fallbackJson.put("isDuplicate", found);
-                fallbackJson.put("matchedComplaintId", matchedId);
-                fallbackJson.put("reason", reason);
-                return objectMapper.writeValueAsString(fallbackJson);
-            } catch (Exception e) {
-                log.warn("Local duplicate scan failed: {}", e.getMessage());
-            }
-        }
-        return aiResult;
+        return detectDuplicates("", newText, candidatesJson);
     }
     private double calculateSimilarity(String s1, String s2) {
         if (s1 == null || s2 == null) return 0.0;

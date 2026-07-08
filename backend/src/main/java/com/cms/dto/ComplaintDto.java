@@ -41,4 +41,5 @@ public class ComplaintDto {
     private String translatedDescription;
     private String translatedTitle;
     private int supportCount;
+    private String masterComplaintId;
 }

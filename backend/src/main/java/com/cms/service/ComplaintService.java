@@ -88,39 +88,12 @@ public class ComplaintService {
         String translatedTitle = geminiService.translateToEnglish(title, language);
 
         // A. Duplicate Check - Merge duplicate submissions into a single Master Complaint (using cross-lingual translation)
+        Complaint master = null;
         if (latitude != null && longitude != null) {
-            List<ComplaintDto> duplicates = detectDuplicates(dept.getId(), latitude, longitude, description, translatedDesc);
+            List<ComplaintDto> duplicates = detectDuplicates(dept.getId(), latitude, longitude, title, translatedTitle, description, translatedDesc);
             if (!duplicates.isEmpty()) {
                 ComplaintDto duplicateDto = duplicates.get(0);
-                Complaint master = complaintRepository.findById(duplicateDto.getId()).orElse(null);
-                if (master != null) {
-                    if (!isAnonymous && citizen != null) {
-                        boolean alreadySupporting = false;
-                        if (master.getCitizen() != null && master.getCitizen().getId().equals(citizen.getId())) {
-                            alreadySupporting = true;
-                        } else {
-                            if (master.getSupportingCitizens() == null) {
-                                master.setSupportingCitizens(new ArrayList<>());
-                            }
-                            for (User suUser : master.getSupportingCitizens()) {
-                                if (suUser.getId().equals(citizen.getId())) {
-                                    alreadySupporting = true;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (!alreadySupporting) {
-                            master.getSupportingCitizens().add(citizen);
-                            complaintRepository.save(master);
-                            
-                            saveTimelineEvent(master, "SUPPORTED", "Citizen " + citizen.getFullName() + " registered support for this complaint (Duplicate report).", citizen);
-                            
-                            emailService.sendComplaintSubmittedEmail(citizen.getEmail(), citizen.getFullName(), master.getId(), master.getTitle());
-                        }
-                    }
-                    return MapperUtils.toDto(master);
-                }
+                master = complaintRepository.findById(duplicateDto.getId()).orElse(null);
             }
         }
 
@@ -170,13 +143,14 @@ public class ComplaintService {
                 .summary(summary)
                 .category(dept.getName())
                 .priority(priority)
-                .status(ComplaintStatus.SUBMITTED)
+                .status(master != null ? master.getStatus() : ComplaintStatus.SUBMITTED)
                 .latitude(latitude)
                 .longitude(longitude)
                 .address(safeAddress)
                 .isAnonymous(isAnonymous)
                 .deadline(deadline)
                 .attachments(new ArrayList<>())
+                .masterComplaint(master)
                 .build();
 
         // 4. Handle File Uploads to Cloudinary
@@ -209,12 +183,44 @@ public class ComplaintService {
 
         Complaint saved = complaintRepository.save(complaint);
 
-        // 5. Create timeline event
-        saveTimelineEvent(saved, "SUBMITTED", "Complaint filed successfully" + (isAnonymous ? " anonymously" : "") + ".", citizen);
+        // 5. Create timeline event & register support
+        if (master != null) {
+            saveTimelineEvent(saved, "SUBMITTED", "Complaint filed successfully as a duplicate report of master ticket " + master.getId() + ".", citizen);
+            
+            // Add timeline event to master
+            saveTimelineEvent(master, "SUPPORTED", "Citizen " + (isAnonymous ? "Anonymous" : (citizen != null ? citizen.getFullName() : "Anonymous")) + " reported a duplicate of this issue (Child Ticket ID: " + saved.getId() + ").", citizen);
+
+            // Register citizen support on the master complaint
+            if (!isAnonymous && citizen != null) {
+                boolean alreadySupporting = false;
+                if (master.getCitizen() != null && master.getCitizen().getId().equals(citizen.getId())) {
+                    alreadySupporting = true;
+                } else {
+                    if (master.getSupportingCitizens() == null) {
+                        master.setSupportingCitizens(new ArrayList<>());
+                    }
+                    for (User suUser : master.getSupportingCitizens()) {
+                        if (suUser.getId().equals(citizen.getId())) {
+                            alreadySupporting = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!alreadySupporting) {
+                    master.getSupportingCitizens().add(citizen);
+                    complaintRepository.save(master);
+                }
+            }
+        } else {
+            saveTimelineEvent(saved, "SUBMITTED", "Complaint filed successfully" + (isAnonymous ? " anonymously" : "") + ".", citizen);
+        }
 
         // 6. Send Email Notifications
         if (!isAnonymous && citizen != null) {
-            emailService.sendComplaintSubmittedEmail(citizen.getEmail(), citizen.getFullName(), saved.getId(), saved.getTitle());
+            String targetId = master != null ? master.getId() : saved.getId();
+            String targetTitle = master != null ? master.getTitle() : saved.getTitle();
+            emailService.sendComplaintSubmittedEmail(citizen.getEmail(), citizen.getFullName(), targetId, targetTitle);
         }
 
         return MapperUtils.toDto(saved);
@@ -222,6 +228,7 @@ public class ComplaintService {
 
     @Transactional(readOnly = true)
     public List<ComplaintDto> detectDuplicates(Long departmentId, Double latitude, Double longitude, 
+                                               String title, String translatedTitle,
                                                String description, String translatedDescription) {
         List<Complaint> candidates = complaintRepository.findAllActiveComplaints();
         List<ComplaintDto> duplicates = new ArrayList<>();
@@ -237,13 +244,17 @@ public class ComplaintService {
             item.put("id", cand.getId());
             item.put("title", cand.getTranslatedTitle() != null ? cand.getTranslatedTitle() : cand.getTitle());
             item.put("description", cand.getTranslatedDescription() != null ? cand.getTranslatedDescription() : cand.getDescription());
+            item.put("department", cand.getDepartment() != null ? cand.getDepartment().getName() : "General");
+            item.put("coordinates", cand.getLatitude() != null ? (cand.getLatitude() + ", " + cand.getLongitude()) : "N/A");
+            item.put("address", cand.getAddress() != null ? cand.getAddress() : "N/A");
             candidatesInfo.add(item);
         }
 
         try {
             String candidatesJson = objectMapper.writeValueAsString(candidatesInfo);
             String aiResult = geminiService.detectDuplicates(
-                (translatedDescription != null && !translatedDescription.isBlank()) ? translatedDescription : description, 
+                (translatedTitle != null && !translatedTitle.isBlank()) ? translatedTitle : title,
+                (translatedDescription != null && !translatedDescription.isBlank()) ? translatedDescription : description,
                 candidatesJson
             );
             JsonNode root = objectMapper.readTree(aiResult);
@@ -367,21 +378,40 @@ public class ComplaintService {
         
         saveTimelineEvent(saved, statusStr.toUpperCase(), remarks, currentUser);
 
-        // Email notifications to all linked citizens
-        if (!saved.isAnonymous()) {
-            if (saved.getCitizen() != null) {
+        // Email notifications to all linked citizens and child report filers
+        if (!saved.isAnonymous() && saved.getCitizen() != null) {
+            if (status == ComplaintStatus.RESOLVED) {
+                emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+            } else if (status == ComplaintStatus.CLOSED) {
+                emailService.sendComplaintClosedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId());
+            }
+        }
+        if (saved.getSupportingCitizens() != null) {
+            for (User suUser : saved.getSupportingCitizens()) {
                 if (status == ComplaintStatus.RESOLVED) {
-                    emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+                    emailService.sendComplaintResolvedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
                 } else if (status == ComplaintStatus.CLOSED) {
-                    emailService.sendComplaintClosedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId());
+                    emailService.sendComplaintClosedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId());
                 }
             }
-            if (saved.getSupportingCitizens() != null) {
-                for (User suUser : saved.getSupportingCitizens()) {
+        }
+
+        // Propagate updates to child complaints
+        if (saved.getChildReports() != null) {
+            for (Complaint child : saved.getChildReports()) {
+                child.setStatus(status);
+                if (status == ComplaintStatus.RESOLVED) {
+                    child.setResolvedAt(LocalDateTime.now());
+                }
+                complaintRepository.save(child);
+
+                saveTimelineEvent(child, statusStr.toUpperCase(), "Master incident status updated: " + remarks, currentUser);
+
+                if (!child.isAnonymous() && child.getCitizen() != null) {
                     if (status == ComplaintStatus.RESOLVED) {
-                        emailService.sendComplaintResolvedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
+                        emailService.sendComplaintResolvedEmail(child.getCitizen().getEmail(), child.getCitizen().getFullName(), child.getId(), child.getTitle());
                     } else if (status == ComplaintStatus.CLOSED) {
-                        emailService.sendComplaintClosedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId());
+                        emailService.sendComplaintClosedEmail(child.getCitizen().getEmail(), child.getCitizen().getFullName(), child.getId());
                     }
                 }
             }
@@ -423,13 +453,29 @@ public class ComplaintService {
 
         if (citizenId != null) {
             spec = spec.and((root, query, cb) -> {
-                User u = new User();
-                u.setId(citizenId);
-                return cb.or(
-                    cb.equal(root.get("citizen").get("id"), citizenId),
-                    cb.isMember(u, root.get("supportingCitizens"))
-                );
+                // Ensure query joins do not produce cartesian products or duplicate counts
+                if (Long.class.equals(query.getResultType())) {
+                    // Count query: check root or subquery/left join
+                    return cb.and(
+                        cb.isNull(root.get("masterComplaint")),
+                        cb.or(
+                            cb.equal(root.get("citizen").get("id"), citizenId),
+                            cb.equal(root.join("childReports", jakarta.persistence.criteria.JoinType.LEFT).get("citizen").get("id"), citizenId)
+                        )
+                    );
+                } else {
+                    // Fetch query: fetch join or standard left join
+                    return cb.and(
+                        cb.isNull(root.get("masterComplaint")),
+                        cb.or(
+                            cb.equal(root.get("citizen").get("id"), citizenId),
+                            cb.equal(root.join("childReports", jakarta.persistence.criteria.JoinType.LEFT).get("citizen").get("id"), citizenId)
+                        )
+                    );
+                }
             });
+        } else {
+            spec = spec.and((root, query, cb) -> cb.isNull(root.get("masterComplaint")));
         }
         if (deptId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("department").get("id"), deptId));

@@ -26,9 +26,16 @@ public class AnalyticsService {
     public Map<String, Object> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        // Total
-        long total = complaintRepository.count();
-        stats.put("totalComplaints", total);
+        // Total reports, master incidents, and merged reports
+        long totalComplaints = complaintRepository.count();
+        long totalIncidents = complaintRepository.findAll().stream()
+                .filter(c -> c.getMasterComplaint() == null)
+                .count();
+        long mergedReports = totalComplaints - totalIncidents;
+
+        stats.put("totalComplaints", totalComplaints);
+        stats.put("totalIncidents", totalIncidents);
+        stats.put("mergedReports", mergedReports);
 
         // Status Counts
         List<Object[]> statusCounts = complaintRepository.countComplaintsGroupByStatus();

@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   Inbox, Clock, CheckCircle, Star, TrendingUp, Users, Building2, ShieldCheck,
-  Loader2, RefreshCw, FileText
+  Loader2, RefreshCw, FileText, Layers
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -100,13 +100,29 @@ const AdminDashboard = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-7">
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
           <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
             <Inbox className="h-5 w-5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Cases</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Incidents</span>
+          </div>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.totalIncidents ?? (stats?.totalComplaints || 0)}</h3>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
+            <Users className="h-5 w-5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Citizen Reports</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.totalComplaints || 0}</h3>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+            <Layers className="h-5 w-5" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Merged Reports</span>
+          </div>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.mergedReports || 0}</h3>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
