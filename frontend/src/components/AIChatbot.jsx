@@ -76,12 +76,14 @@ const AIChatbot = () => {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Floating Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 hover:scale-110 active:scale-95"
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
-      </button>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 hover:scale-110 active:scale-95"
+        >
+          <MessageSquare className="h-6 w-6" />
+        </button>
+      )}
 
       {/* Chat Window Container */}
       {isOpen && (
