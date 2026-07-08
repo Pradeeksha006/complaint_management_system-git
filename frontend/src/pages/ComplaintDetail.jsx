@@ -40,6 +40,7 @@ const ComplaintDetail = () => {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState(null);
 
   useEffect(() => {
     fetchDetail();
@@ -520,14 +521,13 @@ const ComplaintDetail = () => {
                       ) : (
                         <video src={att.fileUrl} controls className="h-32 w-full object-cover rounded-md" />
                       )}
-                      <a 
-                        href={att.fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-blue-600 hover:underline mt-2 flex items-center gap-1.5"
+                      <button
+                        type="button"
+                        onClick={() => setPreviewAttachment(att)}
+                        className="text-xs font-semibold text-blue-600 hover:underline mt-2 flex items-center gap-1.5 bg-transparent border-0 outline-none cursor-pointer"
                       >
                         View Full Resource
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -808,6 +808,48 @@ const ComplaintDetail = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Your complaint has been successfully and permanently removed. Redirecting to dashboard...
             </p>
+          </div>
+        </div>
+      )}
+
+      {previewAttachment && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in p-4">
+          {/* Close button top right */}
+          <button
+            onClick={() => setPreviewAttachment(null)}
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all border-0 cursor-pointer outline-none"
+            aria-label="Close Preview"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {/* Centered preview container */}
+          <div className="max-w-4xl max-h-[80vh] w-full flex items-center justify-center relative animate-scale-up">
+            {previewAttachment.fileType === 'IMAGE' ? (
+              <img
+                src={previewAttachment.fileUrl}
+                alt="Full Attachment Preview"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-white/10"
+              />
+            ) : previewAttachment.fileType === 'PDF' ? (
+              <iframe
+                src={previewAttachment.fileUrl}
+                title="PDF Preview"
+                className="w-full h-[75vh] rounded-lg border border-white/10"
+              />
+            ) : (
+              <video
+                src={previewAttachment.fileUrl}
+                controls
+                autoPlay
+                className="max-w-full max-h-[80vh] rounded-lg shadow-2xl border border-white/10"
+              />
+            )}
+          </div>
+          
+          {/* Caption / Filename */}
+          <div className="text-white/60 text-xs font-semibold mt-4 tracking-wide">
+            {previewAttachment.fileType} Resource Attachment
           </div>
         </div>
       )}
