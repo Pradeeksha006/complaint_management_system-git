@@ -339,7 +339,7 @@ public class UserService {
                 .or(() -> userRepository.findByUsername(email))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email/username: " + email));
 
-        if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_DEPT_HEAD) {
+        if (user.getRole() == Role.ROLE_DEPT_HEAD) {
             return ForgotPasswordResponse.builder()
                     .requiresPin(true)
                     .message("Staff account detected. Please verify with your Secret Recovery PIN.")
@@ -365,7 +365,7 @@ public class UserService {
                 .or(() -> userRepository.findByUsername(request.getEmail()))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        if (user.getRole() == Role.ROLE_ADMIN || user.getRole() == Role.ROLE_DEPT_HEAD) {
+        if (user.getRole() == Role.ROLE_DEPT_HEAD) {
             if (user.getSecurityPin() == null || !user.getSecurityPin().equals(request.getCode())) {
                 throw new BadRequestException("Invalid Secret Recovery PIN");
             }
@@ -387,7 +387,7 @@ public class UserService {
         AuditLog audit = AuditLog.builder()
                 .user(user)
                 .action("RESET_PASSWORD")
-                .details("User reset password via " + (user.getRole() == Role.ROLE_CITIZEN ? "OTP" : "Security PIN") + ".")
+                .details("User reset password via " + (user.getRole() == Role.ROLE_DEPT_HEAD ? "Security PIN" : "OTP") + ".")
                 .ipAddress("127.0.0.1")
                 .build();
         auditLogRepository.save(audit);
