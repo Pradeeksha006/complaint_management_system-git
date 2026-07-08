@@ -453,28 +453,7 @@ public class ComplaintService {
         Specification<Complaint> spec = Specification.where(null);
 
         if (citizenId != null) {
-            spec = spec.and((root, query, cb) -> {
-                // Ensure query joins do not produce cartesian products or duplicate counts
-                if (Long.class.equals(query.getResultType())) {
-                    // Count query: check root or subquery/left join
-                    return cb.and(
-                        cb.isNull(root.get("masterComplaint")),
-                        cb.or(
-                            cb.equal(root.get("citizen").get("id"), citizenId),
-                            cb.equal(root.join("childReports", jakarta.persistence.criteria.JoinType.LEFT).get("citizen").get("id"), citizenId)
-                        )
-                    );
-                } else {
-                    // Fetch query: fetch join or standard left join
-                    return cb.and(
-                        cb.isNull(root.get("masterComplaint")),
-                        cb.or(
-                            cb.equal(root.get("citizen").get("id"), citizenId),
-                            cb.equal(root.join("childReports", jakarta.persistence.criteria.JoinType.LEFT).get("citizen").get("id"), citizenId)
-                        )
-                    );
-                }
-            });
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("citizen").get("id"), citizenId));
         } else {
             spec = spec.and((root, query, cb) -> cb.isNull(root.get("masterComplaint")));
         }
