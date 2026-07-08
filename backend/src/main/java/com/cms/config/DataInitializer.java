@@ -74,6 +74,24 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
                 log.info("Successfully migrated officers table structure.");
             }
+
+            // Drop obsolete columns from complaints if they exist
+            try {
+                jdbcTemplate.execute("ALTER TABLE complaints DROP COLUMN is_anonymous");
+                log.info("Obsolete column is_anonymous dropped successfully from complaints table.");
+            } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("ALTER TABLE complaints DROP COLUMN near_deadline_alert_sent");
+                log.info("Obsolete column near_deadline_alert_sent dropped successfully from complaints table.");
+            } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("ALTER TABLE complaints DROP COLUMN over_deadline_alert_sent");
+                log.info("Obsolete column over_deadline_alert_sent dropped successfully from complaints table.");
+            } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("ALTER TABLE complaints DROP COLUMN closed_at");
+                log.info("Obsolete column closed_at dropped successfully from complaints table.");
+            } catch (Exception ignored) {}
         } catch (Exception e) {
             log.error("Failed to migrate database tables: {}", e.getMessage());
         }
