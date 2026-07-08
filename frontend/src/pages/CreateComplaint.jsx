@@ -140,12 +140,41 @@ const CreateComplaint = () => {
   };
 
   const MapClickHandler = () => {
-    useMapEvents({
-      click(e) {
+    const map = useMapEvents({
+      dblclick(e) {
         setPosition([e.latlng.lat, e.latlng.lng]);
         reverseGeocode(e.latlng.lat, e.latlng.lng);
       },
+      touchstart(e) {
+        if (e.originalEvent.touches) {
+          if (e.originalEvent.touches.length === 2) {
+            map.dragging.enable();
+          } else {
+            map.dragging.disable();
+          }
+        } else {
+          map.dragging.enable();
+        }
+      },
+      touchmove(e) {
+        if (e.originalEvent.touches) {
+          if (e.originalEvent.touches.length === 2) {
+            map.dragging.enable();
+          } else {
+            map.dragging.disable();
+          }
+        } else {
+          map.dragging.enable();
+        }
+      }
     });
+
+    useEffect(() => {
+      if (position) {
+        map.setView(position, map.getZoom());
+      }
+    }, [position, map]);
+
     return null;
   };
 
@@ -162,7 +191,7 @@ const CreateComplaint = () => {
   };
 
   const geocodeAddress = async (query) => {
-    if (!query || query.trim().length < 5) return;
+    if (!query || query.trim().length < 3) return;
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
       const data = await res.json();
@@ -173,6 +202,13 @@ const CreateComplaint = () => {
       }
     } catch (err) {
       console.error("Geocoding failed", err);
+    }
+  };
+
+  const handleAddressKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      geocodeAddress(address);
     }
   };
 
@@ -743,7 +779,7 @@ const CreateComplaint = () => {
                     </div>
 
                     <div className="h-56 w-full rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                      <MapContainer center={position} zoom={13} scrollWheelZoom={false}>
+                      <MapContainer center={position} zoom={13} scrollWheelZoom={false} doubleClickZoom={false}>
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <Marker position={position} />
                         <MapClickHandler />
@@ -756,6 +792,7 @@ const CreateComplaint = () => {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         onBlur={(e) => geocodeAddress(e.target.value)}
+                        onKeyDown={handleAddressKeyDown}
                         placeholder="Select on the map above or enter incident address manual details here..."
                         className="w-full text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-[#1a2b22]/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37] flex-1"
                       />
