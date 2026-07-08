@@ -44,6 +44,14 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Password reset successful. You can now log in with your new password."));
     }
 
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<MessageResponse> verifyResetOtp(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String code = body.get("code");
+        userService.verifyResetOtp(email, code);
+        return ResponseEntity.ok(new MessageResponse("Verification successful."));
+    }
+
     @PostMapping("/register/verify-otp")
     public ResponseEntity<MessageResponse> verifyRegistrationOtp(@RequestBody Map<String, String> body) {
         String email = body.get("email");

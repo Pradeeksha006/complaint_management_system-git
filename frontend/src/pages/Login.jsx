@@ -26,7 +26,7 @@ const Login = () => {
 
   const from = location.state?.from?.pathname || '/dashboard';
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, getValues, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
   });
 
@@ -120,7 +120,11 @@ const Login = () => {
               <label className="text-xs font-bold text-slate-700 dark:text-emerald-450 uppercase tracking-widest">
                 Password
               </label>
-              <Link to="/forgot-password" className="text-xs font-bold text-[#ac734c] hover:text-[#8f5e3e] dark:text-[#d4af37] dark:hover:text-[#f2e6d0] transition-colors">
+              <Link 
+                to="/forgot-password" 
+                state={{ email: getValues('usernameOrEmail') }}
+                className="text-xs font-bold text-[#ac734c] hover:text-[#8f5e3e] dark:text-[#d4af37] dark:hover:text-[#f2e6d0] transition-colors"
+              >
                 Forgot?
               </Link>
             </div>

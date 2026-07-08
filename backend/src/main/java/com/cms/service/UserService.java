@@ -443,4 +443,24 @@ public class UserService {
 
         emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
     }
+
+    @Transactional(readOnly = true)
+    public void verifyResetOtp(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .or(() -> userRepository.findByUsername(email))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() == Role.ROLE_DEPT_HEAD) {
+            if (user.getSecurityPin() == null || !user.getSecurityPin().equals(code)) {
+                throw new BadRequestException("Invalid Secret Recovery PIN");
+            }
+        } else {
+            if (user.getResetOtp() == null || !user.getResetOtp().equals(code)) {
+                throw new BadRequestException("Invalid Verification Code (OTP)");
+            }
+            if (user.getResetOtpExpiry() == null || LocalDateTime.now().isAfter(user.getResetOtpExpiry())) {
+                throw new BadRequestException("Verification Code (OTP) has expired");
+            }
+        }
+    }
 }
