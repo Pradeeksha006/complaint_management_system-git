@@ -193,12 +193,26 @@ const CreateComplaint = () => {
   const geocodeAddress = async (query) => {
     if (!query || query.trim().length < 3) return;
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      let searchQuery = query;
+      try {
+        const aiRes = await api.post('/api/ai/correct-address', { query });
+        if (aiRes.data && aiRes.data.correctedQuery) {
+          searchQuery = aiRes.data.correctedQuery;
+          setAddress(searchQuery);
+        }
+      } catch (aiErr) {
+        console.warn("AI address spelling correction offline, using raw query", aiErr);
+      }
+
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
       const data = await res.json();
       if (data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
         setPosition([lat, lon]);
+        if (data[0].display_name) {
+          setAddress(data[0].display_name);
+        }
       }
     } catch (err) {
       console.error("Geocoding failed", err);
@@ -813,14 +827,6 @@ const CreateComplaint = () => {
                       <label className="block text-xs font-bold text-slate-500 dark:text-[#f2e6d0] uppercase tracking-wider">
                         Detailed Description of Complaint
                       </label>
-                      <button 
-                        type="button" 
-                        onClick={handleCheckDuplicates}
-                        className="text-xs text-[#ac734c] dark:text-[#d4af37] hover:underline flex items-center gap-1"
-                      >
-                        <Search className="h-3.5 w-3.5" />
-                        Scan Duplicates
-                      </button>
                     </div>
                     <textarea 
                       rows={4}
@@ -829,13 +835,6 @@ const CreateComplaint = () => {
                       className="w-full rounded-lg border border-slate-200 bg-transparent px-3 py-2.5 text-sm dark:border-slate-800 dark:text-white outline-none focus:border-[#ac734c] dark:focus:border-[#d4af37]"
                     />
                     {errors.description && <span className="text-xs text-red-500 mt-1 block">{errors.description.message}</span>}
-                    
-                    {/* Real-time duplicate alerts */}
-                    {duplicateMessage && (
-                      <div className="mt-3 p-3 rounded-lg border border-dashed border-emerald-800 bg-emerald-950/20 text-xs font-semibold text-emerald-600 dark:text-emerald-450 animate-pulse">
-                        {duplicateMessage}
-                      </div>
-                    )}
                   </div>
 
                   <div className="pt-4 border-t border-slate-100 dark:border-emerald-950 flex justify-end">

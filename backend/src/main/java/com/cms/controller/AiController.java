@@ -294,4 +294,16 @@ public class AiController {
         }
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/correct-address")
+    public ResponseEntity<Map<String, String>> correctAddress(@RequestBody Map<String, String> payload) {
+        String query = payload.get("query");
+        String corrected = geminiService.correctAddressSpelling(query);
+        if (corrected == null || corrected.trim().isEmpty()) {
+            corrected = query;
+        }
+        Map<String, String> response = new HashMap<>();
+        response.put("correctedQuery", corrected);
+        return ResponseEntity.ok(response);
+    }
 }
