@@ -436,7 +436,7 @@ public class GeminiService {
 
     public String correctAddressSpelling(String query) {
         if (query == null || query.trim().isEmpty()) return "";
-        String prompt = "You are an AI address spelling corrector. Correct any typos, spelling errors, or colloquial names in the following place search query to its formal, standard, user-friendly English name: \"" + query + "\". " +
+        String prompt = "You are an AI address spelling corrector. Correct any typos, phonetic spelling variations (e.g., matching regional pronunciations like 'valapaddy' to 'Valapadi' or 'vazhapadi'), or colloquial names in the following place search query to its formal, standard, user-friendly English name: \"" + query + "\". " +
                 "Return ONLY the plain corrected name. Do not include quotes, greetings, or extra words. " +
                 "If it is already correct, return the query exactly as it is.";
         String result = callGemini(prompt, false);

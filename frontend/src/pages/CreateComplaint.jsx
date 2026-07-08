@@ -204,8 +204,32 @@ const CreateComplaint = () => {
         console.warn("AI address spelling correction offline, using raw query", aiErr);
       }
 
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
-      const data = await res.json();
+      let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+      let data = await res.json();
+
+      if (!data || data.length === 0) {
+        const normalized = searchQuery
+          .toLowerCase()
+          .replace(/ddy$/g, "di")
+          .replace(/dd/g, "d")
+          .replace(/pp/g, "p")
+          .replace(/tt/g, "t")
+          .replace(/kk/g, "k")
+          .replace(/ll/g, "l")
+          .replace(/nn/g, "n")
+          .replace(/rr/g, "r")
+          .replace(/y$/g, "i")
+          .replace(/ee/g, "i")
+          .replace(/oo/g, "u")
+          .replace(/zh/g, "l");
+
+        if (normalized !== searchQuery.toLowerCase()) {
+          console.log(`No results for "${searchQuery}". Trying phonetic fallback "${normalized}"...`);
+          res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(normalized)}&limit=1`);
+          data = await res.json();
+        }
+      }
+
       if (data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
