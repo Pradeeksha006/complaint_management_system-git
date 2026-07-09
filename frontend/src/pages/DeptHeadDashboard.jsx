@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles
+  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles, Layers, Users
 } from 'lucide-react';
 
 const DeptHeadDashboard = () => {
@@ -17,7 +17,8 @@ const DeptHeadDashboard = () => {
   const [officers, setOfficers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [selectedDeptId, setSelectedDeptId] = useState('');
-  const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, avgTime: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0, avgTime: 0, incidents: 0, citizenReports: 0, mergedReports: 0 });
+  const [complaintView, setComplaintView] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Transfer and Assignment States
@@ -71,11 +72,24 @@ const DeptHeadDashboard = () => {
 
       // Compute statistics
       const resolved = list.filter(c => c.status === 'RESOLVED' || c.status === 'CLOSED').length;
+      const incidentMap = new Map();
+      list.forEach((complaint) => {
+        const incidentId = complaint.masterComplaintId || complaint.id;
+        const existing = incidentMap.get(incidentId) || { supportCount: 0 };
+        incidentMap.set(incidentId, {
+          supportCount: Math.max(existing.supportCount, complaint.supportCount || 1)
+        });
+      });
+      const incidents = incidentMap.size;
+      const citizenReports = Array.from(incidentMap.values()).reduce((sum, item) => sum + item.supportCount, 0);
       setStats({
         total: list.length,
         pending: list.filter(c => c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED').length,
         resolved: resolved,
-        avgTime: 2.1 // Mock average days resolution
+        avgTime: 2.1, // Mock average days resolution
+        incidents,
+        citizenReports: Math.max(citizenReports, list.length),
+        mergedReports: Math.max((Math.max(citizenReports, list.length) - incidents), 0)
       });
     } catch (err) {
       console.error('Error fetching department details', err);
@@ -150,6 +164,14 @@ const DeptHeadDashboard = () => {
 
   const workloadData = getWorkloadData();
   const currentDeptName = departments.find(d => d.id === Number(selectedDeptId))?.name || 'Department Control';
+  const visibleComplaints = complaintView === 'merged'
+    ? complaints.filter((c) => c.masterComplaintId || (c.supportCount || 1) > 1)
+    : complaints;
+  const queueTitle = complaintView === 'merged'
+    ? 'Merged Complaint Reports'
+    : complaintView === 'citizens'
+      ? 'Citizen Filed Reports'
+      : 'Department Complaints Queue';
 
   return (
     <div className="space-y-8">
@@ -191,8 +213,8 @@ const DeptHeadDashboard = () => {
       </div>
 
       {/* KPI stats */}
-      <div className="grid gap-6 sm:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-6">
+        <button type="button" onClick={() => setComplaintView('all')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-300 dark:hover:border-blue-700">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <Inbox className="h-6 w-6" />
@@ -202,7 +224,31 @@ const DeptHeadDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.total}</h3>
             </div>
           </div>
-        </div>
+        </button>
+
+        <button type="button" onClick={() => setComplaintView('citizens')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700">
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-cyan-50 p-3 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400">
+              <Layers className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actual Incidents</p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.incidents}</h3>
+            </div>
+          </div>
+        </button>
+
+        <button type="button" onClick={() => setComplaintView('merged')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-amber-300 dark:hover:border-amber-700">
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <Users className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Citizen Reports</p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.citizenReports}</h3>
+            </div>
+          </div>
+        </button>
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
           <div className="flex items-center gap-4">
@@ -210,8 +256,8 @@ const DeptHeadDashboard = () => {
               <Clock className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Awaiting Resolution</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.pending}</h3>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Merged Reports</p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.mergedReports}</h3>
             </div>
           </div>
         </div>
@@ -234,8 +280,8 @@ const DeptHeadDashboard = () => {
               <UserCheck className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Resolution Time</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.avgTime} Days</h3>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Awaiting Resolution</p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.pending}</h3>
             </div>
           </div>
         </div>
@@ -246,16 +292,16 @@ const DeptHeadDashboard = () => {
         {/* Ticket List */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
           <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-            <h3 className="font-bold text-slate-800 dark:text-white">Department Complaints Queue</h3>
+            <h3 className="font-bold text-slate-800 dark:text-white">{queueTitle}</h3>
           </div>
 
           {loading ? (
             <div className="p-8 text-center text-slate-500">Loading department queue...</div>
-          ) : complaints.length === 0 ? (
+          ) : visibleComplaints.length === 0 ? (
             <div className="p-12 text-center text-slate-500">No complaints registered in this department.</div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {complaints.map((c) => (
+              {visibleComplaints.map((c) => (
                 <div key={c.id} className="p-6 space-y-4">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
@@ -282,6 +328,16 @@ const DeptHeadDashboard = () => {
                           <span className="block text-[9px] font-semibold text-slate-400 italic">Original text: "{c.description}"</span>
                         )}
                       </div>
+                      {complaintView === 'citizens' && (
+                        <p className="text-[10px] text-slate-400">
+                          Citizen: {c.isAnonymous ? 'Anonymous' : c.citizenName} · {c.citizenEmail || 'N/A'}
+                        </p>
+                      )}
+                      {complaintView === 'merged' && (
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                          {(c.supportCount || 1)} linked reports{c.masterComplaintId ? ` · Master: ${c.masterComplaintId}` : ''}
+                        </p>
+                      )}
                       {c.address && <p className="text-[10px] text-slate-400 mt-2">Address: {c.address}</p>}
                       {c.summary && (
                         <div className="rounded-lg bg-blue-50/25 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/10 p-2.5 flex items-start gap-2 text-xs text-blue-750 dark:text-blue-400 font-semibold leading-relaxed mt-2.5">

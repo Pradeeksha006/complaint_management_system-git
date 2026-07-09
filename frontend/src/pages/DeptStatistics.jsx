@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
   ClipboardList, CheckCircle2, Clock, AlertTriangle, AlertCircle, 
-  Loader2, RefreshCw, BarChart3, PieChart
+  Loader2, RefreshCw, BarChart3, PieChart, Layers, Users
 } from 'lucide-react';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
@@ -105,15 +105,37 @@ const DeptStatistics = () => {
       )}
 
       {/* Statistics Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-6">
         {/* Total Registered */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Registered</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Citizen Reports</p>
             <p className="text-2xl font-bold text-slate-800 dark:text-white">{stats?.totalComplaints || 0}</p>
           </div>
           <div className="h-10 w-10 rounded-lg bg-blue-50 dark:bg-blue-950/20 flex items-center justify-center text-blue-600">
             <ClipboardList className="h-5 w-5" />
+          </div>
+        </div>
+
+        {/* Actual Incidents */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Actual Incidents</p>
+            <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{stats?.totalIncidents || 0}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/20 flex items-center justify-center text-cyan-600">
+            <Layers className="h-5 w-5" />
+          </div>
+        </div>
+
+        {/* Merged Reports */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Merged Reports</p>
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats?.mergedReports || 0}</p>
+          </div>
+          <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600">
+            <Users className="h-5 w-5" />
           </div>
         </div>
 

@@ -24,8 +24,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { darkMode, toggleTheme } = useTheme();
 
-  const from = location.state?.from?.pathname || '/dashboard';
-
   const { register, handleSubmit, getValues, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
   });
@@ -35,7 +33,7 @@ const Login = () => {
     try {
       const response = await api.post('/api/auth/login', data);
       dispatch(loginSuccess(response.data));
-      navigate(from, { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       const errMsg = err.response?.data?.message || 'Login failed. Please check credentials.';
       dispatch(loginFailure(errMsg));

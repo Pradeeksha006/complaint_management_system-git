@@ -60,21 +60,7 @@ public class ComplaintService {
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         }
 
-        // 2. AI Auto-Categorization & Priority prediction if missing
-        Department dept;
-        if (departmentId == null || departmentId == 0) {
-            String predictedCode = AiHelper.predictDepartment(title, description);
-            dept = departmentRepository.findByCode(predictedCode)
-                    .orElse(departmentRepository.findAll().get(0)); // fallback
-        } else {
-            dept = departmentRepository.findById(departmentId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
-        }
-
-        // Always predict priority automatically using AI
-        Priority priority = AiHelper.predictPriority(title, description);
-
-        // Calculate translation first so we can use it for cross-lingual duplicate checks!
+        // Translate early so routing, priority, and duplicate checks all work across supported languages.
         String language = "English";
         if (description != null && description.startsWith("[Language: ")) {
             int closeBracket = description.indexOf(']');
@@ -84,8 +70,23 @@ public class ComplaintService {
         }
 
         String translatedDesc = geminiService.translateToEnglish(description, language);
-        String summary = geminiService.generateSummary(translatedDesc);
         String translatedTitle = geminiService.translateToEnglish(title, language);
+
+        // 2. AI Auto-Categorization & Priority prediction if missing
+        Department dept;
+        if (departmentId == null || departmentId == 0) {
+            String predictedCode = predictDepartmentCode(title, translatedTitle, description, translatedDesc);
+            dept = departmentRepository.findByCode(predictedCode)
+                    .orElse(departmentRepository.findAll().get(0)); // fallback
+        } else {
+            dept = departmentRepository.findById(departmentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        }
+
+        // Always predict priority automatically using translated text when available
+        Priority priority = predictPriority(title, translatedTitle, description, translatedDesc, dept);
+
+        String summary = geminiService.generateSummary(translatedDesc);
 
         // A. Duplicate Check - Merge duplicate submissions into a single Master Complaint (using cross-lingual translation)
         Complaint master = null;
@@ -94,6 +95,9 @@ public class ComplaintService {
             if (!duplicates.isEmpty()) {
                 ComplaintDto duplicateDto = duplicates.get(0);
                 master = complaintRepository.findById(duplicateDto.getId()).orElse(null);
+                if (master != null && master.getMasterComplaint() != null) {
+                    master = master.getMasterComplaint();
+                }
             }
         }
 
@@ -240,11 +244,18 @@ public class ComplaintService {
 
         // 1. Prepare candidates info for semantic AI duplicate analysis
         List<Map<String, String>> candidatesInfo = new ArrayList<>();
-        for (Complaint cand : candidates) {
+        Set<String> inspectedMasterIds = new HashSet<>();
+        for (Complaint rawCandidate : candidates) {
+            Complaint cand = rawCandidate.getMasterComplaint() != null ? rawCandidate.getMasterComplaint() : rawCandidate;
+            if (!inspectedMasterIds.add(cand.getId())) {
+                continue;
+            }
             Map<String, String> item = new HashMap<>();
             item.put("id", cand.getId());
             item.put("title", cand.getTranslatedTitle() != null ? cand.getTranslatedTitle() : cand.getTitle());
             item.put("description", cand.getTranslatedDescription() != null ? cand.getTranslatedDescription() : cand.getDescription());
+            item.put("originalTitle", cand.getTitle() != null ? cand.getTitle() : "");
+            item.put("originalDescription", cand.getDescription() != null ? cand.getDescription() : "");
             item.put("department", cand.getDepartment() != null ? cand.getDepartment().getName() : "General");
             item.put("coordinates", cand.getLatitude() != null ? (cand.getLatitude() + ", " + cand.getLongitude()) : "N/A");
             item.put("address", cand.getAddress() != null ? cand.getAddress() : "N/A");
@@ -273,7 +284,12 @@ public class ComplaintService {
         }
 
         // 2. Local fallback duplicate check if AI fails/rate-limited
-        for (Complaint cand : candidates) {
+        inspectedMasterIds.clear();
+        for (Complaint rawCandidate : candidates) {
+            Complaint cand = rawCandidate.getMasterComplaint() != null ? rawCandidate.getMasterComplaint() : rawCandidate;
+            if (!inspectedMasterIds.add(cand.getId())) {
+                continue;
+            }
             if (cand.getLatitude() == null || cand.getLongitude() == null || latitude == null || longitude == null) {
                 // If coordinates are missing, compare translated description similarity
                 double similarity = AiHelper.calculateSimilarity(
@@ -292,12 +308,20 @@ public class ComplaintService {
                                      cand.getDepartment() != null && 
                                      cand.getDepartment().getId().equals(departmentId);
             
-            String text1 = (translatedDescription != null) ? translatedDescription : description;
-            String text2 = (cand.getTranslatedDescription() != null) ? cand.getTranslatedDescription() : cand.getDescription();
+            String text1 = ((translatedTitle != null && !translatedTitle.isBlank()) ? translatedTitle : title) + " " +
+                    ((translatedDescription != null && !translatedDescription.isBlank()) ? translatedDescription : description);
+            String text2 = ((cand.getTranslatedTitle() != null && !cand.getTranslatedTitle().isBlank()) ? cand.getTranslatedTitle() : cand.getTitle()) + " " +
+                    ((cand.getTranslatedDescription() != null && !cand.getTranslatedDescription().isBlank()) ? cand.getTranslatedDescription() : cand.getDescription());
+            boolean sameIssue = isSameComplaintIssue(text1, text2);
             
+            if (distanceMeters <= 150.0 && sameDepartment && sameIssue) {
+                duplicates.add(MapperUtils.toDto(cand));
+                break;
+            }
+
             if (distanceMeters <= 50.0) {
                 double similarity = AiHelper.calculateSimilarity(text1, text2);
-                if (sameDepartment || similarity >= 0.20) {
+                if ((sameDepartment && sameIssue) || similarity >= 0.20) {
                     duplicates.add(MapperUtils.toDto(cand));
                     break;
                 }
@@ -313,6 +337,128 @@ public class ComplaintService {
         }
 
         return duplicates;
+    }
+
+    private String predictDepartmentCode(String title, String translatedTitle, String description, String translatedDescription) {
+        try {
+            List<Department> departments = departmentRepository.findAll();
+            List<Map<String, String>> candidates = departments.stream().map(d -> {
+                Map<String, String> item = new HashMap<>();
+                item.put("code", d.getCode());
+                item.put("name", d.getName());
+                return item;
+            }).collect(Collectors.toList());
+
+            String titleForPrediction = buildPredictionText(title, translatedTitle);
+            String descriptionForPrediction = buildPredictionText(description, translatedDescription);
+            String aiResult = geminiService.predictDepartment(
+                    titleForPrediction,
+                    descriptionForPrediction,
+                    objectMapper.writeValueAsString(candidates)
+            );
+            if (aiResult != null && !aiResult.isBlank()) {
+                JsonNode root = objectMapper.readTree(aiResult);
+                String predictedCode = root.path("predictedCode").asText(null);
+                if (predictedCode != null && departmentRepository.findByCode(predictedCode).isPresent()) {
+                    return predictedCode;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("AI department prediction skipped during complaint submission: {}", e.getMessage());
+        }
+
+        return AiHelper.predictDepartment(translatedTitle, translatedDescription);
+    }
+
+    private Priority predictPriority(String title, String translatedTitle, String description, String translatedDescription, Department department) {
+        String titleForPrediction = buildPredictionText(title, translatedTitle);
+        String descriptionForPrediction = buildPredictionText(description, translatedDescription);
+        try {
+            String aiResult = geminiService.predictPriority(
+                    titleForPrediction,
+                    descriptionForPrediction,
+                    department != null ? department.getName() : null
+            );
+            if (aiResult != null && !aiResult.isBlank()) {
+                JsonNode root = objectMapper.readTree(aiResult);
+                String predictedPriority = root.path("priority").asText(null);
+                if (predictedPriority != null && !predictedPriority.isBlank()) {
+                    return Priority.valueOf(predictedPriority.trim().toUpperCase(Locale.ROOT));
+                }
+            }
+        } catch (Exception e) {
+            log.debug("AI priority prediction skipped during complaint submission: {}", e.getMessage());
+        }
+
+        return AiHelper.predictPriority(translatedTitle, translatedDescription);
+    }
+
+    private String buildPredictionText(String original, String translated) {
+        String cleanOriginal = original != null ? original.trim() : "";
+        String cleanTranslated = translated != null ? translated.trim() : "";
+        if (cleanTranslated.isEmpty() || cleanTranslated.equalsIgnoreCase(cleanOriginal)) {
+            return cleanOriginal;
+        }
+        if (cleanOriginal.isEmpty()) {
+            return cleanTranslated;
+        }
+        return cleanOriginal + "\nEnglish meaning: " + cleanTranslated;
+    }
+
+    private boolean isSameComplaintIssue(String newText, String existingText) {
+        String a = normalizeIssueText(newText);
+        String b = normalizeIssueText(existingText);
+        if (a.isBlank() || b.isBlank()) {
+            return false;
+        }
+
+        return hasSharedIssueSignature(a, b, "water", "drinking", "tap", "supply", "pipeline", "pipe", "sewage",
+                "dirty", "mud", "muddy", "contaminated", "contamination", "discolored", "foul", "smell",
+                "smelling", "unsafe", "polluted", "leak", "leakage", "burst", "broken", "overflow")
+                || hasSharedIssueSignature(a, b, "garbage", "trash", "waste", "dump", "dumping", "litter",
+                        "unclean", "sanitation", "bin", "collection", "sewage", "drain", "drainage", "stagnant")
+                || hasSharedIssueSignature(a, b, "road", "pothole", "street", "pavement", "sidewalk",
+                        "footpath", "damaged", "broken", "repair", "traffic", "signal", "parking", "block",
+                        "blocked", "congestion")
+                || hasSharedIssueSignature(a, b, "electric", "electricity", "power", "light", "streetlight",
+                        "wire", "voltage", "outage", "transformer", "pole", "spark", "flicker")
+                || hasSharedIssueSignature(a, b, "safety", "crime", "theft", "robbery", "harassment",
+                        "violence", "police", "security", "illegal", "noise", "nuisance")
+                || hasSharedIssueSignature(a, b, "health", "hospital", "clinic", "medicine", "mosquito",
+                        "dengue", "fever", "infection", "stray", "dog", "animal", "bite")
+                || hasSharedIssueSignature(a, b, "building", "construction", "encroachment", "permit",
+                        "dangerous", "collapse", "debris", "unauthorized")
+                || hasSharedIssueSignature(a, b, "fire", "flame", "smoke", "gas", "leak", "explosion",
+                        "blast", "rescue", "trapped", "emergency")
+                || hasSharedIssueSignature(a, b, "forest", "tree", "cutting", "wildlife", "animal",
+                        "snake", "monkey", "elephant", "environment", "green")
+                || hasSharedIssueSignature(a, b, "revenue", "land", "record", "patta", "survey",
+                        "tax", "certificate", "encroachment", "dispute", "property")
+                || hasSharedIssueSignature(a, b, "transport", "bus", "traffic", "vehicle", "permit",
+                        "route", "stop", "fare", "license", "metro")
+                || hasSharedIssueSignature(a, b, "municipal", "corporation", "ward", "license",
+                        "public", "property", "park", "toilet", "vendor", "hall");
+    }
+
+    private String normalizeIssueText(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9\\s]", " ");
+    }
+
+    private boolean hasSharedIssueSignature(String a, String b, String... keywords) {
+        int aHits = 0;
+        int bHits = 0;
+        for (String keyword : keywords) {
+            if (a.contains(keyword)) {
+                aHits++;
+            }
+            if (b.contains(keyword)) {
+                bHits++;
+            }
+        }
+        return aHits >= 2 && bHits >= 2;
     }
 
     @Transactional
@@ -331,16 +477,8 @@ public class ComplaintService {
 
         saveTimelineEvent(saved, "ASSIGNED", "Complaint assigned to officer " + officer.getUser().getFullName() + " (" + officer.getDesignation() + ").", currentUser);
 
-        // Notify Citizen(s)
-        if (saved.getCitizenName() != null && !saved.getCitizenName().equals("Anonymous Citizen")) {
-            if (saved.getCitizen() != null) {
-                emailService.sendComplaintAssignedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
-            }
-            if (saved.getSupportingCitizens() != null) {
-                for (User suUser : saved.getSupportingCitizens()) {
-                    emailService.sendComplaintAssignedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
-                }
-            }
+        for (User linkedCitizen : getLinkedRegisteredCitizens(saved)) {
+            emailService.sendComplaintAssignedEmail(linkedCitizen.getEmail(), linkedCitizen.getFullName(), saved.getId(), saved.getTitle());
         }
 
         return MapperUtils.toDto(saved);
@@ -379,23 +517,7 @@ public class ComplaintService {
         
         saveTimelineEvent(saved, statusStr.toUpperCase(), remarks, currentUser);
 
-        // Email notifications to all linked citizens and child report filers
-        if (saved.getCitizenName() != null && !saved.getCitizenName().equals("Anonymous Citizen") && saved.getCitizen() != null) {
-            if (status == ComplaintStatus.RESOLVED) {
-                emailService.sendComplaintResolvedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
-            } else if (status == ComplaintStatus.CLOSED) {
-                emailService.sendComplaintClosedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId());
-            }
-        }
-        if (saved.getSupportingCitizens() != null) {
-            for (User suUser : saved.getSupportingCitizens()) {
-                if (status == ComplaintStatus.RESOLVED) {
-                    emailService.sendComplaintResolvedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId(), saved.getTitle());
-                } else if (status == ComplaintStatus.CLOSED) {
-                    emailService.sendComplaintClosedEmail(suUser.getEmail(), suUser.getFullName(), saved.getId());
-                }
-            }
-        }
+        sendStatusEmailToLinkedCitizens(saved, status);
 
         // Propagate updates to child complaints
         if (saved.getChildReports() != null) {
@@ -407,14 +529,6 @@ public class ComplaintService {
                 complaintRepository.save(child);
 
                 saveTimelineEvent(child, statusStr.toUpperCase(), "Master incident status updated: " + remarks, currentUser);
-
-                if (child.getCitizenName() != null && !child.getCitizenName().equals("Anonymous Citizen") && child.getCitizen() != null) {
-                    if (status == ComplaintStatus.RESOLVED) {
-                        emailService.sendComplaintResolvedEmail(child.getCitizen().getEmail(), child.getCitizen().getFullName(), child.getId(), child.getTitle());
-                    } else if (status == ComplaintStatus.CLOSED) {
-                        emailService.sendComplaintClosedEmail(child.getCitizen().getEmail(), child.getCitizen().getFullName(), child.getId());
-                    }
-                }
             }
         }
 
@@ -443,9 +557,10 @@ public class ComplaintService {
         return MapperUtils.toDto(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PageResponse<ComplaintDto> getComplaints(int page, int size, String sortField, String sortDir,
                                                    Long citizenId, Long deptId, Long officerId, String statusStr, String priorityStr) {
+        mergeExistingActiveDuplicates();
         
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortField).descending() : Sort.by(sortField).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -485,6 +600,152 @@ public class ComplaintService {
                 .totalPages(pageResult.getTotalPages())
                 .last(pageResult.isLast())
                 .build();
+    }
+
+    private void mergeExistingActiveDuplicates() {
+        List<Complaint> activeComplaints = complaintRepository.findAllActiveComplaints().stream()
+                .filter(c -> c.getMasterComplaint() == null)
+                .sorted(Comparator.comparing(Complaint::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < activeComplaints.size(); i++) {
+            Complaint master = activeComplaints.get(i);
+            if (master.getMasterComplaint() != null) {
+                continue;
+            }
+            for (int j = i + 1; j < activeComplaints.size(); j++) {
+                Complaint duplicate = activeComplaints.get(j);
+                if (duplicate.getMasterComplaint() != null || !shouldMergeAsDuplicate(master, duplicate)) {
+                    continue;
+                }
+
+                duplicate.setMasterComplaint(master);
+                duplicate.setStatus(master.getStatus());
+                duplicate.setAssignedOfficer(master.getAssignedOfficer());
+                duplicate.setResolvedAt(master.getResolvedAt());
+
+                if (duplicate.getCitizen() != null && !isAlreadyLinkedCitizen(master, duplicate.getCitizen())) {
+                    if (master.getSupportingCitizens() == null) {
+                        master.setSupportingCitizens(new ArrayList<>());
+                    }
+                    master.getSupportingCitizens().add(duplicate.getCitizen());
+                }
+
+                complaintRepository.save(master);
+                complaintRepository.save(duplicate);
+                saveTimelineEvent(master, "SUPPORTED", "Existing duplicate ticket " + duplicate.getId() + " was linked to this master complaint.", duplicate.getCitizen());
+            }
+        }
+    }
+
+    private boolean shouldMergeAsDuplicate(Complaint master, Complaint duplicate) {
+        if (master.getId().equals(duplicate.getId())) {
+            return false;
+        }
+        if (master.getDepartment() == null || duplicate.getDepartment() == null ||
+                !master.getDepartment().getId().equals(duplicate.getDepartment().getId())) {
+            return false;
+        }
+        if (master.getLatitude() == null || master.getLongitude() == null ||
+                duplicate.getLatitude() == null || duplicate.getLongitude() == null) {
+            return false;
+        }
+
+        double distanceMeters = AiHelper.calculateDistance(
+                master.getLatitude(), master.getLongitude(),
+                duplicate.getLatitude(), duplicate.getLongitude());
+        if (distanceMeters > 150.0) {
+            return false;
+        }
+
+        String masterText = (master.getTranslatedTitle() != null ? master.getTranslatedTitle() : master.getTitle()) + " " +
+                (master.getTranslatedDescription() != null ? master.getTranslatedDescription() : master.getDescription());
+        String duplicateText = (duplicate.getTranslatedTitle() != null ? duplicate.getTranslatedTitle() : duplicate.getTitle()) + " " +
+                (duplicate.getTranslatedDescription() != null ? duplicate.getTranslatedDescription() : duplicate.getDescription());
+
+        return isAiDuplicate(master, duplicate)
+                || isSameComplaintIssue(masterText, duplicateText)
+                || AiHelper.calculateSimilarity(masterText, duplicateText) >= 0.35;
+    }
+
+    private boolean isAiDuplicate(Complaint master, Complaint duplicate) {
+        try {
+            List<Map<String, String>> candidatesInfo = new ArrayList<>();
+            Map<String, String> item = new HashMap<>();
+            item.put("id", master.getId());
+            item.put("title", master.getTranslatedTitle() != null ? master.getTranslatedTitle() : master.getTitle());
+            item.put("description", master.getTranslatedDescription() != null ? master.getTranslatedDescription() : master.getDescription());
+            item.put("originalTitle", master.getTitle() != null ? master.getTitle() : "");
+            item.put("originalDescription", master.getDescription() != null ? master.getDescription() : "");
+            item.put("department", master.getDepartment() != null ? master.getDepartment().getName() : "General");
+            item.put("coordinates", master.getLatitude() != null ? (master.getLatitude() + ", " + master.getLongitude()) : "N/A");
+            item.put("address", master.getAddress() != null ? master.getAddress() : "N/A");
+            candidatesInfo.add(item);
+
+            String aiResult = geminiService.detectDuplicates(
+                    duplicate.getTranslatedTitle() != null ? duplicate.getTranslatedTitle() : duplicate.getTitle(),
+                    duplicate.getTranslatedDescription() != null ? duplicate.getTranslatedDescription() : duplicate.getDescription(),
+                    objectMapper.writeValueAsString(candidatesInfo)
+            );
+            JsonNode root = objectMapper.readTree(aiResult);
+            return root.path("isDuplicate").asBoolean(false)
+                    && master.getId().equals(root.path("matchedComplaintId").asText(null));
+        } catch (Exception e) {
+            log.debug("AI duplicate merge check skipped for {} and {}: {}", master.getId(), duplicate.getId(), e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean isAlreadyLinkedCitizen(Complaint master, User citizen) {
+        if (citizen == null) {
+            return true;
+        }
+        if (master.getCitizen() != null && master.getCitizen().getId().equals(citizen.getId())) {
+            return true;
+        }
+        if (master.getSupportingCitizens() != null) {
+            for (User supporter : master.getSupportingCitizens()) {
+                if (supporter.getId().equals(citizen.getId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<User> getLinkedRegisteredCitizens(Complaint complaint) {
+        Complaint source = complaint.getMasterComplaint() != null ? complaint.getMasterComplaint() : complaint;
+        Map<Long, User> usersById = new LinkedHashMap<>();
+
+        addLinkedCitizen(usersById, source.getCitizen());
+        if (source.getSupportingCitizens() != null) {
+            for (User supporter : source.getSupportingCitizens()) {
+                addLinkedCitizen(usersById, supporter);
+            }
+        }
+        if (source.getChildReports() != null) {
+            for (Complaint child : source.getChildReports()) {
+                addLinkedCitizen(usersById, child.getCitizen());
+            }
+        }
+        return new ArrayList<>(usersById.values());
+    }
+
+    private void addLinkedCitizen(Map<Long, User> usersById, User user) {
+        if (user != null && user.getId() != null && user.getEmail() != null && !user.getEmail().isBlank()) {
+            usersById.putIfAbsent(user.getId(), user);
+        }
+    }
+
+    private void sendStatusEmailToLinkedCitizens(Complaint complaint, ComplaintStatus status) {
+        Complaint source = complaint.getMasterComplaint() != null ? complaint.getMasterComplaint() : complaint;
+        for (User linkedCitizen : getLinkedRegisteredCitizens(source)) {
+            if (status == ComplaintStatus.RESOLVED) {
+                emailService.sendComplaintResolvedEmail(linkedCitizen.getEmail(), linkedCitizen.getFullName(), source.getId(), source.getTitle());
+            } else if (status == ComplaintStatus.CLOSED) {
+                emailService.sendComplaintClosedEmail(linkedCitizen.getEmail(), linkedCitizen.getFullName(), source.getId());
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -596,7 +857,9 @@ public class ComplaintService {
         Complaint complaint = complaintRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
 
-        String predictedCode = AiHelper.predictDepartment(complaint.getTitle(), complaint.getDescription());
+        String translatedTitle = complaint.getTranslatedTitle() != null ? complaint.getTranslatedTitle() : geminiService.translateToEnglish(complaint.getTitle());
+        String translatedDescription = complaint.getTranslatedDescription() != null ? complaint.getTranslatedDescription() : geminiService.translateToEnglish(complaint.getDescription());
+        String predictedCode = predictDepartmentCode(complaint.getTitle(), translatedTitle, complaint.getDescription(), translatedDescription);
         Department targetDept = departmentRepository.findByCode(predictedCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Predicted department not found"));
 

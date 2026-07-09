@@ -10,6 +10,7 @@ const AllComplaints = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [expandedSupportId, setExpandedSupportId] = useState(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -276,10 +277,31 @@ const AllComplaints = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 text-xs font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSupportId(expandedSupportId === c.id ? null : c.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-950/50"
+                          title="Show registered citizens"
+                        >
                           <Users className="h-3.5 w-3.5" />
                           {c.supportCount || 1} {c.supportCount === 1 ? 'Citizen' : 'Citizens'}
-                        </span>
+                        </button>
+                        {expandedSupportId === c.id && (
+                          <div className="mt-2 w-64 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                            {c.linkedCitizens && c.linkedCitizens.length > 0 ? (
+                              <div className="space-y-2">
+                                {c.linkedCitizens.map((citizen) => (
+                                  <div key={`${c.id}-${citizen.id}-${citizen.sourceTicketId}`} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0 dark:border-slate-800">
+                                    <div className="font-bold text-slate-800 dark:text-white">{citizen.fullName || 'N/A'}</div>
+                                    <div className="break-all text-slate-500 dark:text-slate-400">{citizen.email || 'N/A'}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-slate-500 dark:text-slate-400">No registered citizen details available.</div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-200 max-w-xs truncate" title={c.summary}>
                         {c.summary || 'Generating...'}

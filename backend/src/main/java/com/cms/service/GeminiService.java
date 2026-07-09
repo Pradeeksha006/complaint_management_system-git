@@ -137,6 +137,10 @@ public class GeminiService {
 
     public String translateToEnglish(String text, String language) {
         if (text == null || text.trim().isEmpty()) return "";
+        String detectedLanguage = detectRegionalLanguage(text);
+        if ((language == null || language.equalsIgnoreCase("English")) && detectedLanguage != null) {
+            language = detectedLanguage;
+        }
         if (language == null || language.equalsIgnoreCase("English")) {
             if (text.startsWith("[Language: ")) {
                 int closeBracket = text.indexOf(']');
@@ -187,9 +191,35 @@ public class GeminiService {
         return translation != null && !translation.trim().isEmpty() ? translation : text;
     }
 
+    private String detectRegionalLanguage(String text) {
+        if (text == null) {
+            return null;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            Character.UnicodeBlock block = Character.UnicodeBlock.of(text.charAt(i));
+            if (block == Character.UnicodeBlock.TAMIL) {
+                return "Tamil";
+            }
+            if (block == Character.UnicodeBlock.MALAYALAM) {
+                return "Malayalam";
+            }
+            if (block == Character.UnicodeBlock.KANNADA) {
+                return "Kannada";
+            }
+            if (block == Character.UnicodeBlock.TELUGU) {
+                return "Telugu";
+            }
+            if (block == Character.UnicodeBlock.DEVANAGARI) {
+                return "Hindi";
+            }
+        }
+        return null;
+    }
+
     public String detectDuplicates(String newTitle, String newDescription, String candidatesJson) {
         String prompt = "You are a master duplicate checker for a Complaint Management System. " +
-                "Evaluate if the following new complaint is a duplicate of any existing complaints in the candidates list.\n\n" +
+                "Evaluate if the following new complaint is a duplicate of any existing complaints in the candidates list. " +
+                "Complaints may be written in English, Tamil, Malayalam, Kannada, Telugu, Hindi, or mixed regional-language text; translate and compare meaning before deciding.\n\n" +
                 "NEW COMPLAINT DETAILS:\n" +
                 "- Title: \"" + newTitle + "\"\n" +
                 "- Description: \"" + newDescription + "\"\n\n" +
@@ -198,7 +228,8 @@ public class GeminiService {
                 "RULES FOR MATCHING:\n" +
                 "1. Treat as a DUPLICATE if they report the exact same physical issue (e.g. garbage dump, pothole, street vendors blocking path, leak, water supply) at the same physical location (e.g. same street block, same road section, or within 150 meters).\n" +
                 "2. Wording, description details, and synonyms can differ (e.g. 'pedestrian path occupied by street vendors' vs 'illegal street vendors blocking footpath' at the same street location/road are DUPLICATES).\n" +
-                "3. If they describe different locations (e.g. different streets or different wards), they are NOT duplicates.\n\n" +
+                "3. Regional-language versions of the same issue at the same location are DUPLICATES even if the scripts or languages differ.\n" +
+                "4. If they describe different locations (e.g. different streets or different wards), they are NOT duplicates.\n\n" +
                 "Return a JSON object in this format (no markdown code blocks, no trailing notes):\n" +
                 "{\n" +
                 "  \"isDuplicate\": true or false,\n" +
@@ -377,9 +408,27 @@ public class GeminiService {
         return aiResponse;
     }
 
+    public String predictPriority(String title, String description, String departmentName) {
+        String prompt = "You are an emergency triage assistant for a civic Complaint Management System. " +
+                "Classify the complaint priority as exactly one of LOW, MEDIUM, HIGH, or CRITICAL. " +
+                "Complaints may be in English, Tamil, Hindi, Telugu, Malayalam, Kannada, or mixed language; classify by meaning.\n\n" +
+                "Priority rules:\n" +
+                "- CRITICAL: immediate danger to life/property, fire, gas leak, live electric wire, building collapse risk, violent crime, severe accident, major flooding, sewage entering homes, contaminated drinking water causing illness.\n" +
+                "- HIGH: urgent public safety or major service failure, power outage, burst water main, blocked road/traffic hazard, theft/assault report, disease outbreak, dangerous stray animal attack, overflowing sewage, large garbage dump causing health risk.\n" +
+                "- MEDIUM: normal civic issue needing timely action, pothole, streetlight not working, garbage not collected, drainage blockage, dirty water without illness, nuisance, minor road damage.\n" +
+                "- LOW: information, minor inconvenience, routine maintenance, billing/query, cosmetic damage, non-urgent request.\n\n" +
+                "Department: \"" + (departmentName != null ? departmentName : "Unknown") + "\"\n" +
+                "Complaint Title: \"" + title + "\"\n" +
+                "Complaint Description: \"" + description + "\"\n\n" +
+                "Return ONLY a JSON object in this format: {\"priority\":\"LOW|MEDIUM|HIGH|CRITICAL\",\"reason\":\"short reason\"}";
+        return callGemini(prompt, true);
+    }
+
     public String predictDepartment(String title, String description, String departmentsJson) {
         String prompt = "You are a department routing assistant for a public services network. Analyze the following complaint title and description (which could be in Tamil, Hindi, Telugu, Malayalam, Kannada, English, or any other regional language). " +
                 "Determine the core issue and match it to the most relevant department from the candidates list. " +
+                "If the description is empty or short, classify from the complaint title alone. " +
+                "Prefer Fire & Rescue for fire/gas leak/rescue emergencies, Revenue for land records/tax/certificates/encroachment, Forest for trees/wildlife/forest land, Transport for buses/traffic/vehicle permits, and Municipal Administration for general civic administration. " +
                 "\n\nCandidate Departments:\n" + departmentsJson + "\n\n" +
                 "Complaint Title: \"" + title + "\"\n" +
                 "Complaint Description: \"" + description + "\"\n\n" +

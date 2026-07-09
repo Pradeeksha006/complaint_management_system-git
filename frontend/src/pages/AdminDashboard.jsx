@@ -13,6 +13,8 @@ import {
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [recentComplaints, setRecentComplaints] = useState([]);
+  const [allComplaints, setAllComplaints] = useState([]);
+  const [complaintView, setComplaintView] = useState('recent');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [trendType, setTrendType] = useState('month'); // 'day' | 'week' | 'month'
@@ -26,10 +28,12 @@ const AdminDashboard = () => {
       setRefreshing(true);
       const [statsRes, compRes] = await Promise.all([
         api.get('/api/analytics/dashboard'),
-        api.get('/api/complaints?size=5')
+        api.get('/api/complaints?size=200')
       ]);
       setStats(statsRes.data);
-      setRecentComplaints(compRes.data.content || []);
+      const complaintList = compRes.data.content || [];
+      setAllComplaints(complaintList);
+      setRecentComplaints(complaintList.slice(0, 5));
     } catch (err) {
       console.error('Error fetching dashboard statistics', err);
     } finally {
@@ -74,6 +78,16 @@ const AdminDashboard = () => {
     return stats?.monthlyTrends || [];
   };
   const activeTrends = getActiveTrends();
+  const visibleComplaints = complaintView === 'merged'
+    ? allComplaints.filter((c) => c.masterComplaintId || (c.supportCount || 1) > 1)
+    : complaintView === 'citizens'
+      ? allComplaints
+      : recentComplaints;
+  const complaintPanelTitle = complaintView === 'merged'
+    ? 'Merged Complaint Reports'
+    : complaintView === 'citizens'
+      ? 'Citizen Filed Reports'
+      : 'Recent Activity';
 
   return (
     <div className="space-y-8">
@@ -101,29 +115,29 @@ const AdminDashboard = () => {
 
       {/* KPI Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-7">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button type="button" onClick={() => setComplaintView('recent')} className="rounded-xl border border-slate-200 bg-white p-5 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-300 dark:hover:border-blue-700">
           <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
             <Inbox className="h-5 w-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Incidents</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.totalIncidents ?? (stats?.totalComplaints || 0)}</h3>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button type="button" onClick={() => setComplaintView('citizens')} className="rounded-xl border border-slate-200 bg-white p-5 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700">
           <div className="flex items-center gap-3 text-indigo-600 dark:text-indigo-400">
             <Users className="h-5 w-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Citizen Reports</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.totalComplaints || 0}</h3>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button type="button" onClick={() => setComplaintView('merged')} className="rounded-xl border border-slate-200 bg-white p-5 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700">
           <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
             <Layers className="h-5 w-5" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Merged Reports</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.mergedReports || 0}</h3>
-        </div>
+        </button>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
           <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
@@ -164,45 +178,6 @@ const AdminDashboard = () => {
 
       {/* Analytics Charts Grid */}
       <div className="grid gap-8 lg:grid-cols-2">
-        {/* Chart 1: Filed (Registered) Complaints Department Wise */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Registered Complaints (Department-Wise)</h3>
-          {filedDeptData.length === 0 ? (
-            <div className="text-center text-slate-500 py-12 flex-1 flex items-center justify-center">No complaints registered yet.</div>
-          ) : (
-            <div className="h-64 flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={filedDeptData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip />
-                  <Bar dataKey="Filed Complaints" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        {/* Chart 2: Resolved Complaints Department Wise */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
-          <h3 className="font-bold text-slate-800 dark:text-white mb-6">Resolved Complaints (Department-Wise)</h3>
-          {resolvedDeptData.length === 0 ? (
-            <div className="text-center text-slate-500 py-12 flex-1 flex items-center justify-center">No resolved complaints recorded yet.</div>
-          ) : (
-            <div className="h-64 flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={resolvedDeptData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                  <YAxis stroke="#94a3b8" fontSize={11} />
-                  <Tooltip />
-                  <Bar dataKey="Resolved Complaints" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
 
         {/* Registration & Resolution Trends */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col">
@@ -267,13 +242,13 @@ const AdminDashboard = () => {
       {/* Recent Complaints Panel */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-slate-800 dark:text-white">Recent Activity</h3>
+          <h3 className="font-bold text-slate-800 dark:text-white">{complaintPanelTitle}</h3>
           <Link to="/all-complaints" className="text-xs font-semibold text-blue-600 hover:underline">
             View All Complaints →
           </Link>
         </div>
 
-        {recentComplaints.length === 0 ? (
+        {visibleComplaints.length === 0 ? (
           <div className="py-8 text-center text-slate-500 text-sm">No complaints registered in the system yet.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -288,7 +263,7 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recentComplaints.map((c) => (
+                {visibleComplaints.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <td className="px-4 py-3 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
                       <Link to={`/track-complaint/${c.id}`} className="hover:underline">
@@ -298,6 +273,16 @@ const AdminDashboard = () => {
                     <td className="px-4 py-3">
                       <div className="font-semibold text-slate-800 dark:text-white max-w-xs truncate">{c.title}</div>
                       <div className="text-xs text-slate-400">By: {c.isAnonymous ? 'Anonymous' : c.citizenName}</div>
+                      {complaintView === 'citizens' && (
+                        <div className="text-xs text-slate-400">
+                          {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'Anonymous'} · {c.citizenEmail || 'N/A'}
+                        </div>
+                      )}
+                      {complaintView === 'merged' && (
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                          {(c.supportCount || 1)} linked reports{c.masterComplaintId ? ` · Master: ${c.masterComplaintId}` : ''}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{c.departmentName}</td>
                     <td className="px-4 py-3">

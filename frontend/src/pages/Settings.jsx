@@ -151,7 +151,7 @@ const Settings = () => {
     setPassSuccess('');
     setOtpStatus('');
     try {
-      const emailOrUser = user?.email || user?.username;
+      const emailOrUser = (user?.email || user?.username || '').trim();
       const res = await api.post('/api/auth/forgot-password', { email: emailOrUser });
       setRequiresPin(res.data.requiresPin);
       setOtpStatus(res.data.message);
@@ -185,14 +185,19 @@ const Settings = () => {
       alert('Passwords do not match.');
       return;
     }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])/;
+    if (data.newPassword.length < 8 || !passwordRegex.test(data.newPassword)) {
+      alert('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
+      return;
+    }
     setLoadingPass(true);
     setPassSuccess('');
     try {
       if (recoveryStep === 'sent') {
         // Recovery path
         await api.post('/api/auth/reset-password', {
-          email: user?.email || user?.username,
-          code: data.recoveryCode,
+          email: (user?.email || user?.username || '').trim(),
+          code: (data.recoveryCode || '').trim(),
           newPassword: data.newPassword
         });
         setPassSuccess('Security credentials recovered successfully!');
@@ -415,14 +420,14 @@ const Settings = () => {
             {recoveryStep === 'prompt' && (
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-4 text-center">
                 <p className="text-xs font-medium text-slate-655 dark:text-slate-355">
-                  {user?.role === 'ROLE_CITIZEN' 
+                  {user?.role !== 'ROLE_DEPT_HEAD' 
                     ? 'Verify your identity by sending a verification code (OTP) to your registered email address.' 
                     : 'Verify your identity by entering your staff Secret Recovery PIN.'}
                 </p>
                 <button
                   type="button"
                   onClick={async () => {
-                    if (user?.role === 'ROLE_CITIZEN') {
+                    if (user?.role !== 'ROLE_DEPT_HEAD') {
                       await handleSendOtp();
                     } else {
                       setRequiresPin(true);
@@ -432,7 +437,7 @@ const Settings = () => {
                   disabled={otpLoading}
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:bg-blue-400 shadow-md shadow-blue-500/10"
                 >
-                  {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : user?.role === 'ROLE_CITIZEN' ? 'Send OTP' : 'Verify via PIN'}
+                  {otpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : user?.role !== 'ROLE_DEPT_HEAD' ? 'Send OTP' : 'Verify via PIN'}
                 </button>
                 <button
                   type="button"

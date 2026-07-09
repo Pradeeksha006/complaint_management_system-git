@@ -3,7 +3,13 @@ package com.cms.mapper;
 import com.cms.dto.*;
 import com.cms.entity.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MapperUtils {
@@ -82,7 +88,27 @@ public class MapperUtils {
     public static ComplaintDto toDto(Complaint c) {
         if (c == null) return null;
         Complaint source = c.getMasterComplaint() != null ? c.getMasterComplaint() : c;
-        int supportCount = (source.getChildReports() != null ? source.getChildReports().size() : 0) + 1;
+        int reportCount = (source.getChildReports() != null ? source.getChildReports().size() : 0) + 1;
+        Set<Long> linkedCitizenIds = new HashSet<>();
+        if (source.getCitizen() != null) {
+            linkedCitizenIds.add(source.getCitizen().getId());
+        }
+        if (source.getSupportingCitizens() != null) {
+            for (User supporter : source.getSupportingCitizens()) {
+                if (supporter != null && supporter.getId() != null) {
+                    linkedCitizenIds.add(supporter.getId());
+                }
+            }
+        }
+        if (source.getChildReports() != null) {
+            for (Complaint child : source.getChildReports()) {
+                if (child.getCitizen() != null && child.getCitizen().getId() != null) {
+                    linkedCitizenIds.add(child.getCitizen().getId());
+                }
+            }
+        }
+        int supportCount = Math.max(reportCount, linkedCitizenIds.isEmpty() ? reportCount : linkedCitizenIds.size());
+        List<LinkedCitizenDto> linkedCitizens = buildLinkedCitizens(source);
 
         return ComplaintDto.builder()
                 .id(c.getId())
@@ -115,7 +141,42 @@ public class MapperUtils {
                 .translatedTitle(c.getTranslatedTitle())
                 .supportCount(supportCount)
                 .masterComplaintId(c.getMasterComplaint() != null ? c.getMasterComplaint().getId() : null)
+                .linkedCitizens(linkedCitizens)
                 .build();
+    }
+
+    private static List<LinkedCitizenDto> buildLinkedCitizens(Complaint source) {
+        Map<Long, LinkedCitizenDto> linked = new LinkedHashMap<>();
+        addLinkedCitizen(linked, source.getCitizen(), source.getId(), true);
+
+        if (source.getSupportingCitizens() != null) {
+            for (User supporter : source.getSupportingCitizens()) {
+                addLinkedCitizen(linked, supporter, source.getId(), false);
+            }
+        }
+
+        if (source.getChildReports() != null) {
+            for (Complaint child : source.getChildReports()) {
+                addLinkedCitizen(linked, child.getCitizen(), child.getId(), false);
+            }
+        }
+
+        return new ArrayList<>(linked.values());
+    }
+
+    private static void addLinkedCitizen(Map<Long, LinkedCitizenDto> linked, User user, String sourceTicketId, boolean masterReporter) {
+        if (user == null || user.getId() == null) {
+            return;
+        }
+
+        linked.putIfAbsent(user.getId(), LinkedCitizenDto.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
+                .sourceTicketId(sourceTicketId)
+                .masterReporter(masterReporter)
+                .build());
     }
 
     public static NotificationDto toDto(Notification notification) {

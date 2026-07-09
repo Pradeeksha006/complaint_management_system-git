@@ -15,7 +15,13 @@ const schema = yup.object().shape({
   username: yup.string().min(3, 'Username must be at least 3 characters').required('Username is required'),
   email: yup.string().email('Invalid email format').required('Email is required'),
   phoneNumber: yup.string().required('Phone number is required'),
-  password: yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+  password: yup.string()
+    .min(8, 'Password must be at least 8 characters')
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    )
+    .required('Password is required'),
   confirmPassword: yup.string()
     .oneOf([yup.ref('password'), null], 'Passwords must match')
     .required('Confirm password is required'),

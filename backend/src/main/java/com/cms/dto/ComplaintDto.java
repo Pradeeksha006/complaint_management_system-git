@@ -42,4 +42,5 @@ public class ComplaintDto {
     private String translatedTitle;
     private int supportCount;
     private String masterComplaintId;
+    private List<LinkedCitizenDto> linkedCitizens;
 }

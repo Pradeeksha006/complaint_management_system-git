@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { 
-  Users, Award, Power, Loader2, RefreshCw, Star 
+  Users, Award, Power, Loader2, RefreshCw
 } from 'lucide-react';
 
 const OfficerManagement = () => {
@@ -97,16 +97,6 @@ const OfficerManagement = () => {
       alert('Failed to create officer account: ' + (err.response?.data?.message || err.message));
     } finally {
       setActionLoading(false);
-    }
-  };
-
-  const handlePromoteToHead = async (officerId) => {
-    try {
-      await api.put(`/api/users/officers/${officerId}/promote`);
-      fetchStaffData();
-      alert('Officer successfully promoted to Department Administrator!');
-    } catch (err) {
-      alert('Failed to promote officer: ' + err.message);
     }
   };
 
@@ -209,17 +199,6 @@ const OfficerManagement = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          {/* Promote Regular Officer to Dept Head */}
-                          {u.role === 'ROLE_OFFICER' && u.officerId && (
-                            <button 
-                              onClick={() => handlePromoteToHead(u.officerId)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-200 text-purple-650 hover:bg-purple-50 dark:border-purple-900/30 dark:hover:bg-purple-950/20"
-                              title="Promote to Department Head"
-                            >
-                              <Star className="h-3.5 w-3.5 fill-purple-650" />
-                            </button>
-                          )}
-                          
                           {/* Toggle Active status */}
                           <button 
                             onClick={() => handleToggleStatus(u.id, u.status)}

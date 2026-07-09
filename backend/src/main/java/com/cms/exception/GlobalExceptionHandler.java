@@ -2,6 +2,7 @@ package com.cms.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -38,6 +39,15 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("message", ex.getMessage());
+        body.put("details", request.getDescription(false));
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<?> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Invalid username/email or password");
         body.put("details", request.getDescription(false));
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }

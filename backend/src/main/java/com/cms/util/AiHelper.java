@@ -71,14 +71,32 @@ public class AiHelper {
                    content.contains("ನಾಯಿ") || content.contains("ಸೊಳ್ಳೆ") || content.contains("ಕಾಯಿಲೆ")) {
             return "HL"; // Health
         } 
+        // Fire & Rescue Services (FI)
+        else if (containsAny(content, "fire", "flame", "burning", "smoke", "gas leak", "explosion", "blast", "rescue", "trapped", "emergency")) {
+            return "FI"; // Fire
+        }
+        // Forest Department (FR)
+        else if (containsAny(content, "forest", "tree cutting", "illegal cutting", "fallen tree", "wildlife", "wild animal", "snake", "monkey", "elephant", "environment", "green belt")) {
+            return "FR"; // Forest
+        }
+        // Revenue Department (RV)
+        else if (containsAny(content, "revenue", "land record", "patta", "chitta", "survey", "property tax", "tax receipt", "certificate", "income certificate", "community certificate", "legal heir", "encroachment", "land dispute")) {
+            return "RV"; // Revenue
+        }
         // Transport & Traffic (TR)
         else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle") ||
+                 content.contains("permit") || content.contains("driving license") || content.contains("auto") || content.contains("taxi") ||
+                 content.contains("bus stop") || content.contains("route") || content.contains("fare") ||
                  content.contains("பேருந்து") || content.contains("வண்டி") || content.contains("போக்குவரத்து") ||
                  content.contains("बस") || content.contains("यातायात") || content.contains("ગાડી")) {
             return "TR"; // Transport
         }
+        // Municipal Administration (MU)
+        else if (containsAny(content, "municipal", "corporation", "ward office", "public property", "street vendor", "license", "birth certificate", "death certificate", "park", "playground", "public toilet", "community hall")) {
+            return "MU"; // Municipal
+        }
         
-        return "IT"; // Default to IT/General support
+        return "MU"; // Default to general municipal administration
     }
 
     /**
@@ -87,20 +105,45 @@ public class AiHelper {
     public static Priority predictPriority(String title, String description) {
         String content = (title + " " + description).toLowerCase();
 
-        // Critical safety threats
-        if (content.contains("sparking") || content.contains("fire") || content.contains("live wire") || content.contains("accident") || content.contains("gas leak") || content.contains("collapse")) {
+        if (containsAny(content,
+                "fire", "flame", "burning", "gas leak", "explosion", "blast", "live wire", "electric shock",
+                "electrocution", "spark", "sparking", "building collapse", "collapse", "wall falling",
+                "bridge collapse", "severe accident", "fatal", "death", "dead", "life danger", "life threatening",
+                "violent", "murder", "weapon", "knife", "gun", "attack", "assault", "rape", "kidnap",
+                "major flood", "flooded inside", "sewage entering home", "sewage inside house",
+                "poison", "toxic", "chemical leak", "contaminated water illness", "children sick")) {
             return Priority.CRITICAL;
         }
-        // Urgent infrastructure failures
-        if (content.contains("blackout") || content.contains("flood") || content.contains("broken pipe") || content.contains("blocked") || content.contains("theft")) {
+
+        if (containsAny(content,
+                "blackout", "power outage", "no power", "transformer failure", "fallen pole", "fallen wire",
+                "open electric wire", "burst pipe", "broken pipe", "water main burst", "no drinking water",
+                "contaminated water", "dirty drinking water", "sewage overflow", "overflowing sewage",
+                "blocked drainage", "flood", "water logging", "road blocked", "tree fallen", "traffic blocked",
+                "dangerous pothole", "accident risk", "theft", "robbery", "crime", "fight", "harassment",
+                "stray dog bite", "dog attack", "disease outbreak", "dengue", "malaria", "mosquito breeding",
+                "large garbage dump", "medical waste", "dead animal")) {
             return Priority.HIGH;
         }
-        // General maintenance
-        if (content.contains("cleanliness") || content.contains("garbage") || content.contains("pothole") || content.contains("billing")) {
+
+        if (containsAny(content,
+                "pothole", "road damage", "streetlight", "light not working", "garbage", "trash", "waste",
+                "not collected", "unclean", "dirty", "drain", "drainage", "leak", "leakage", "water leak",
+                "low pressure", "muddy water", "bad smell", "noise", "nuisance", "illegal parking",
+                "encroachment", "sidewalk blocked", "footpath blocked", "minor accident", "repair")) {
             return Priority.MEDIUM;
         }
 
         return Priority.LOW;
+    }
+
+    private static boolean containsAny(String content, String... keywords) {
+        for (String keyword : keywords) {
+            if (content.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -245,6 +245,11 @@ public class AiController {
     public ResponseEntity<Map<String, Object>> predictDepartment(@RequestBody Map<String, Object> payload) {
         String title = (String) payload.get("title");
         String description = (String) payload.get("description");
+        String language = payload.get("language") != null ? payload.get("language").toString() : "English";
+        String translatedTitle = geminiService.translateToEnglish(title, language);
+        String translatedDescription = geminiService.translateToEnglish(description, language);
+        String titleForPrediction = buildPredictionText(title, translatedTitle);
+        String descriptionForPrediction = buildPredictionText(description, translatedDescription);
 
         List<Department> departments = departmentRepository.findAll();
         List<Map<String, String>> candidates = departments.stream().map(d -> {
@@ -257,23 +262,23 @@ public class AiController {
         Map<String, Object> response = new HashMap<>();
         try {
             String departmentsJson = objectMapper.writeValueAsString(candidates);
-            String aiResult = geminiService.predictDepartment(title, description, departmentsJson);
+            String aiResult = geminiService.predictDepartment(titleForPrediction, descriptionForPrediction, departmentsJson);
             if (aiResult == null || aiResult.trim().isEmpty()) {
                 throw new Exception("Gemini prediction returned null/empty response");
             }
             JsonNode root = objectMapper.readTree(aiResult);
-            String predictedCode = root.path("predictedCode").asText("IT");
+            String predictedCode = root.path("predictedCode").asText("MU");
 
-            // If predicted as IT, check if local keywords have a specific match
-            if ("IT".equals(predictedCode)) {
-                String localCode = com.cms.util.AiHelper.predictDepartment(title, description);
-                if (!"IT".equals(localCode)) {
+            // If AI returns an unsupported/general code, check if local keywords have a specific match
+            if ("IT".equals(predictedCode) || departmentRepository.findByCode(predictedCode).isEmpty()) {
+                String localCode = com.cms.util.AiHelper.predictDepartment(translatedTitle, translatedDescription);
+                if (departmentRepository.findByCode(localCode).isPresent()) {
                     predictedCode = localCode;
                 }
             }
 
             Department matchedDept = departmentRepository.findByCode(predictedCode)
-                    .orElse(departmentRepository.findByCode("IT").orElse(null));
+                    .orElse(departmentRepository.findByCode("MU").orElse(null));
 
             if (matchedDept != null) {
                 response.put("departmentId", matchedDept.getId());
@@ -284,7 +289,7 @@ public class AiController {
             }
         } catch (Exception e) {
             log.error("AI department prediction calculation failed, executing fallback", e);
-            String predictedCode = com.cms.util.AiHelper.predictDepartment(title, description);
+            String predictedCode = com.cms.util.AiHelper.predictDepartment(translatedTitle, translatedDescription);
             Department matchedDept = departmentRepository.findByCode(predictedCode).orElse(null);
             if (matchedDept != null) {
                 response.put("departmentId", matchedDept.getId());
@@ -293,6 +298,18 @@ public class AiController {
             }
         }
         return ResponseEntity.ok(response);
+    }
+
+    private String buildPredictionText(String original, String translated) {
+        String cleanOriginal = original != null ? original.trim() : "";
+        String cleanTranslated = translated != null ? translated.trim() : "";
+        if (cleanTranslated.isEmpty() || cleanTranslated.equalsIgnoreCase(cleanOriginal)) {
+            return cleanOriginal;
+        }
+        if (cleanOriginal.isEmpty()) {
+            return cleanTranslated;
+        }
+        return cleanOriginal + "\nEnglish meaning: " + cleanTranslated;
     }
 
     @PostMapping("/correct-address")

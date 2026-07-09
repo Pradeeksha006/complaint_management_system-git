@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import api from '../services/api';
 import { Sparkles, Mail, ShieldAlert, Loader2, ArrowLeft } from 'lucide-react';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState(location.state?.email || 'pradeeksha2006@gmail.com');
+  const [email, setEmail] = useState(location.state?.email || '');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -14,21 +13,18 @@ const ForgotPassword = () => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg('');
-    try {
-      const res = await api.post('/api/auth/forgot-password', { email });
-      // Navigate to verification screen with parameters
-      navigate('/reset-password', { 
-        state: { 
-          email, 
-          requiresPin: res.data.requiresPin, 
-          message: res.data.message 
-        } 
-      });
-    } catch (err) {
-      setErrorMsg(err.response?.data?.message || 'Request failed. Please verify the username or email is correct.');
-    } finally {
+    const account = email.trim();
+    if (!account) {
+      setErrorMsg('Please enter your email or username.');
       setLoading(false);
+      return;
     }
+    navigate('/reset-password', {
+      state: {
+        email: account,
+        message: 'Click Send OTP to receive a verification code for this account.'
+      }
+    });
   };
 
   return (

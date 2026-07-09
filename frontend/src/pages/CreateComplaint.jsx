@@ -87,7 +87,8 @@ const CreateComplaint = () => {
       try {
         const res = await api.post('/api/ai/predict-department', {
           title: titleWatch,
-          description: descriptionWatch || ''
+          description: descriptionWatch || '',
+          language
         });
         if (res.data && res.data.departmentId) {
           setSelectedDept(res.data.departmentId.toString());
@@ -99,7 +100,7 @@ const CreateComplaint = () => {
     }, 1000);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [titleWatch, descriptionWatch, departments, isManualDeptSelection]);
+  }, [titleWatch, descriptionWatch, departments, isManualDeptSelection, language]);
 
   const runClientDepartmentFallback = () => {
     const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
@@ -111,7 +112,12 @@ const CreateComplaint = () => {
       EL: ['electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'streetlight', 'மின்சார', 'விளக்கு', 'தெருவிளக்கு'],
       SN: ['garbage', 'trash', 'waste', 'sanitation', 'clean', 'dump', 'litter', 'குப்பை', 'அசுத்தம்', 'கழிவுகள்'],
       PL: ['police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault', 'drinking', 'alcohol', 'drunk', 'போலீஸ்', 'திருட்டு', 'சண்டை', 'மது'],
-      HL: ['stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'hygiene', 'நாய்', 'கொசு', 'நோய்']
+      HL: ['stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'hygiene', 'நாய்', 'கொசு', 'நோய்'],
+      FI: ['fire', 'flame', 'burning', 'smoke', 'gas leak', 'explosion', 'blast', 'rescue', 'trapped', 'emergency'],
+      FR: ['forest', 'tree cutting', 'illegal cutting', 'fallen tree', 'wildlife', 'wild animal', 'snake', 'monkey', 'elephant', 'environment'],
+      RV: ['revenue', 'land record', 'patta', 'chitta', 'survey', 'property tax', 'certificate', 'income certificate', 'community certificate', 'encroachment', 'land dispute'],
+      TR: ['bus', 'metro', 'traffic', 'transport', 'vehicle', 'permit', 'driving license', 'auto', 'taxi', 'bus stop', 'route', 'fare'],
+      MU: ['municipal', 'corporation', 'ward office', 'public property', 'street vendor', 'license', 'birth certificate', 'death certificate', 'park', 'playground', 'public toilet', 'community hall']
     };
 
     let predictedCode = '';

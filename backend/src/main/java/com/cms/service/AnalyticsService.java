@@ -161,6 +161,11 @@ public class AnalyticsService {
         // Total
         long total = complaintRepository.countByDepartmentId(departmentId);
         stats.put("totalComplaints", total);
+        long totalIncidents = complaintRepository.countIncidentsByDepartmentId(departmentId);
+        long mergedReports = complaintRepository.countMergedReportsByDepartmentId(departmentId);
+        stats.put("totalIncidents", totalIncidents);
+        stats.put("citizenReports", total);
+        stats.put("mergedReports", mergedReports);
 
         // Status Counts
         long submitted = complaintRepository.countByDepartmentIdAndStatus(departmentId, com.cms.entity.ComplaintStatus.SUBMITTED);

@@ -73,6 +73,13 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     long countPendingCreatedBetween(@org.springframework.data.repository.query.Param("start") LocalDateTime start, @org.springframework.data.repository.query.Param("end") LocalDateTime end);
 
     long countByDepartmentId(Long departmentId);
+
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.masterComplaint IS NULL")
+    long countIncidentsByDepartmentId(@Param("departmentId") Long departmentId);
+
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.masterComplaint IS NOT NULL")
+    long countMergedReportsByDepartmentId(@Param("departmentId") Long departmentId);
+
     long countByDepartmentIdAndStatus(Long departmentId, ComplaintStatus status);
     long countByDepartmentIdAndPriority(Long departmentId, com.cms.entity.Priority priority);
     long countByDepartmentIdAndStatusNotAndDeadlineBetween(Long departmentId, ComplaintStatus status, LocalDateTime start, LocalDateTime end);

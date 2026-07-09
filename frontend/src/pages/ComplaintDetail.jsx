@@ -484,20 +484,50 @@ const ComplaintDetail = () => {
                   <User className="h-3.5 w-3.5 text-blue-600" />
                   Registered Citizen Info
                 </h4>
-                <div className="grid gap-4 sm:grid-cols-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Full Name</span>
-                    <span>{complaint.citizenName}</span>
+                {complaint.linkedCitizens && complaint.linkedCitizens.length > 0 ? (
+                  <div className="space-y-2">
+                    {complaint.linkedCitizens.map((citizen) => (
+                      <div key={`${citizen.id}-${citizen.sourceTicketId}`} className="grid gap-3 rounded-lg border border-slate-100 bg-white p-3 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 sm:grid-cols-4">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Full Name</span>
+                          <span>{citizen.fullName || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Email Address</span>
+                          <span className="break-all">{citizen.email || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Phone Number</span>
+                          <span>{citizen.phoneNumber || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Linked Ticket</span>
+                          <span>{citizen.sourceTicketId || complaint.id}</span>
+                          {citizen.masterReporter && (
+                            <span className="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                              Master
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Email Address</span>
-                    <span>{complaint.citizenEmail || 'N/A'}</span>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Full Name</span>
+                      <span>{complaint.citizenName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Email Address</span>
+                      <span>{complaint.citizenEmail || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Phone Number</span>
+                      <span>{complaint.citizenPhone || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block font-normal uppercase tracking-wider mb-0.5">Phone Number</span>
-                    <span>{complaint.citizenPhone || 'N/A'}</span>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 

@@ -22,7 +22,6 @@ public class EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    @Async
     public void sendEmail(String to, String subject, String htmlContent) {
         if (to == null || to.trim().isEmpty() || to.toLowerCase().endsWith("@cms.com")) {
             log.info("Bypassing actual email sending to dummy/invalid address: {}", to);
@@ -44,6 +43,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendVerificationEmail(String email, String name, String token) {
         String verificationUrl = frontendUrl + "/verify-email?token=" + token;
         String content = getEmailTemplate(
@@ -56,6 +56,7 @@ public class EmailService {
         sendEmail(email, "Activate Your Account - CMS", content);
     }
 
+    @Async
     public void sendLoginAlertEmail(String email, String name) {
         String content = getEmailTemplate(
             "Security Notice: New Login Detected",
@@ -68,6 +69,7 @@ public class EmailService {
         sendEmail(email, "Security Notice: New Login Detected", content);
     }
 
+    @Async
     public void sendResetPasswordEmail(String email, String name, String token) {
         String resetUrl = frontendUrl + "/reset-password?token=" + token;
         String content = getEmailTemplate(
@@ -80,6 +82,7 @@ public class EmailService {
         sendEmail(email, "Reset Your Password - CMS", content);
     }
 
+    @Async
     public void sendResetOtpEmail(String email, String name, String otp) {
         String content = getEmailTemplate(
             "Password Reset Verification Code",
@@ -91,6 +94,7 @@ public class EmailService {
         sendEmail(email, "Your OTP Password Reset Code - CMS", content);
     }
 
+    @Async
     public void sendRegistrationOtpEmail(String email, String name, String otp) {
         String content = getEmailTemplate(
             "Account Registration Verification Code",
@@ -102,6 +106,7 @@ public class EmailService {
         sendEmail(email, "Verify Your Email - OTP Verification Code - CMS", content);
     }
 
+    @Async
     public void sendComplaintSubmittedEmail(String email, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
@@ -114,6 +119,7 @@ public class EmailService {
         sendEmail(email, "Complaint Registered: " + complaintId, content);
     }
 
+    @Async
     public void sendComplaintAssignedEmail(String email, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
@@ -126,6 +132,7 @@ public class EmailService {
         sendEmail(email, "Complaint Assigned: " + complaintId, content);
     }
 
+    @Async
     public void sendComplaintResolvedEmail(String email, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
@@ -138,6 +145,7 @@ public class EmailService {
         sendEmail(email, "Complaint Resolved: " + complaintId, content);
     }
 
+    @Async
     public void sendComplaintClosedEmail(String email, String name, String complaintId) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
@@ -150,6 +158,7 @@ public class EmailService {
         sendEmail(email, "Complaint Closed: " + complaintId, content);
     }
 
+    @Async
     public void sendNearDeadlineAlert(String adminEmail, String complaintId, String title, String remainingTime, String deptName) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
@@ -162,6 +171,7 @@ public class EmailService {
         sendEmail(adminEmail, "SLA WARNING: " + complaintId + " approaching deadline", content);
     }
 
+    @Async
     public void sendDeadlinePassedApologyEmail(String citizenEmail, String name, String complaintId, String title) {
         String trackUrl = frontendUrl + "/track-complaint/" + complaintId;
         String content = getEmailTemplate(
