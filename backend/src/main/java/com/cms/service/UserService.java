@@ -12,6 +12,7 @@ import com.cms.repository.OfficerRepository;
 import com.cms.repository.UserRepository;
 import com.cms.security.JwtTokenProvider;
 import com.cms.security.SecurityUtils;
+import com.cms.security.ActiveSessionRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -47,6 +48,7 @@ public class UserService {
     private final EmailService emailService;
     private final CloudinaryService cloudinaryService;
     private final JdbcTemplate jdbcTemplate;
+    private final ActiveSessionRegistry activeSessionRegistry;
     private final Map<String, PendingRegistrationData> pendingRegistrationsByEmail = new ConcurrentHashMap<>();
 
     @Transactional
@@ -177,7 +179,15 @@ public class UserService {
             throw new BadRequestException("Your account is suspended");
         }
 
+        // Prevent concurrent logins for Citizens
+        if (user.getRole() == Role.ROLE_CITIZEN && activeSessionRegistry.isSessionActive(user.getUsername())) {
+            throw new BadRequestException("This account is already logged in on another device.");
+        }
+
         String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
+        
+        // Register active session
+        activeSessionRegistry.registerSession(user.getUsername(), token);
 
         // Send login alert email
         emailService.sendLoginAlertEmail(user.getEmail(), user.getFullName());
@@ -199,6 +209,10 @@ public class UserService {
                 .role(user.getRole().name())
                 .departmentId(deptId)
                 .build();
+    }
+
+    public void logoutUser() {
+        SecurityUtils.getCurrentUsername().ifPresent(activeSessionRegistry::removeSession);
     }
 
     private void ensureSuperAdminCanLogin(AuthRequest request) {

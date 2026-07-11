@@ -66,4 +66,10 @@ public class AuthController {
         userService.resendRegistrationOtp(email);
         return ResponseEntity.ok(new MessageResponse("A new verification code has been sent to your email."));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout() {
+        userService.logoutUser();
+        return ResponseEntity.ok(new MessageResponse("Logged out successfully."));
+    }
 }

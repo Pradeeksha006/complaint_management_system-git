@@ -79,7 +79,12 @@ const Navbar = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      console.error('Failed to notify backend on logout:', err);
+    }
     navigate('/');
     dispatch(logout());
   };
