@@ -207,7 +207,7 @@ public class DataInitializer implements CommandLineRunner {
             } else {
                 User admin = User.builder()
                         .username("admin")
-                        .password(passwordEncoder.encode("Pradhi@1234"))
+                        .password(passwordEncoder.encode("pradeeksha2006"))
                         .email("pradeeksha2006@gmail.com")
                         .fullName("Super Admin")
                         .phoneNumber("1234567890")
