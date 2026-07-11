@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { 
@@ -16,6 +16,21 @@ const Home = () => {
   const [trackingId, setTrackingId] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const wasDark = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+    if (wasDark) {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    return () => {
+      // Re-enable dark mode if it was active and we're not on Home page
+      if (wasDark) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('dark');
+      }
+    };
+  }, []);
 
   const handleFileComplaintClick = () => {
     if (isAuthenticated) {
