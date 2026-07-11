@@ -492,6 +492,13 @@ public class UserService {
         validatePasswordStrength(request.getNewPassword());
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        
+        // Auto-activate the user if they successfully complete password recovery OTP verification
+        user.setEmailVerified(true);
+        if (user.getStatus() == UserStatus.PENDING) {
+            user.setStatus(UserStatus.ACTIVE);
+        }
+        
         userRepository.saveAndFlush(user);
 
         // Audit Log
