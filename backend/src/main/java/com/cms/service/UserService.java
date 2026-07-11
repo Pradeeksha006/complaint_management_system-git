@@ -49,102 +49,56 @@ public class UserService {
     private final CloudinaryService cloudinaryService;
     private final JdbcTemplate jdbcTemplate;
     private final ActiveSessionRegistry activeSessionRegistry;
-    private final Map<String, PendingRegistrationData> pendingRegistrationsByEmail = new ConcurrentHashMap<>();
-
     @Transactional
     public UserDto registerUser(RegisterRequest request) {
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new BadRequestException("Username is already taken");
-        }
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new BadRequestException("Email address is already in use");
-        }
+        // Clean up any unverified duplicate user with the same username or email
+        userRepository.findByUsername(request.getUsername()).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new BadRequestException("Username is already taken");
+            }
+        });
 
-        PendingRegistrationData pending = findPendingRegistration(request.getUsername(), request.getEmail())
-                .orElseGet(PendingRegistrationData::new);
-        ensurePendingRegistrationIsUnique(pending, request.getUsername(), request.getEmail());
+        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
+            if (!user.isEmailVerified()) {
+                userRepository.delete(user);
+                userRepository.flush();
+            } else {
+                throw new BadRequestException("Email address is already in use");
+            }
+        });
 
-        if (pending.email != null && !normalizeEmail(pending.email).equals(normalizeEmail(request.getEmail()))) {
-            pendingRegistrationsByEmail.remove(normalizeEmail(pending.email));
-        }
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .phoneNumber(request.getPhoneNumber())
+                .role(Role.ROLE_CITIZEN)
+                .status(UserStatus.PENDING)
+                .emailVerified(false)
+                .resetOtp(otp)
+                .resetOtpExpiry(LocalDateTime.now().plusMinutes(15))
+                .build();
 
-        pending.username = request.getUsername();
-        pending.email = request.getEmail();
-        pending.password = passwordEncoder.encode(request.getPassword());
-        pending.fullName = request.getFullName();
-        pending.phoneNumber = request.getPhoneNumber();
-        pending.otp = otp;
-        pending.otpExpiry = LocalDateTime.now().plusMinutes(15);
-        pendingRegistrationsByEmail.put(normalizeEmail(pending.email), pending);
+        userRepository.save(user);
         
-        emailService.sendRegistrationOtpEmail(pending.email, pending.fullName, otp);
+        emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
 
         return UserDto.builder()
-                .id(null)
-                .username(pending.username)
-                .email(pending.email)
-                .fullName(pending.fullName)
-                .phoneNumber(pending.phoneNumber)
-                .role(Role.ROLE_CITIZEN.name())
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phoneNumber(user.getPhoneNumber())
+                .role(user.getRole().name())
                 .status("PENDING_VERIFICATION")
                 .emailVerified(false)
                 .build();
-    }
-
-    private User createVerifiedCitizen(PendingRegistrationData pending) {
-        return User.builder()
-                .username(pending.username)
-                .email(pending.email)
-                .password(pending.password)
-                .fullName(pending.fullName)
-                .phoneNumber(pending.phoneNumber)
-                .role(Role.ROLE_CITIZEN)
-                .status(UserStatus.ACTIVE)
-                .emailVerified(true)
-                .build();
-    }
-
-    private Optional<PendingRegistrationData> findPendingRegistration(String username, String email) {
-        String normalizedEmail = normalizeEmail(email);
-        return pendingRegistrationsByEmail.values().stream()
-                .filter(pending -> pending.username != null
-                        && pending.username.equalsIgnoreCase(username))
-                .findFirst()
-                .or(() -> Optional.ofNullable(pendingRegistrationsByEmail.get(normalizedEmail)));
-    }
-
-    private void ensurePendingRegistrationIsUnique(PendingRegistrationData currentPending, String username, String email) {
-        String normalizedEmail = normalizeEmail(email);
-        boolean usernameTaken = pendingRegistrationsByEmail.values().stream()
-                .anyMatch(pending -> pending != currentPending
-                        && pending.username != null
-                        && pending.username.equalsIgnoreCase(username));
-        if (usernameTaken) {
-            throw new BadRequestException("Username is already taken");
-        }
-
-        boolean emailTaken = pendingRegistrationsByEmail.values().stream()
-                .anyMatch(pending -> pending != currentPending
-                        && normalizeEmail(pending.email).equals(normalizedEmail));
-        if (emailTaken) {
-            throw new BadRequestException("Email address is already in use");
-        }
-    }
-
-    private String normalizeEmail(String email) {
-        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static class PendingRegistrationData {
-        private String username;
-        private String email;
-        private String password;
-        private String fullName;
-        private String phoneNumber;
-        private String otp;
-        private LocalDateTime otpExpiry;
     }
 
     @Transactional
@@ -552,37 +506,6 @@ public class UserService {
 
     @Transactional
     public void verifyRegistrationOtp(String email, String code) {
-        PendingRegistrationData pending = pendingRegistrationsByEmail.get(normalizeEmail(email));
-        if (pending != null) {
-
-            if (pending.otp == null || !pending.otp.equals(code)) {
-                throw new BadRequestException("Invalid verification code");
-            }
-
-            if (pending.otpExpiry == null || pending.otpExpiry.isBefore(LocalDateTime.now())) {
-                throw new BadRequestException("Verification code has expired");
-            }
-
-            if (userRepository.findByUsername(pending.username).isPresent()) {
-                throw new BadRequestException("Username is already taken");
-            }
-            if (userRepository.findByEmail(pending.email).isPresent()) {
-                throw new BadRequestException("Email address is already in use");
-            }
-
-            User user = userRepository.save(createVerifiedCitizen(pending));
-            pendingRegistrationsByEmail.remove(normalizeEmail(pending.email));
-
-            AuditLog auditLog = AuditLog.builder()
-                    .user(user)
-                    .action("VERIFY_EMAIL_REGISTER")
-                    .details("User successfully verified email during registration.")
-                    .ipAddress("127.0.0.1")
-                    .build();
-            auditLogRepository.save(auditLog);
-            return;
-        }
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
@@ -617,16 +540,6 @@ public class UserService {
 
     @Transactional
     public void resendRegistrationOtp(String email) {
-        PendingRegistrationData pending = pendingRegistrationsByEmail.get(normalizeEmail(email));
-        if (pending != null) {
-            String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-            pending.otp = otp;
-            pending.otpExpiry = LocalDateTime.now().plusMinutes(15);
-
-            emailService.sendRegistrationOtpEmail(pending.email, pending.fullName, otp);
-            return;
-        }
-
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
