@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { store } from './redux/store';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import AppRoutes from './routes/AppRoutes';
 
 const queryClient = new QueryClient({
@@ -20,9 +21,11 @@ function App() {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <LanguageProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </LanguageProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </Provider>

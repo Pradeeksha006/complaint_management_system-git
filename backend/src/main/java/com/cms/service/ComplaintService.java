@@ -106,12 +106,14 @@ public class ComplaintService {
 
         // SLA deadline calculation based on priority
         LocalDateTime deadline = LocalDateTime.now();
-        if (priority == Priority.HIGH || priority == Priority.CRITICAL) {
-            deadline = deadline.plusDays(1); // 24 hours
+        if (priority == Priority.CRITICAL) {
+            deadline = deadline.plusHours(2); // immediate action (2 hours)
+        } else if (priority == Priority.HIGH) {
+            deadline = deadline.plusHours(24); // 24 hours
         } else if (priority == Priority.MEDIUM) {
-            deadline = deadline.plusDays(3); // 3 days
+            deadline = deadline.plusDays(3); // 2-3 business days (3 days)
         } else {
-            deadline = deadline.plusDays(7); // 5-7 business/calendar days (using 7 calendar days)
+            deadline = deadline.plusDays(7); // 5-7 business days (7 days)
         }
 
         // Sanitize database field lengths to prevent SQL truncation 500 errors
@@ -589,7 +591,11 @@ public class ComplaintService {
 
         Page<Complaint> pageResult = complaintRepository.findAll(spec, pageable);
         List<ComplaintDto> list = pageResult.getContent().stream()
-                .map(MapperUtils::toDto)
+                .map(c -> {
+                    ComplaintDto dto = MapperUtils.toDto(c);
+                    feedbackRepository.findByComplaintId(c.getId()).ifPresent(f -> dto.setFeedback(MapperUtils.toDto(f)));
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         return PageResponse.<ComplaintDto>builder()

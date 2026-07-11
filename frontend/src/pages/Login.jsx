@@ -6,9 +6,11 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import api from '../services/api';
 import { loginStart, loginSuccess, loginFailure } from '../redux/authSlice';
-import { Sparkles, ShieldAlert, CheckCircle2, Lock, Mail, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Lock, Mail, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import logoImage from '../assets/logo.png';
+import loginHeroImage from '../assets/login_hero.png';
 
 const schema = yup.object().shape({
   usernameOrEmail: yup.string().required('Username or email is required'),
@@ -18,11 +20,11 @@ const schema = yup.object().shape({
 const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
   const [successMsg, setSuccessMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { darkMode, toggleTheme } = useTheme();
+  const { currentLanguage, changeLanguage } = useLanguage();
 
   const { register, handleSubmit, getValues, formState: { errors } } = useForm({
     resolver: yupResolver(schema)
@@ -41,131 +43,169 @@ const Login = () => {
   };
 
   return (
-    <div className="premium-light-bg dark:premium-dark-bg flex min-h-screen items-center justify-center px-4 overflow-hidden py-12 transition-colors duration-300">
+    <div className="flex min-h-screen w-full bg-white dark:bg-slate-950 transition-colors duration-300 relative overflow-hidden">
       
-      {/* Extra floating background depth layers (glowing blobs) */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-emerald-500/5 dark:bg-[#062c19]/20 blur-[130px] animate-blob" />
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-[500px] w-[500px] rounded-full bg-amber-500/5 dark:bg-[#ac734c]/10 blur-[150px] animate-blob animation-delay-2000" />
+      {/* Top Actions Bar (Language & Theme) */}
+      <div className="absolute top-6 right-6 lg:right-[57%] flex items-center gap-2.5 z-20">
+        {/* Language Selector Dropdown */}
+        <select
+          value={currentLanguage}
+          onChange={(e) => changeLanguage(e.target.value)}
+          className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold rounded-xl px-2.5 py-2 text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+        >
+          <option value="en">EN</option>
+          <option value="ta">TA (தமிழ்)</option>
+          <option value="hi">HI (हिन्दी)</option>
+          <option value="te">TE (తెలుగు)</option>
+          <option value="ml">ML (മലയാളം)</option>
+          <option value="kn">KN (ಕನ್ನಡ)</option>
+        </select>
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-md rounded-3xl border border-slate-200 dark:border-[#052414] bg-white dark:bg-[#03140c] p-8 shadow-xl dark:shadow-[0_0_50px_rgba(6,44,25,0.3)] transition-all duration-300 hover:border-slate-300 dark:hover:border-[#0b3a20]">
-        
         {/* Theme Switcher Button */}
         <button 
           onClick={toggleTheme}
           type="button"
-          className="absolute top-6 right-6 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-slate-700 dark:text-[#f2e6d0] transition-colors"
+          className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-350 transition-colors border border-slate-200 dark:border-slate-800"
           title="Toggle Theme"
         >
-          {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+          {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
+      </div>
+
+      {/* Left Form Panel */}
+      <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-between p-8 sm:p-12 md:p-16 relative overflow-y-auto">
         
-        {/* Logo/Header */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 relative h-16 w-16 rounded-full border border-slate-200 dark:border-[#052414] bg-[#f2e6d0] shrink-0 flex items-center justify-center overflow-hidden shadow-sm">
-            <img 
-              src={logoImage} 
-              alt="Shield Seal Logo" 
-              className="h-full w-full object-contain p-1"
-            />
+        {/* Header Logo & Title */}
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-850 bg-white flex items-center justify-center p-0.5">
+            <img src={logoImage} alt="PSCN Logo" className="h-full w-full object-contain" />
           </div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-white uppercase font-serif">
-            Welcome back
-          </h2>
-          <p className="text-sm text-slate-600 dark:text-[#f2e6d0]/80 mt-2 font-semibold">
-            Sign in to your PSCN account
-          </p>
+          <div>
+            <h2 className="text-sm font-black tracking-tight text-slate-850 dark:text-white uppercase leading-none">
+              Public Service Complaint Network
+            </h2>
+            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 leading-none">
+              Your Voice. Our Action. Better Communities.
+            </p>
+          </div>
         </div>
 
-        {/* Feedback Messages */}
-        {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200 animate-pulse">
-            <ShieldAlert className="h-5 w-5 shrink-0" />
-            <p className="font-semibold">{error}</p>
+        {/* Form Container */}
+        <div className="my-auto py-8 max-w-sm w-full mx-auto space-y-6">
+          <div className="space-y-2.5">
+            <p className="text-xs font-bold text-slate-450 dark:text-slate-550 uppercase tracking-wider flex items-center gap-1.5">
+              Welcome back! <span className="animate-bounce">👋</span>
+            </p>
+            <h1 className="text-3xl font-extrabold text-slate-855 dark:text-white leading-tight tracking-tight">
+              Log In <span className="text-blue-600">to Your Account</span>
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Access your dashboard to manage and track complaints, view updates, and more.
+            </p>
           </div>
-        )}
-        {successMsg && (
-          <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="h-5 w-5 shrink-0" />
-            <p className="font-semibold">{successMsg}</p>
-          </div>
-        )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="group text-left">
-            <label className="block text-xs font-bold text-slate-700 dark:text-[#f2e6d0] uppercase tracking-widest mb-2">
-              Username or Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-              <input 
-                type="text"
-                {...register('usernameOrEmail')}
-                placeholder="Enter username or email"
-                className={`w-full rounded-xl border px-4 py-3 pl-11 pr-4 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                  errors.usernameOrEmail 
-                    ? 'border-red-500 focus:border-red-550 focus:ring-2 focus:ring-red-550/20' 
-                    : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                }`}
-              />
+          {/* Feedback Messages */}
+          {error && (
+            <div className="flex items-center gap-3 rounded-xl bg-red-50 dark:bg-red-950/20 p-4 text-xs text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/30">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <p className="font-semibold">{error}</p>
             </div>
-            {errors.usernameOrEmail && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.usernameOrEmail.message}</span>}
-          </div>
+          )}
+          {successMsg && (
+            <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 p-4 text-xs text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <p className="font-semibold">{successMsg}</p>
+            </div>
+          )}
 
-          <div className="group text-left">
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-bold text-slate-700 dark:text-emerald-450 uppercase tracking-widest">
-                Password
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-1.5 text-left">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Email or UserName
               </label>
-              <Link 
-                to="/forgot-password" 
-                state={{ email: getValues('usernameOrEmail') }}
-                className="text-xs font-bold text-[#ac734c] hover:text-[#8f5e3e] dark:text-[#d4af37] dark:hover:text-[#f2e6d0] transition-colors"
-              >
-                Forgot?
-              </Link>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                <input 
+                  type="text"
+                  {...register('usernameOrEmail')}
+                  placeholder="youremail@example.com"
+                  className={`w-full rounded-xl border pl-11 pr-4 py-3 text-sm outline-none transition-all bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white ${
+                    errors.usernameOrEmail 
+                      ? 'border-red-500 focus:border-red-550 focus:ring-2 focus:ring-red-550/20' 
+                      : 'border-slate-200 dark:border-slate-800 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10'
+                  }`}
+                />
+              </div>
+              {errors.usernameOrEmail && <span className="text-xs text-red-500 font-semibold mt-1.5 block">{errors.usernameOrEmail.message}</span>}
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-400 dark:text-emerald-600" />
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                {...register('password')}
-                placeholder="Enter password"
-                className={`w-full rounded-xl border px-4 py-3 pl-11 pr-11 text-sm outline-none transition-all bg-slate-50 text-slate-900 border-slate-200 focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10 focus:bg-white dark:bg-[#0c1912] dark:text-white dark:border-[#0b3a20] dark:focus:border-[#d4af37] dark:focus:ring-[#d4af37]/20 ${
-                  errors.password 
-                    ? 'border-red-500 focus:border-red-550 focus:ring-2 focus:ring-red-550/20' 
-                    : 'border-slate-200 dark:border-[#0b3a20] focus:border-[#062c19] focus:ring-4 focus:ring-[#062c19]/10'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-650 dark:hover:text-emerald-400 transition-colors"
-              >
-                {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-              </button>
+
+            <div className="space-y-1.5 text-left">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                  Password
+                </label>
+                <Link 
+                  to="/forgot-password" 
+                  state={{ email: getValues('usernameOrEmail') }}
+                  className="text-xs font-bold text-blue-600 hover:underline"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password')}
+                  placeholder="••••••••••••"
+                  className={`w-full rounded-xl border pl-11 pr-11 py-3 text-sm outline-none transition-all bg-slate-50/50 dark:bg-slate-900 text-slate-900 dark:text-white ${
+                    errors.password 
+                      ? 'border-red-500 focus:border-red-550 focus:ring-2 focus:ring-red-550/20' 
+                      : 'border-slate-200 dark:border-slate-800 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-655 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && <span className="text-xs text-red-500 font-semibold mt-1.5 block">{errors.password.message}</span>}
             </div>
-            {errors.password && <span className="text-xs text-red-650 font-bold mt-1.5 block">{errors.password.message}</span>}
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#062c19] hover:bg-[#041d10] dark:bg-[#ac734c] dark:hover:bg-[#8f5e3e] py-3 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-md shadow-emerald-950/10 dark:shadow-[#ac734c]/20 cursor-pointer"
-          >
-            {loading ? <Loader2 className="h-4.5 w-4.5 animate-spin" /> : 'Sign In'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 py-3.5 text-sm font-bold text-white transition-all transform active:scale-98 disabled:opacity-50 shadow-md shadow-blue-500/10 cursor-pointer mt-6"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Log In <span className="ml-1">→</span></>}
+            </button>
+          </form>
 
-        <p className="mt-8 text-center text-sm text-slate-600 dark:text-emerald-100/60 font-semibold">
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-slate-505 mt-auto pt-4">
           Don't have an account?{' '}
-          <Link to="/register" className="font-extrabold text-[#062c19] hover:text-[#041d10] dark:text-[#d4af37] dark:hover:text-[#f2e6d0] transition-colors underline">
-            Sign up
+          <Link to="/register" className="font-bold text-blue-600 hover:underline">
+            Sign up for free
           </Link>
-        </p>
+        </div>
 
       </div>
+
+      {/* Right Presentation Panel */}
+      <div className="hidden lg:flex lg:w-[55%] xl:w-[60%] bg-slate-100 dark:bg-slate-900 justify-center items-center relative overflow-hidden select-none">
+        <img 
+          src={loginHeroImage} 
+          alt="Public Service Complaint Network Presentation" 
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+
     </div>
   );
 };

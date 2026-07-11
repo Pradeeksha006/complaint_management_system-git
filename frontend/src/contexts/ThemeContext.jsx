@@ -9,11 +9,14 @@ export const ThemeProvider = ({ children }) => {
   });
 
   useEffect(() => {
+    const root = window.document.documentElement;
     const body = window.document.body;
     if (darkMode) {
+      root.classList.add('dark');
       body.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
+      root.classList.remove('dark');
       body.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }

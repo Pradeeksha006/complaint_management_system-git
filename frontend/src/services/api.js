@@ -31,8 +31,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // Session expired or unauthenticated
-      store.dispatch(logout());
-      window.location.href = '/login';
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }

@@ -45,6 +45,12 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/officers/{id}/promote")
     public ResponseEntity<Void> promoteToDeptHead(@PathVariable Long id) {
         userService.promoteToDeptHead(id);

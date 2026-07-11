@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Mail, ShieldAlert, Loader2, ArrowLeft } from 'lucide-react';
+import api from '../services/api';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -19,12 +20,20 @@ const ForgotPassword = () => {
       setLoading(false);
       return;
     }
-    navigate('/reset-password', {
-      state: {
-        email: account,
-        message: 'Click Send OTP to receive a verification code for this account.'
-      }
-    });
+    try {
+      const res = await api.post('/api/auth/forgot-password', { email: account });
+      navigate('/reset-password', {
+        state: {
+          email: account,
+          requiresPin: res.data.requiresPin,
+          message: res.data.message
+        }
+      });
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || err.message || 'Failed to initiate recovery.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

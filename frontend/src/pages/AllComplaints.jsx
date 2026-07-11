@@ -11,6 +11,14 @@ const AllComplaints = () => {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [expandedSupportId, setExpandedSupportId] = useState(null);
+  const [expandedComplaints, setExpandedComplaints] = useState({});
+
+  const toggleComplaintExpand = (complaintId) => {
+    setExpandedComplaints((prev) => ({
+      ...prev,
+      [complaintId]: !prev[complaintId],
+    }));
+  };
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -220,142 +228,168 @@ const AllComplaints = () => {
         {filteredComplaints.length === 0 ? (
           <div className="py-12 text-center text-slate-500">No complaints match your active filter search.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
-              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                <tr>
-                  <th className="px-6 py-4">Ticket ID</th>
-                  <th className="px-6 py-4">Customer ID</th>
-                  <th className="px-6 py-4">Title & Citizen</th>
-                  <th className="px-6 py-4">Support Count</th>
-                  <th className="px-6 py-4 text-blue-600 dark:text-blue-400">
-                    <span className="flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" /> AI Summary
-                    </span>
-                  </th>
-                  <th className="px-6 py-4">Current Status</th>
-                  <th className="px-6 py-4">Assigned Officer</th>
-                  <th className="px-6 py-4">Transfer Department</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredComplaints.map((c) => {
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                        <Link to={`/track-complaint/${c.id}`} className="hover:underline">
-                          {c.id}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-800 dark:text-white">
-                        {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'N/A (Anonymous)'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
-                            <img 
-                              src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
-                              alt="Proof" 
-                              className="h-10 w-10 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
-                            />
-                          ) : (
-                            <div className="h-10 w-10 bg-slate-105 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
-                              <ClipboardList className="h-4 w-4 text-slate-400" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-semibold text-slate-800 dark:text-white max-w-sm truncate" title={c.translatedTitle && c.translatedTitle !== c.title ? `${c.translatedTitle} (Original: ${c.title})` : c.title}>
-                              {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
-                              {c.translatedTitle && c.translatedTitle !== c.title && (
-                                <span className="ml-1 text-[10px] font-bold text-blue-500">(AI Translated)</span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-400 mt-0.5">
-                              By: {c.isAnonymous ? 'Anonymous' : c.citizenName}
+          <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+            {filteredComplaints.map((c) => {
+              const isExpanded = !!expandedComplaints[c.id];
+              return (
+                <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                  {/* Clickable Header showing ID & Title */}
+                  <div 
+                    onClick={() => toggleComplaintExpand(c.id)}
+                    className="p-6 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-4 select-none"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center flex-wrap gap-2.5">
+                        <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
+                      </div>
+                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">
+                        {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
+                        {c.translatedTitle && c.translatedTitle !== c.title && (
+                          <span className="ml-1.5 text-[9px] font-bold text-blue-500 uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 px-1 py-0.5 rounded">(AI Translated)</span>
+                        )}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        c.status === 'RESOLVED' || c.status === 'CLOSED'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
+                          : c.status === 'SUBMITTED'
+                          ? 'bg-blue-100 text-blue-805 dark:bg-blue-950/30 dark:text-blue-400'
+                          : c.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-805 dark:bg-red-950/30 dark:text-red-400'
+                          : 'bg-amber-100 text-amber-805 dark:bg-amber-950/30 dark:text-amber-400'
+                      }`}>
+                        {c.status}
+                      </span>
+                      <svg 
+                        className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center flex-wrap gap-2.5">
+                            <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                              Customer Ref: {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'Anonymous'}
+                            </span>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              c.priority === 'CRITICAL' ? 'bg-red-100 text-red-800 dark:bg-red-950/20 dark:text-red-400' :
+                              c.priority === 'HIGH' ? 'bg-orange-100 text-orange-855 dark:bg-orange-950/20 dark:text-orange-400' :
+                              'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+                            }`}>
+                              {c.priority}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
+                              <img 
+                                src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
+                                alt="Proof" 
+                                className="h-12 w-12 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
+                              />
+                            ) : (
+                              <div className="h-12 w-12 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
+                                <ClipboardList className="h-5 w-5 text-slate-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">By: {c.isAnonymous ? 'Anonymous' : c.citizenName}</p>
+                              {c.description && <p className="text-xs text-slate-650 dark:text-slate-300 mt-1 leading-relaxed">{c.description}</p>}
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedSupportId(expandedSupportId === c.id ? null : c.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-950/50"
-                          title="Show registered citizens"
-                        >
-                          <Users className="h-3.5 w-3.5" />
-                          {c.supportCount || 1} {c.supportCount === 1 ? 'Citizen' : 'Citizens'}
-                        </button>
-                        {expandedSupportId === c.id && (
-                          <div className="mt-2 w-64 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg dark:border-slate-800 dark:bg-slate-900">
-                            {c.linkedCitizens && c.linkedCitizens.length > 0 ? (
-                              <div className="space-y-2">
-                                {c.linkedCitizens.map((citizen) => (
-                                  <div key={`${c.id}-${citizen.id}-${citizen.sourceTicketId}`} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0 dark:border-slate-800">
-                                    <div className="font-bold text-slate-800 dark:text-white">{citizen.fullName || 'N/A'}</div>
-                                    <div className="break-all text-slate-500 dark:text-slate-400">{citizen.email || 'N/A'}</div>
+
+                        <div className="flex flex-wrap items-center gap-3 md:justify-end shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={() => setExpandedSupportId(expandedSupportId === c.id ? null : c.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-950/50"
+                            >
+                              <Users className="h-3.5 w-3.5" />
+                              {c.supportCount || 1} {c.supportCount === 1 ? 'Citizen' : 'Citizens'}
+                            </button>
+                            {expandedSupportId === c.id && (
+                              <div className="absolute right-0 mt-2 z-10 w-64 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                                {c.linkedCitizens && c.linkedCitizens.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {c.linkedCitizens.map((citizen) => (
+                                      <div key={`${c.id}-${citizen.id}-${citizen.sourceTicketId}`} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0 dark:border-slate-800">
+                                        <div className="font-bold text-slate-800 dark:text-white">{citizen.fullName || 'N/A'}</div>
+                                        <div className="break-all text-slate-500 dark:text-slate-400">{citizen.email || 'N/A'}</div>
+                                      </div>
+                                    ))}
                                   </div>
-                                ))}
+                                ) : (
+                                  <div className="text-slate-500 dark:text-slate-400">No registered citizen details available.</div>
+                                )}
                               </div>
-                            ) : (
-                              <div className="text-slate-500 dark:text-slate-400">No registered citizen details available.</div>
                             )}
                           </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-200 max-w-xs truncate" title={c.summary}>
-                        {c.summary || 'Generating...'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-2xs font-semibold ${
-                          c.status === 'SUBMITTED' ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400' :
-                          c.status === 'ASSIGNED' ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' :
-                          c.status === 'RESOLVED' ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400' :
-                          'bg-slate-50 text-slate-600 dark:bg-slate-950/30 dark:text-slate-400'
-                        }`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {c.assignedOfficerName ? (
-                          <span className="font-semibold text-slate-800 dark:text-white">
-                            {c.assignedOfficerName}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-xs font-bold">
-                            Unassigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                          <select
-                            disabled={updatingId === c.id}
-                            value={c.departmentId || ''}
-                            onChange={(e) => handleDeptTransfer(c.id, Number(e.target.value))}
-                            className="rounded border border-slate-200 bg-white py-1.5 px-2.5 text-xs outline-none dark:border-slate-800 dark:bg-slate-900 text-slate-800 dark:text-white max-w-[180px] focus:ring-1 focus:ring-blue-500"
-                          >
-                            {departments.map((d) => (
-                              <option key={d.id} value={d.id} className="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
-                            ))}
-                          </select>
+                        </div>
+                      </div>
+                      
+                      {c.summary && (
+                        <div className="rounded-lg bg-blue-50/25 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/10 p-2.5 flex items-start gap-2 text-xs text-blue-750 dark:text-blue-400 font-semibold leading-relaxed">
+                          <Sparkles className="h-4 w-4 text-blue-650 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[9px] text-slate-450 uppercase font-bold tracking-wider block mb-0.5">AI Summary</span>
+                            {c.summary}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="border-t border-slate-100 pt-4 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+                        <div className="text-xs text-slate-400">
+                          Officer: {c.assignedOfficerName ? (
+                            <strong className="text-slate-700 dark:text-slate-200">{c.assignedOfficerName}</strong>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                              Unassigned
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 items-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2.5 py-1.5 border border-slate-200 dark:border-slate-850">
+                            <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                            <select
+                              disabled={updatingId === c.id}
+                              value={c.departmentId || ''}
+                              onChange={(e) => handleDeptTransfer(c.id, Number(e.target.value))}
+                              className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none max-w-[180px]"
+                            >
+                              {departments.map((d) => (
+                                <option key={d.id} value={d.id} className="bg-white text-slate-850 dark:bg-slate-900 dark:text-slate-100">{d.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
                           <button
                             disabled={updatingId === c.id}
                             onClick={() => handleAiAutoRoute(c.id)}
-                            className="inline-flex items-center gap-1 rounded bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-2 py-1.5 text-xs font-bold transition-colors"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-1.5 text-xs font-bold transition-colors shadow-sm cursor-pointer"
                             title="Auto-route this complaint to the department predicted by AI"
                           >
-                            <Sparkles className="h-3 w-3" />
+                            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
                             AI Route
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { logout } from '../redux/authSlice';
 import { useTheme } from '../contexts/ThemeContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   Menu, 
   X,
@@ -20,7 +21,8 @@ import {
   Building2,
   ClipboardList,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 import logoImage from '../assets/logo.png';
 import api from '../services/api';
@@ -29,6 +31,7 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { darkMode, toggleTheme } = useTheme();
+  const { currentLanguage, changeLanguage } = useLanguage();
   const { user } = useSelector((state) => state.auth);
 
   // Notifications Popover State
@@ -77,8 +80,8 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
+    navigate('/');
     dispatch(logout());
-    navigate('/login');
   };
 
   const getLinks = () => {
@@ -90,20 +93,18 @@ const Navbar = () => {
           { name: 'File Complaint', path: '/file-complaint', icon: FilePlus2 },
           { name: 'My Complaints', path: '/my-complaints', icon: ClipboardList },
           { name: 'Track Complaint', path: '/track', icon: Search },
-          { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'ROLE_OFFICER':
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
           { name: 'My Assignments', path: '/assignments', icon: ListTodo },
-          { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'ROLE_DEPT_HEAD':
         return [
           { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+          { name: 'Pending Complaints', path: '/pending-complaints', icon: Clock },
           { name: 'Total Complaints', path: '/dept-statistics', icon: ClipboardList },
           { name: 'Manage Officers', path: '/officers', icon: Users },
-          { name: 'Settings', path: '/settings', icon: Settings },
         ];
       case 'ROLE_ADMIN':
         return [
@@ -114,7 +115,6 @@ const Navbar = () => {
           { name: 'Dept Control Desk', path: '/department-control', icon: Building2 },
           { name: 'Manage Complaints', path: '/all-complaints', icon: ClipboardList },
           { name: 'Audit Logs', path: '/audit-logs', icon: ShieldCheck },
-          { name: 'Settings', path: '/settings', icon: Settings },
         ];
       default:
         return [];
@@ -157,7 +157,7 @@ const Navbar = () => {
       </div>
 
       {/* Desktop Navigation Links (Centered) */}
-      <nav className="hidden lg:flex items-center gap-2 xl:gap-4 mx-auto h-full">
+      <nav className="hidden lg:flex items-center gap-1.5 xl:gap-3 mx-auto h-full">
         {links.map((link) => {
           const Icon = link.icon;
           return (
@@ -165,7 +165,7 @@ const Navbar = () => {
               key={link.path}
               to={link.path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 h-full text-[10px] font-bold tracking-wide uppercase transition-all duration-200 border-b-2 ${
+                `flex items-center gap-1.5 px-2 h-full text-[9px] font-bold tracking-wide uppercase transition-all duration-200 border-b-2 ${
                   isActive
                     ? 'border-blue-500 text-white'
                     : 'border-transparent text-neutral-400 hover:text-white hover:border-neutral-700'
@@ -243,6 +243,22 @@ const Navbar = () => {
             )}
           </div>
         )}
+
+        {/* Language Selector Dropdown */}
+        <div className="relative shrink-0">
+          <select
+            value={currentLanguage}
+            onChange={(e) => changeLanguage(e.target.value)}
+            className="bg-neutral-800 border border-neutral-700 text-xs font-bold rounded-lg px-2.5 py-1.5 text-slate-200 outline-none cursor-pointer hover:border-neutral-500 transition-colors"
+          >
+            <option value="en">EN</option>
+            <option value="ta">TA (தமிழ்)</option>
+            <option value="hi">HI (हिन्दी)</option>
+            <option value="te">TE (తెలుగు)</option>
+            <option value="ml">ML (മലയാളം)</option>
+            <option value="kn">KN (ಕನ್ನಡ)</option>
+          </select>
+        </div>
 
         {/* Theme Toggle */}
         <button 

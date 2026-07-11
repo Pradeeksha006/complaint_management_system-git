@@ -97,6 +97,10 @@ public class DataInitializer implements CommandLineRunner {
                 jdbcTemplate.execute("ALTER TABLE complaints DROP COLUMN closed_at");
                 log.info("Obsolete column closed_at dropped successfully from complaints table.");
             } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("DROP TABLE IF EXISTS pending_registrations");
+                log.info("Obsolete pending_registrations table dropped successfully.");
+            } catch (Exception ignored) {}
         } catch (Exception e) {
             log.error("Failed to migrate database tables: {}", e.getMessage());
         }

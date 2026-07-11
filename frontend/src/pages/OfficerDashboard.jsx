@@ -15,6 +15,14 @@ const OfficerDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [stats, setStats] = useState({ assigned: 0, inProgress: 0, resolved: 0 });
   const [loading, setLoading] = useState(true);
+  const [expandedComplaints, setExpandedComplaints] = useState({});
+
+  const toggleComplaintExpand = (complaintId) => {
+    setExpandedComplaints((prev) => ({
+      ...prev,
+      [complaintId]: !prev[complaintId],
+    }));
+  };
 
   // Update progress modal state
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -161,100 +169,122 @@ const OfficerDashboard = () => {
               <p className="text-sm">No assignments found for you.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
-              {complaints.map((c) => (
-                <div key={c.id} className="p-6 hover:bg-slate-50/30 dark:hover:bg-slate-800/10">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          c.priority === 'CRITICAL' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'
-                        }`}>
-                          {c.priority}
-                        </span>
-                      </div>
-                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-2">{c.title}</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{c.description}</p>
-                      <p className="text-[10px] text-slate-400 mt-2">Location: {c.address || 'Not specified'}</p>
-                      
-                      {/* Direct inline attachments preview */}
-                      {c.attachments && c.attachments.length > 0 && (
-                        <div className="flex gap-2 mt-3 overflow-x-auto py-1 shrink-0">
-                          {c.attachments.map((att) => (
-                            <a 
-                              key={att.id}
-                              href={att.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group hover:border-blue-500 transition-colors"
-                              title="Click to view file"
-                            >
-                              {att.fileType === 'IMAGE' ? (
-                                <img src={att.fileUrl} alt="Preview" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center text-[9px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-850">
-                                  {att.fileType}
-                                </div>
-                              )}
-                            </a>
-                          ))}
+            <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+              {complaints.map((c) => {
+                const isExpanded = !!expandedComplaints[c.id];
+                return (
+                  <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                    {/* Clickable Header showing ID & Title */}
+                    <div 
+                      onClick={() => toggleComplaintExpand(c.id)}
+                      className="p-6 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-4 select-none"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center flex-wrap gap-2.5">
+                          <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            c.priority === 'CRITICAL' ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'
+                          }`}>
+                            {c.priority}
+                          </span>
                         </div>
-                      )}
+                        <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">{c.title}</h4>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          c.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {c.status}
+                        </span>
+                        <svg 
+                          className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
 
-                    <div className="flex sm:flex-col items-start sm:items-end gap-3 shrink-0">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        c.status === 'ASSIGNED' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {c.status}
-                      </span>
-                      
-                      <div className="flex gap-2">
-                        {c.status === 'ASSIGNED' ? (
-                          <>
-                            <button 
-                              onClick={() => handleAccept(c.id)}
-                              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
-                            >
-                              Accept
-                            </button>
-                            <Link 
-                              to={`/track-complaint/${c.id}`}
-                              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300"
-                            >
-                              Details
-                            </Link>
-                          </>
-                        ) : c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED' ? (
-                          <>
-                            <button 
-                              onClick={() => setSelectedComplaint(c)}
-                              className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700"
-                            >
-                              Update Status
-                            </button>
-                            <Link 
-                              to={`/track-complaint/${c.id}`}
-                              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300"
-                            >
-                              Details
-                            </Link>
-                          </>
-                        ) : (
-                          <Link 
-                            to={`/track-complaint/${c.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
-                          >
-                            Details
-                            <ArrowRight className="h-3 w-3" />
-                          </Link>
+                    {isExpanded && (
+                      <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-4">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{c.description}</p>
+                        <p className="text-[10px] text-slate-450">Location: {c.address || 'Not specified'}</p>
+                        
+                        {/* Direct inline attachments preview */}
+                        {c.attachments && c.attachments.length > 0 && (
+                          <div className="flex gap-2 mt-3 overflow-x-auto py-1 shrink-0">
+                            {c.attachments.map((att) => (
+                              <a 
+                                key={att.id}
+                                href={att.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 group hover:border-blue-500 transition-colors"
+                                title="Click to view file"
+                              >
+                                {att.fileType === 'IMAGE' ? (
+                                  <img src={att.fileUrl} alt="Preview" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                                ) : (
+                                  <div className="h-full w-full flex items-center justify-center text-[9px] text-slate-500 dark:text-slate-400 font-bold bg-slate-100 dark:bg-slate-850">
+                                    {att.fileType}
+                                  </div>
+                                )}
+                              </a>
+                            ))}
+                          </div>
                         )}
+
+                        <div className="border-t border-slate-100 pt-4 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
+                          <p className="text-[10px] text-slate-450">Filed: {new Date(c.createdAt).toLocaleString()}</p>
+                          
+                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            {c.status === 'ASSIGNED' ? (
+                              <>
+                                <button 
+                                  onClick={() => handleAccept(c.id)}
+                                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700 cursor-pointer"
+                                >
+                                  Accept
+                                </button>
+                                <Link 
+                                  to={`/track-complaint/${c.id}`}
+                                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-sm"
+                                >
+                                  Track Page →
+                                </Link>
+                              </>
+                            ) : c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED' ? (
+                              <>
+                                <button 
+                                  onClick={() => setSelectedComplaint(c)}
+                                  className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 cursor-pointer"
+                                >
+                                  Update Status
+                                </button>
+                                <Link 
+                                  to={`/track-complaint/${c.id}`}
+                                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-sm"
+                                >
+                                  Track Page →
+                                </Link>
+                              </>
+                            ) : (
+                              <Link 
+                                to={`/track-complaint/${c.id}`}
+                                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 shadow-sm"
+                              >
+                                Track Page →
+                              </Link>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

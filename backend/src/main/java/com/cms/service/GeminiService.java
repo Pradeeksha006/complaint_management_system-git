@@ -137,58 +137,61 @@ public class GeminiService {
 
     public String translateToEnglish(String text, String language) {
         if (text == null || text.trim().isEmpty()) return "";
-        String detectedLanguage = detectRegionalLanguage(text);
-        if ((language == null || language.equalsIgnoreCase("English")) && detectedLanguage != null) {
-            language = detectedLanguage;
-        }
-        if (language == null || language.equalsIgnoreCase("English")) {
-            if (text.startsWith("[Language: ")) {
-                int closeBracket = text.indexOf(']');
-                if (closeBracket > 0) {
-                    return text.substring(closeBracket + 1).trim();
-                }
+        
+        String cleanText = text;
+        if (text.startsWith("[Language: ")) {
+            int closeBracket = text.indexOf(']');
+            if (closeBracket > 0) {
+                cleanText = text.substring(closeBracket + 1).trim();
             }
-            return text;
         }
 
-        String prompt = "Translate the following text to English from " + language + ". " +
-                "If the text is already entirely in English, return it exactly as it is. " +
-                "Return ONLY the plain translated text. Do not add labels, greetings, comments, or notes. Text: " + text;
+        // Prompt Gemini to translate to English if the text is in Tamil, Hindi, Malayalam, Telugu, or Kannada
+        // (handling both native script characters and Romanized/transliterated Latin spelling).
+        String prompt = "You are a professional translator for a municipal portal. " +
+                "Translate the following text to English if it is written in Tamil, Hindi, Malayalam, Telugu, or Kannada (either in native scripts or Romanized/English script transliteration). " +
+                "If the text is already entirely in English, return it exactly as it is without any changes. " +
+                "Return ONLY the plain translated text. Do not add labels, greetings, comments, or notes. " +
+                "Text: " + cleanText;
         
         String translation = callGemini(prompt, false);
         
-        if (translation == null || translation.trim().isEmpty() || translation.equals(text)) {
-            // Local fallback using MyMemory Translation API (Free, no key needed)
+        if (translation == null || translation.trim().isEmpty() || translation.equalsIgnoreCase(cleanText)) {
+            // Local fallback using MyMemory Translation API
             try {
-                String sourceLang = "auto";
-                String langLower = language.toLowerCase();
-                if (langLower.contains("tamil")) sourceLang = "ta";
-                else if (langLower.contains("hindi")) sourceLang = "hi";
-                else if (langLower.contains("telugu")) sourceLang = "te";
-                else if (langLower.contains("malayalam")) sourceLang = "ml";
-                else if (langLower.contains("kannada")) sourceLang = "kn";
-                
-                String myMemoryUrl = "https://api.mymemory.translated.net/get?q={q}&langpair={langpair}";
-                
-                RestTemplate tempTemplate = new RestTemplate();
-                ResponseEntity<String> res = tempTemplate.getForEntity(
-                        myMemoryUrl, 
-                        String.class, 
-                        text, 
-                        sourceLang + "|en"
-                );
-                if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
-                    JsonNode root = objectMapper.readTree(res.getBody());
-                    String match = root.path("responseData").path("translatedText").asText();
-                    if (match != null && !match.trim().isEmpty()) {
-                        return match.trim();
+                String targetLang = (language != null && !language.equalsIgnoreCase("English")) ? language : detectRegionalLanguage(cleanText);
+                if (targetLang != null && !targetLang.equalsIgnoreCase("English")) {
+                    String sourceLang = "auto";
+                    String langLower = targetLang.toLowerCase();
+                    if (langLower.contains("tamil")) sourceLang = "ta";
+                    else if (langLower.contains("hindi")) sourceLang = "hi";
+                    else if (langLower.contains("telugu")) sourceLang = "te";
+                    else if (langLower.contains("malayalam")) sourceLang = "ml";
+                    else if (langLower.contains("kannada")) sourceLang = "kn";
+                    
+                    String myMemoryUrl = "https://api.mymemory.translated.net/get?q={q}&langpair={langpair}";
+                    
+                    RestTemplate tempTemplate = new RestTemplate();
+                    ResponseEntity<String> res = tempTemplate.getForEntity(
+                            myMemoryUrl, 
+                            String.class, 
+                            cleanText, 
+                            sourceLang + "|en"
+                    );
+                    if (res.getStatusCode() == HttpStatus.OK && res.getBody() != null) {
+                        JsonNode root = objectMapper.readTree(res.getBody());
+                        String match = root.path("responseData").path("translatedText").asText();
+                        if (match != null && !match.trim().isEmpty()) {
+                            return match.trim();
+                        }
                     }
                 }
             } catch (Exception e) {
                 log.warn("MyMemory fallback translation failed: {}", e.getMessage());
             }
+            return cleanText;
         }
-        return translation != null && !translation.trim().isEmpty() ? translation : text;
+        return translation.trim();
     }
 
     private String detectRegionalLanguage(String text) {

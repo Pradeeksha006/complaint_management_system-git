@@ -19,16 +19,20 @@ import java.util.List;
 public class EscalationScheduler {
 
     private final ComplaintRepository complaintRepository;
+    private final UserRepository userRepository;
     private final TimelineRepository timelineRepository;
     private final OfficerRepository officerRepository;
     private final NotificationRepository notificationRepository;
     private final EmailService emailService;
 
-    // Runs every minute to support instant SLA alerting and escalations!
-    @Scheduled(cron = "0 */1 * * * ?")
+    // Runs once every hour to check SLA deadlines and perform escalations
+    @Scheduled(cron = "0 0 * * * ?")
     @Transactional
     public void monitorSlaDeadlinesAndEscalate() {
         log.info("Starting SLA Deadline Monitoring Scheduler run...");
+
+        // Find all Super Admins
+        List<User> superAdmins = userRepository.findByRole(Role.ROLE_ADMIN);
 
         // 1. Escalate complaints in ASSIGNED status with no updates for 48 hours
         LocalDateTime thresholdTime = LocalDateTime.now().minusHours(48);
@@ -60,12 +64,12 @@ public class EscalationScheduler {
                 continue;
             }
 
-            // Find Department Head to send notifications to
-            Long deptHeadUserId = null;
+            // Find Department Superintendent (Head) to send notifications to
+            User departmentSuperintendent = null;
             List<Officer> officers = officerRepository.findByDepartmentId(complaint.getDepartment().getId());
             for (Officer off : officers) {
                 if (off.getUser().getRole() == Role.ROLE_DEPT_HEAD) {
-                    deptHeadUserId = off.getUser().getId();
+                    departmentSuperintendent = off.getUser();
                     break;
                 }
             }
@@ -81,14 +85,30 @@ public class EscalationScheduler {
                     remainingStr = "0m";
                 }
 
-                // Send warning email to Super Admin
-                emailService.sendNearDeadlineAlert("pradeeksha2006@gmail.com", complaint.getId(), complaint.getTitle(), remainingStr, complaint.getDepartment().getName());
-
-                // Create alert notification for Department Head
-                if (deptHeadUserId != null) {
+                // Alert all Super Admins
+                for (User admin : superAdmins) {
+                    if (admin.getEmail() != null && !admin.getEmail().isBlank()) {
+                        emailService.sendNearDeadlineAlert(admin.getEmail(), complaint.getId(), complaint.getTitle(), remainingStr, complaint.getDepartment().getName());
+                    }
+                    
                     Notification alert = Notification.builder()
-                            .userId(deptHeadUserId)
-                            .message("WARNING: Complaint " + complaint.getId() + " is approaching its SLA deadline. Time remaining: " + remainingStr + ".")
+                            .userId(admin.getId())
+                            .message("SLA WARNING: Complaint " + complaint.getId() + " is approaching its deadline. Time remaining: " + remainingStr + ". Please resolve it.")
+                            .isRead(false)
+                            .build();
+                      notificationRepository.save(alert);
+                }
+
+                // Alert the Department Superintendent (Head)
+                if (departmentSuperintendent != null) {
+                    if (departmentSuperintendent.getEmail() != null && !departmentSuperintendent.getEmail().isBlank()) {
+                        emailService.sendNearDeadlineAlert(departmentSuperintendent.getEmail(), complaint.getId(), complaint.getTitle(), remainingStr, complaint.getDepartment().getName());
+                    }
+
+                    Notification alert = Notification.builder()
+                            .userId(departmentSuperintendent.getId())
+                            .message("WARNING: Complaint " + complaint.getId() + " is approaching its SLA deadline. Time remaining: " + remainingStr + ". Please resolve it immediately.")
+                            .isRead(false)
                             .build();
                     notificationRepository.save(alert);
                 }
@@ -97,7 +117,7 @@ public class EscalationScheduler {
                 Timeline warningEvent = Timeline.builder()
                         .complaint(complaint)
                         .status("SLA_WARNING")
-                        .description("Complaint is approaching its target SLA resolution deadline. Warning alert triggered.")
+                        .description("Complaint is approaching its target SLA resolution deadline. Super Admin and Department Superintendent have been alerted.")
                         .build();
                 timelineRepository.save(warningEvent);
 
@@ -117,11 +137,22 @@ public class EscalationScheduler {
                     );
                 }
 
-                // Create critical notification for Department Head
-                if (deptHeadUserId != null) {
+                // Alert all Super Admins
+                for (User admin : superAdmins) {
                     Notification alert = Notification.builder()
-                            .userId(deptHeadUserId)
+                            .userId(admin.getId())
                             .message("CRITICAL: Complaint " + complaint.getId() + " has exceeded its target SLA resolution deadline!")
+                            .isRead(false)
+                            .build();
+                    notificationRepository.save(alert);
+                }
+
+                // Alert the Department Superintendent (Head)
+                if (departmentSuperintendent != null) {
+                    Notification alert = Notification.builder()
+                            .userId(departmentSuperintendent.getId())
+                            .message("CRITICAL: Complaint " + complaint.getId() + " has exceeded its target SLA resolution deadline!")
+                            .isRead(false)
                             .build();
                     notificationRepository.save(alert);
                 }
@@ -130,7 +161,7 @@ public class EscalationScheduler {
                 Timeline event = Timeline.builder()
                         .complaint(complaint)
                         .status("SLA_EXCEEDED")
-                        .description("Target SLA resolution deadline exceeded. Apology email sent to citizen.")
+                        .description("Target SLA resolution deadline exceeded. Apology email sent to citizen from Super Admin.")
                         .build();
                 timelineRepository.save(event);
 

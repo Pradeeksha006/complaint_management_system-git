@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { 
-  Users, Power, Loader2, RefreshCw 
+  Users, Power, Loader2, RefreshCw, Trash2 
 } from 'lucide-react';
 
 const UserManagement = () => {
@@ -32,6 +32,17 @@ const UserManagement = () => {
       fetchUsersData();
     } catch (err) {
       alert('Failed to modify status: ' + err.message);
+    }
+  };
+
+  const handleDeleteUser = async (id, username) => {
+    if (window.confirm(`Are you sure you want to permanently delete citizen "${username}"?`)) {
+      try {
+        await api.delete(`/api/users/${id}`);
+        fetchUsersData();
+      } catch (err) {
+        alert('Failed to delete citizen: ' + (err.response?.data?.message || err.message));
+      }
     }
   };
 
@@ -118,6 +129,13 @@ const UserManagement = () => {
                           title={u.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
                         >
                           <Power className="h-3.5 w-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(u.id, u.username)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20"
+                          title="Delete Citizen"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>

@@ -127,3 +127,39 @@
   animation: gradient-drift 30s ease infinite alternate;
 }
 
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Google Translate UI overrides to keep it hidden and clean */
+iframe.goog-te-banner-frame,
+.goog-te-banner-frame,
+.goog-te-banner,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+#google_translate_element,
+.goog-te-spinner-pos,
+iframe[id*="goog-te-banner-frame"],
+iframe[class*="goog-te-banner-frame"],
+iframe[id*=":container"],
+div[id*=":container"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+html {
+  top: 0 !important;
+  margin-top: 0 !important;
+}
+

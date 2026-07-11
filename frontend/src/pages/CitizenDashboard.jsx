@@ -26,6 +26,14 @@ const CitizenDashboard = () => {
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [expandedComplaints, setExpandedComplaints] = useState({});
+
+  const toggleComplaintExpand = (complaintId) => {
+    setExpandedComplaints((prev) => ({
+      ...prev,
+      [complaintId]: !prev[complaintId],
+    }));
+  };
 
   useEffect(() => {
     fetchCitizenData();
@@ -225,66 +233,86 @@ const CitizenDashboard = () => {
             <Link to="/file-complaint" className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">File your first case</Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
-                  <th className="px-6 py-3">ID</th>
-                  <th className="px-6 py-3">Title</th>
-                  <th className="px-6 py-3">Department</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Date</th>
-                  <th className="px-6 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                {complaints.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">{c.id}</td>
-                    <td className="px-6 py-4 text-slate-700 dark:text-slate-200 max-w-xs">
-                      <div className="flex items-center gap-3">
-                        {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
-                          <img 
-                            src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
-                            alt="Proof" 
-                            className="h-10 w-10 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
-                          />
-                        ) : (
-                          <div className="h-10 w-10 bg-slate-105 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
-                            <FileText className="h-4 w-4 text-slate-400" />
-                          </div>
-                        )}
-                        <span className="truncate">{c.title}</span>
+          <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+            {complaints.map((c) => {
+              const isExpanded = !!expandedComplaints[c.id];
+              return (
+                <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                  {/* Clickable Header showing ID & Title */}
+                  <div 
+                    onClick={() => toggleComplaintExpand(c.id)}
+                    className="p-6 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-4 select-none"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center flex-wrap gap-2.5">
+                        <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{c.departmentName}</td>
-                    <td className="px-6 py-4">
+                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">{c.title}</h4>
+                    </div>
+                    <div className="flex items-center gap-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         c.status === 'RESOLVED' || c.status === 'CLOSED'
                           ? 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
                           : c.status === 'SUBMITTED'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/30 dark:text-blue-400'
+                          ? 'bg-blue-100 text-blue-805 dark:bg-blue-950/30 dark:text-blue-400'
                           : c.status === 'REJECTED'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-400'
+                          ? 'bg-red-100 text-red-805 dark:bg-red-950/30 dark:text-red-400'
+                          : 'bg-amber-100 text-amber-805 dark:bg-amber-950/30 dark:text-amber-400'
                       }`}>
                         {c.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Link 
-                        to={`/track-complaint/${c.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400"
+                      <svg 
+                        className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
                       >
-                        Track
-                        <ArrowRight className="h-3 w-3" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center flex-wrap gap-2.5">
+                            <span className="text-xs text-slate-400">Filed: {new Date(c.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
+                              <img 
+                                src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
+                                alt="Proof" 
+                                className="h-12 w-12 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
+                              />
+                            ) : (
+                              <div className="h-12 w-12 bg-slate-100 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-800">
+                                <FileText className="h-5 w-5 text-slate-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{c.departmentName}</p>
+                              {c.description && <p className="text-xs text-slate-650 dark:text-slate-300 mt-1 leading-relaxed">{c.description}</p>}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-end shrink-0 pt-3 sm:pt-0" onClick={(e) => e.stopPropagation()}>
+                          <Link 
+                            to={`/track-complaint/${c.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 px-3 py-1.5 text-xs font-bold text-blue-600 hover:underline dark:text-blue-400 shadow-sm cursor-pointer"
+                          >
+                            Track
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

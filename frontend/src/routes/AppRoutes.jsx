@@ -103,6 +103,12 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="pending-complaints" element={
+          <ProtectedRoute allowedRoles={['ROLE_DEPT_HEAD']}>
+            <DeptHeadDashboard defaultView="pending" />
+          </ProtectedRoute>
+        } />
+
         <Route path="dept-statistics" element={
           <ProtectedRoute allowedRoles={['ROLE_DEPT_HEAD']}>
             <DeptStatistics />
