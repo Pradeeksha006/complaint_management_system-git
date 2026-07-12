@@ -52,7 +52,7 @@ public class Complaint {
     @Column(length = 255)
     private String address;
 
-    @Column(name = "citizen_name", length = 150)
+    @Column(name = "cname", length = 150)
     private String citizenName;
 
     @Column(name = "citizen_email", length = 150)
