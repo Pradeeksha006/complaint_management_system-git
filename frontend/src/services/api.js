@@ -30,7 +30,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.error("401 Unauthorized API error:", error.response.config.url, error.response.data);
+      const requestUrl = error.response.config.url || '';
+      // If the error occurred on login or registration endpoints, do not redirect to landing page
+      if (requestUrl.includes('/api/auth/login') || requestUrl.includes('/api/auth/register')) {
+        return Promise.reject(error);
+      }
+      
+      console.error("401 Unauthorized API error:", requestUrl, error.response.data);
       // Session expired or unauthenticated
       localStorage.removeItem('token');
       localStorage.removeItem('user');
