@@ -625,6 +625,38 @@ public class UserService {
         auditLogRepository.save(audit);
     }
 
+    public Map<String, Object> debugLogin(String usernameOrEmail, String password) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("inputUsernameOrEmail", usernameOrEmail);
+        result.put("inputPasswordLength", password == null ? 0 : password.length());
+
+        Optional<User> userOpt = userRepository.findByUsername(usernameOrEmail)
+                .or(() -> userRepository.findByEmail(usernameOrEmail));
+
+        if (userOpt.isEmpty()) {
+            result.put("status", "USER_NOT_FOUND");
+            return result;
+        }
+
+        User user = userOpt.get();
+        result.put("dbUsername", user.getUsername());
+        result.put("dbEmail", user.getEmail());
+        result.put("dbRole", user.getRole().name());
+        result.put("dbStatus", user.getStatus().name());
+        result.put("dbEmailVerified", user.isEmailVerified());
+
+        boolean matches = passwordEncoder.matches(password, user.getPassword());
+        result.put("passwordMatches", matches);
+
+        if (matches) {
+            result.put("status", "SUCCESS");
+        } else {
+            result.put("status", "PASSWORD_MISMATCH");
+        }
+
+        return result;
+    }
+
     private void validatePasswordStrength(String password) {
         if (password == null || password.length() < 8) {
             throw new BadRequestException("Password must be at least 8 characters long");

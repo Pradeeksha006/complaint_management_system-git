@@ -72,4 +72,11 @@ public class AuthController {
         userService.logoutUser();
         return ResponseEntity.ok(new MessageResponse("Logged out successfully."));
     }
+
+    @PostMapping("/debug-login")
+    public ResponseEntity<Map<String, Object>> debugLogin(@RequestBody Map<String, String> body) {
+        String usernameOrEmail = body.get("usernameOrEmail");
+        String password = body.get("password");
+        return ResponseEntity.ok(userService.debugLogin(usernameOrEmail, password));
+    }
 }
