@@ -34,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
 
+    @org.springframework.beans.factory.annotation.Value("${app.admin.password:Pradhi@1234}")
+    private String adminPassword;
+
     @Override
     public void run(String... args) throws Exception {
         migrateDatabaseTablesIfNecessary();
@@ -207,7 +210,7 @@ public class DataInitializer implements CommandLineRunner {
             } else {
                 User admin = User.builder()
                         .username("admin")
-                        .password(passwordEncoder.encode("pradeeksha2006"))
+                        .password(passwordEncoder.encode(adminPassword))
                         .email("pradeeksha2006@gmail.com")
                         .fullName("Super Admin")
                         .phoneNumber("1234567890")

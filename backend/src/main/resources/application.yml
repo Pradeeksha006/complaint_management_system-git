@@ -48,6 +48,9 @@ app:
     accessTokenExpirationMs: 86400000 # 24 hours (for convenience in dev, can be smaller in prod)
     refreshTokenExpirationMs: 604800000 # 7 days
   
+  admin:
+    password: ${ADMIN_PASSWORD:Pradhi@1234}
+  
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:placeholder}
     api-key: ${CLOUDINARY_API_KEY:placeholder}
