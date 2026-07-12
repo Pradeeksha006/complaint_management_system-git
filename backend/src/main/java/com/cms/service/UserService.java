@@ -608,7 +608,7 @@ public class UserService {
         }
 
         // Clean up references
-        jdbcTemplate.update("UPDATE complaints SET citizen_id = NULL WHERE citizen_id = ?", id);
+        jdbcTemplate.update("UPDATE complaints SET cid = NULL WHERE cid = ?", id);
         jdbcTemplate.update("UPDATE complaint_timeline SET updated_by_id = NULL WHERE updated_by_id = ?", id);
         jdbcTemplate.update("UPDATE audit_logs SET user_id = NULL WHERE user_id = ?", id);
         jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id);

@@ -119,10 +119,10 @@ public class DataInitializer implements CommandLineRunner {
             // First, delete timeline events updated by non-existent users or legacy mock users to prevent foreign key errors
             jdbcTemplate.update("DELETE FROM complaint_timeline WHERE updated_by_id NOT IN (SELECT id FROM all_users) OR updated_by_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
             
-            jdbcTemplate.update("DELETE FROM feedbacks WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
-            jdbcTemplate.update("DELETE FROM complaints WHERE citizen_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
+            jdbcTemplate.update("DELETE FROM feedbacks WHERE complaint_id IN (SELECT id FROM complaints WHERE cid IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaint_timeline WHERE complaint_id IN (SELECT id FROM complaints WHERE cid IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM attachments WHERE complaint_id IN (SELECT id FROM complaints WHERE cid IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')))");
+            jdbcTemplate.update("DELETE FROM complaints WHERE cid IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
             jdbcTemplate.update("DELETE FROM officer_records WHERE user_id IN (SELECT id FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer'))");
             jdbcTemplate.update("DELETE FROM all_users WHERE username IN ('jane_citizen', 'david_dept_head', 'john_officer')");
             log.info("Legacy mock users cleaned up successfully.");
@@ -148,7 +148,7 @@ public class DataInitializer implements CommandLineRunner {
                     LEGACY_ADMIN_EMAIL);
             jdbcTemplate.update("DELETE FROM complaint_supports WHERE user_id IN (SELECT id FROM all_users WHERE email = ?)",
                     LEGACY_ADMIN_EMAIL);
-            jdbcTemplate.update("UPDATE complaints SET citizen_id = NULL WHERE citizen_id IN (SELECT id FROM all_users WHERE email = ?)",
+            jdbcTemplate.update("UPDATE complaints SET cid = NULL WHERE cid IN (SELECT id FROM all_users WHERE email = ?)",
                     LEGACY_ADMIN_EMAIL);
             jdbcTemplate.update("DELETE FROM all_users WHERE email = ?",
                     LEGACY_ADMIN_EMAIL);

@@ -22,7 +22,7 @@ public class Complaint {
     private String id; // Generated pattern e.g. WT-20260703-0001
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "citizen_id")
+    @JoinColumn(name = "cid")
     private User citizen; // Nullable if anonymous
 
     @ManyToOne(fetch = FetchType.LAZY)
