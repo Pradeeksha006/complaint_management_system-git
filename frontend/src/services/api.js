@@ -30,10 +30,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
+      console.error("401 Unauthorized API error:", error.response.config.url, error.response.data);
       // Session expired or unauthenticated
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     }
     return Promise.reject(error);
   }
