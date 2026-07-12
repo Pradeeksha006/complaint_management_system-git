@@ -23,6 +23,7 @@ const CitizenDashboard = () => {
   
   const [stats, setStats] = useState({ total: 0, pending: 0, resolved: 0 });
   const [complaints, setComplaints] = useState([]);
+  const [complaintView, setComplaintView] = useState('all');
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatbotOpen, setChatbotOpen] = useState(false);
@@ -43,13 +44,11 @@ const CitizenDashboard = () => {
   const fetchCitizenData = async () => {
     try {
       setLoading(true);
-      // Fetch citizen's complaints
-      const response = await api.get(`/api/complaints?citizenId=${user.id}&size=5`);
-      setComplaints(response.data.content);
+      // Fetch all citizen's complaints to compute stats and allow filtering
+      const response = await api.get(`/api/complaints?citizenId=${user.id}&size=100`);
+      const all = response.data.content;
+      setComplaints(all);
 
-      // Compute stats
-      const allRes = await api.get(`/api/complaints?citizenId=${user.id}&size=100`);
-      const all = allRes.data.content;
       setStats({
         total: all.length,
         pending: all.filter(c => c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED').length,
@@ -61,6 +60,16 @@ const CitizenDashboard = () => {
       setLoading(false);
     }
   };
+
+  const visibleComplaints = complaints.filter(c => {
+    if (complaintView === 'pending') {
+      return c.status !== 'RESOLVED' && c.status !== 'CLOSED' && c.status !== 'REJECTED';
+    }
+    if (complaintView === 'resolved') {
+      return c.status === 'RESOLVED' || c.status === 'CLOSED';
+    }
+    return true;
+  });
 
   const loadOfflineDrafts = () => {
     const saved = localStorage.getItem('offline_drafts');
@@ -131,7 +140,15 @@ const CitizenDashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-6 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setComplaintView('all')}
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md ${
+            complaintView === 'all' 
+              ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/5 dark:bg-blue-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <FileText className="h-6 w-6" />
@@ -141,9 +158,17 @@ const CitizenDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.total}</h3>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setComplaintView('pending')}
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md ${
+            complaintView === 'pending' 
+              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/5 dark:bg-amber-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-amber-50 p-3 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
               <Clock className="h-6 w-6" />
@@ -153,9 +178,17 @@ const CitizenDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.pending}</h3>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setComplaintView('resolved')}
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer hover:shadow-md ${
+            complaintView === 'resolved' 
+              ? 'border-green-500 ring-2 ring-green-500/20 bg-green-50/5 dark:bg-green-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-green-50 p-3 text-green-600 dark:bg-green-950/40 dark:text-green-400">
               <CheckCircle className="h-6 w-6" />
@@ -165,7 +198,7 @@ const CitizenDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.resolved}</h3>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Offline Drafts Panel */}
@@ -220,21 +253,34 @@ const CitizenDashboard = () => {
 
       {/* Recent Complaints Table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-          <h3 className="font-bold text-slate-800 dark:text-white">Recent Complaints</h3>
+        <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 dark:text-white">
+            {complaintView === 'all' ? 'All Complaints' : complaintView === 'pending' ? 'Pending Resolution' : 'Resolved Cases'}
+          </h3>
+          <span className="text-xs text-slate-400 font-semibold bg-slate-50 dark:bg-slate-850 px-2.5 py-0.5 rounded-full">
+            {visibleComplaints.length} {visibleComplaints.length === 1 ? 'ticket' : 'tickets'}
+          </span>
         </div>
 
         {loading ? (
           <div className="p-8 text-center text-slate-500">Loading complaints...</div>
-        ) : complaints.length === 0 ? (
+        ) : visibleComplaints.length === 0 ? (
           <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
             <FileWarning className="h-10 w-10 text-slate-400" />
-            <p className="text-sm">You haven't filed any complaints yet.</p>
-            <Link to="/file-complaint" className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">File your first case</Link>
+            <p className="text-sm">
+              {complaintView === 'all' 
+                ? "You haven't filed any complaints yet." 
+                : complaintView === 'pending' 
+                ? "You don't have any pending complaints." 
+                : "You don't have any resolved complaints yet."}
+            </p>
+            {complaintView === 'all' && (
+              <Link to="/file-complaint" className="text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400">File your first case</Link>
+            )}
           </div>
         ) : (
           <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
-            {complaints.map((c) => {
+            {visibleComplaints.map((c) => {
               const isExpanded = !!expandedComplaints[c.id];
               return (
                 <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
