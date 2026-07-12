@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  FolderLock, CheckCircle, Flame, ShieldAlert, Loader2, ArrowRight, Upload
+  FolderLock, CheckCircle, Flame, ShieldAlert, Loader2, ArrowRight, Upload, AlertTriangle
 } from 'lucide-react';
 
 const OfficerDashboard = () => {
@@ -16,6 +16,11 @@ const OfficerDashboard = () => {
   const [stats, setStats] = useState({ assigned: 0, inProgress: 0, resolved: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedComplaints, setExpandedComplaints] = useState({});
+  const [complaintView, setComplaintView] = useState('all');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const toggleComplaintExpand = (complaintId) => {
     setExpandedComplaints((prev) => ({
@@ -96,6 +101,66 @@ const OfficerDashboard = () => {
     }
   };
 
+  const isNearDeadline = (c) => {
+    if (c.status === 'RESOLVED' || c.status === 'CLOSED' || c.status === 'REJECTED') {
+      return false;
+    }
+    if (c.priority === 'CRITICAL') {
+      return true;
+    }
+    if (!c.deadline) {
+      return false;
+    }
+    const deadlineTime = new Date(c.deadline).getTime();
+    const now = Date.now();
+    const hoursLeft = (deadlineTime - now) / (1000 * 60 * 60);
+    return hoursLeft <= 4;
+  };
+
+  const urgentCount = complaints.filter(c => isNearDeadline(c)).length;
+
+  const visibleComplaints = complaints.filter(c => {
+    if (complaintView === 'assigned') {
+      return c.status === 'ASSIGNED';
+    }
+    if (complaintView === 'inProgress') {
+      return c.status === 'ACCEPTED' || c.status === 'IN_PROGRESS';
+    }
+    if (complaintView === 'resolved') {
+      return c.status === 'RESOLVED' || c.status === 'CLOSED';
+    }
+    if (complaintView === 'urgent') {
+      return isNearDeadline(c);
+    }
+    return true;
+  });
+
+  const totalPages = Math.ceil(visibleComplaints.length / itemsPerPage);
+  const paginatedComplaints = visibleComplaints.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [visibleComplaints.length, totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [complaintView]);
+
+  const queueTitle = complaintView === 'assigned'
+    ? 'Assigned Task Queue'
+    : complaintView === 'inProgress'
+      ? 'In Progress Work'
+      : complaintView === 'resolved'
+        ? 'Resolved Tickets'
+        : complaintView === 'urgent'
+          ? 'Urgent & Critical (Near Deadline)'
+          : 'All Assignments';
+
   // Dummy monthly resolution rate for chart representation
   const chartData = [
     { name: 'Jan', Resolved: 4 },
@@ -115,8 +180,16 @@ const OfficerDashboard = () => {
       </div>
 
       {/* KPI */}
-      <div className="grid gap-6 sm:grid-cols-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <button 
+          type="button" 
+          onClick={() => setComplaintView(complaintView === 'assigned' ? 'all' : 'assigned')} 
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer ${
+            complaintView === 'assigned' 
+              ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/5 dark:bg-blue-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <FolderLock className="h-6 w-6" />
@@ -126,9 +199,17 @@ const OfficerDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.assigned}</h3>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button 
+          type="button" 
+          onClick={() => setComplaintView(complaintView === 'inProgress' ? 'all' : 'inProgress')} 
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer ${
+            complaintView === 'inProgress' 
+              ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/5 dark:bg-amber-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-amber-50 p-3 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
               <Flame className="h-6 w-6 animate-pulse" />
@@ -138,9 +219,17 @@ const OfficerDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.inProgress}</h3>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+        <button 
+          type="button" 
+          onClick={() => setComplaintView(complaintView === 'resolved' ? 'all' : 'resolved')} 
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer ${
+            complaintView === 'resolved' 
+              ? 'border-green-500 ring-2 ring-green-500/20 bg-green-50/5 dark:bg-green-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-green-50 p-3 text-green-600 dark:bg-green-950/40 dark:text-green-400">
               <CheckCircle className="h-6 w-6" />
@@ -150,7 +239,35 @@ const OfficerDashboard = () => {
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stats.resolved}</h3>
             </div>
           </div>
-        </div>
+        </button>
+
+        <button 
+          type="button" 
+          onClick={() => setComplaintView(complaintView === 'urgent' ? 'all' : 'urgent')} 
+          className={`rounded-xl border p-6 text-left shadow-sm transition-all duration-200 cursor-pointer relative overflow-hidden ${
+            complaintView === 'urgent' 
+              ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/5 dark:bg-red-950/10' 
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-red-50 p-3 text-red-650 dark:bg-red-950/40 dark:text-red-400">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                Urgent Action
+                {urgentCount > 0 && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                )}
+              </p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{urgentCount}</h3>
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* Main Split Layout */}
@@ -158,19 +275,20 @@ const OfficerDashboard = () => {
         {/* Work items list */}
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
           <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
-            <h3 className="font-bold text-slate-800 dark:text-white">Active Assignments</h3>
+            <h3 className="font-bold text-slate-800 dark:text-white">{queueTitle}</h3>
           </div>
 
           {loading ? (
             <div className="p-8 text-center text-slate-500">Loading assignments...</div>
-          ) : complaints.length === 0 ? (
+          ) : visibleComplaints.length === 0 ? (
             <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
               <FolderLock className="h-10 w-10 text-slate-400" />
-              <p className="text-sm">No assignments found for you.</p>
+              <p className="text-sm">No assignments found for you under this filter.</p>
             </div>
           ) : (
-            <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
-              {complaints.map((c) => {
+            <>
+              <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+                {paginatedComplaints.map((c) => {
                 const isExpanded = !!expandedComplaints[c.id];
                 return (
                   <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
@@ -286,7 +404,48 @@ const OfficerDashboard = () => {
                 );
               })}
             </div>
-          )}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                <p className="text-xs text-slate-500">
+                  Showing <span className="font-semibold text-slate-800 dark:text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, visibleComplaints.length)}</span> to <span className="font-semibold text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, visibleComplaints.length)}</span> of <span className="font-semibold text-slate-800 dark:text-white">{visibleComplaints.length}</span> complaints
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                        currentPage === p
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>)}
         </div>
 
         {/* Recharts Analytics Panel */}

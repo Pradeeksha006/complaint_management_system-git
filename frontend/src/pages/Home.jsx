@@ -5,7 +5,7 @@ import {
   FileText, Shield, CheckCircle, Users, Search, ArrowRight, ShieldCheck, Zap, Award, 
   MessageSquare, HelpCircle, Building2, ClipboardList, Send, MapPin, BellRing,
   Droplets, Recycle, Lightbulb, Milestone, HeartPulse, Landmark, Coins, FileSpreadsheet, 
-  Trees, Leaf, Flame, AlertTriangle, Bus, Route, Building
+  Trees, Leaf, Flame, AlertTriangle, Bus, Route, Building, GraduationCap
 } from 'lucide-react';
 import logoImage from '../assets/logo.png';
 import heroImage from '../assets/hero.png';
@@ -432,13 +432,24 @@ const Home = () => {
             </div>
 
             {/* Transport Department */}
-            <div className="bg-white dark:bg-[#03140c] border border-slate-200 dark:border-[#052414] rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md hover:border-emerald-500 transition-all duration-300 col-span-1 sm:col-span-2 lg:col-span-1">
+            <div className="bg-white dark:bg-[#03140c] border border-slate-200 dark:border-[#052414] rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md hover:border-emerald-500 transition-all duration-300">
               <div className="h-10 w-10 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-lg flex items-center justify-center shrink-0">
                 <Bus className="h-5 w-5" />
               </div>
               <div>
                 <h4 className="font-bold text-slate-800 dark:text-slate-250 text-sm">Transport Department</h4>
                 <p className="text-xs text-slate-500 dark:text-emerald-100/40 mt-2">Public transport, transit safety, bus services, and route hazards.</p>
+              </div>
+            </div>
+
+            {/* Education Department */}
+            <div className="bg-white dark:bg-[#03140c] border border-slate-200 dark:border-[#052414] rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md hover:border-emerald-500 transition-all duration-300">
+              <div className="h-10 w-10 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 rounded-lg flex items-center justify-center shrink-0">
+                <GraduationCap className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-250 text-sm">Education Department</h4>
+                <p className="text-xs text-slate-500 dark:text-emerald-100/40 mt-2">School facilities, local admission requests, teacher/staff issues, and scholarships.</p>
               </div>
             </div>
 

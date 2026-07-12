@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { 
-  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles, Layers, Users, Star
+  Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles, Layers, Users, Star, AlertTriangle
 } from 'lucide-react';
 
 const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const complaintsListRef = useRef(null);
   
   // State variables
   const [complaints, setComplaints] = useState([]);
@@ -21,10 +24,36 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
   const [complaintView, setComplaintView] = useState(defaultView);
   const [loading, setLoading] = useState(true);
 
-  // Sync view state when route prop changes
+  // Sync view state when route prop changes or location changes
   useEffect(() => {
-    setComplaintView(defaultView);
-  }, [defaultView]);
+    if (location.pathname === '/pending-complaints') {
+      setComplaintView('pending');
+    } else {
+      setComplaintView(defaultView);
+    }
+  }, [defaultView, location.pathname]);
+
+  // Scroll to complaints view when filter changes
+  useEffect(() => {
+    if (complaintView !== 'recent') {
+      setTimeout(() => {
+        complaintsListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }
+  }, [complaintView]);
+
+  const handleStatCardClick = (viewName) => {
+    setComplaintView(viewName);
+    if (viewName === 'pending') {
+      if (location.pathname !== '/pending-complaints') {
+        navigate('/pending-complaints');
+      }
+    } else {
+      if (location.pathname === '/pending-complaints') {
+        navigate('/department-control');
+      }
+    }
+  };
 
   // Transfer and Assignment States
   const [assigningTo, setAssigningTo] = useState({}); // complaintId -> officerId
@@ -32,6 +61,10 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
   const [transferRemarks, setTransferRemarks] = useState({}); // complaintId -> remarks
   const [actioningId, setActioningId] = useState(null);
   const [expandedComplaints, setExpandedComplaints] = useState({});
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const toggleComplaintExpand = (complaintId) => {
     setExpandedComplaints((prev) => ({
@@ -204,6 +237,24 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
     };
   };
 
+  const isNearDeadline = (c) => {
+    if (c.status === 'RESOLVED' || c.status === 'CLOSED' || c.status === 'REJECTED') {
+      return false;
+    }
+    if (c.priority === 'CRITICAL') {
+      return true;
+    }
+    if (!c.deadline) {
+      return false;
+    }
+    const deadlineTime = new Date(c.deadline).getTime();
+    const now = Date.now();
+    const hoursLeft = (deadlineTime - now) / (1000 * 60 * 60);
+    return hoursLeft <= 4;
+  };
+
+  const urgentCount = complaints.filter(c => isNearDeadline(c)).length;
+
   const currentStats = getComputedStats();
   const workloadData = getWorkloadData();
   const currentDeptName = departments.find(d => d.id === Number(selectedDeptId))?.name || 'Department Control';
@@ -225,9 +276,26 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
           ? complaints.filter(c => c.feedback && c.feedback.rating)
           : complaintView === 'citizens'
             ? complaints
-            : complaintView === 'all'
-              ? complaints
-              : recentComplaints;
+            : complaintView === 'urgent'
+              ? complaints.filter(c => isNearDeadline(c))
+              : complaintView === 'all'
+                ? complaints
+                : recentComplaints;
+
+  const totalPages = Math.ceil(visibleComplaints.length / itemsPerPage);
+  const paginatedComplaints = complaintView === 'recent' || !complaintView
+    ? visibleComplaints
+    : visibleComplaints.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [visibleComplaints.length, totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [complaintView]);
 
   const queueTitle = complaintView === 'merged'
     ? 'Merged Complaint Reports'
@@ -239,9 +307,11 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
           ? 'Resolved Complaints Queue'
           : complaintView === 'ratings'
             ? 'Citizen Ratings & Feedback'
-            : complaintView === 'all'
-              ? 'All Department Complaints'
-              : 'Recent Activity';
+            : complaintView === 'urgent'
+              ? 'Urgent Action Needed (Near Deadline / Critical)'
+              : complaintView === 'all'
+                ? 'All Department Complaints'
+                : 'Recent Activity';
 
   return (
     <div className="space-y-8">
@@ -283,20 +353,20 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
       </div>
 
       {/* KPI stats */}
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-7">
-        <button type="button" onClick={() => setComplaintView('all')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-300 dark:hover:border-blue-700">
+      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        <button type="button" onClick={() => handleStatCardClick('all')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-blue-300 dark:hover:border-blue-700">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
               <Inbox className="h-6 w-6" />
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Complaints</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{currentStats.total}</h3>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{currentStats.citizenReports}</h3>
             </div>
           </div>
         </button>
 
-        <button type="button" onClick={() => setComplaintView('citizens')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700">
+        <button type="button" onClick={() => handleStatCardClick('citizens')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-cyan-50 p-3 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-400">
               <Layers className="h-6 w-6" />
@@ -304,18 +374,6 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actual Incidents</p>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{currentStats.incidents}</h3>
-            </div>
-          </div>
-        </button>
-
-        <button type="button" onClick={() => setComplaintView('merged')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-amber-300 dark:hover:border-amber-700">
-          <div className="flex items-center gap-4">
-            <div className="rounded-lg bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-              <Users className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Citizen Reports</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{currentStats.citizenReports}</h3>
             </div>
           </div>
         </button>
@@ -332,7 +390,7 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
           </div>
         </div>
 
-        <button type="button" onClick={() => setComplaintView('resolved')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-green-300 dark:hover:border-green-700 cursor-pointer">
+        <button type="button" onClick={() => handleStatCardClick('resolved')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-green-300 dark:hover:border-green-700 cursor-pointer">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-green-50 p-3 text-green-600 dark:bg-green-950/40 dark:text-green-400">
               <CheckSquare className="h-6 w-6" />
@@ -344,19 +402,54 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
           </div>
         </button>
 
-        <button type="button" onClick={() => setComplaintView('pending')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer">
+        <button type="button" onClick={() => handleStatCardClick('pending')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-purple-50 p-3 text-purple-600 dark:bg-purple-950/40 dark:text-blue-400">
               <UserCheck className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Awaiting Resolution</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">PENDING COMPLAINTS</p>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{currentStats.pending}</h3>
             </div>
           </div>
         </button>
 
-        <button type="button" onClick={() => setComplaintView('ratings')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer">
+        <button 
+          type="button" 
+          onClick={() => handleStatCardClick('urgent')} 
+          className={`rounded-xl border p-6 text-left shadow-sm hover:border-red-300 dark:hover:border-red-700 cursor-pointer relative overflow-hidden transition-all duration-200 ${
+            complaintView === 'urgent'
+              ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/5 dark:bg-red-950/10'
+              : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900'
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-red-50 p-3 text-red-650 dark:bg-red-950/40 dark:text-red-400">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                Urgent Action
+                {officers.length === 1 && urgentCount > 0 && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                )}
+              </p>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1 flex items-center gap-2">
+                {urgentCount}
+                {officers.length === 1 && (
+                  <span className="text-[9px] font-semibold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                    Single Officer Limit
+                  </span>
+                )}
+              </h3>
+            </div>
+          </div>
+        </button>
+
+        <button type="button" onClick={() => handleStatCardClick('ratings')} className="rounded-xl border border-slate-200 bg-white p-6 text-left dark:border-slate-800 dark:bg-slate-900 shadow-sm hover:border-purple-300 dark:hover:border-purple-700 cursor-pointer">
           <div className="flex items-center gap-4">
             <div className="rounded-lg bg-purple-50 p-3 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
               <Star className="h-6 w-6 fill-purple-600" />
@@ -372,7 +465,7 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
       {/* Main Split Content */}
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Ticket List */}
-        <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+        <div ref={complaintsListRef} className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
           <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
             <h3 className="font-bold text-slate-800 dark:text-white">{queueTitle}</h3>
           </div>
@@ -382,8 +475,9 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
           ) : visibleComplaints.length === 0 ? (
             <div className="p-12 text-center text-slate-500">No complaints registered in this department.</div>
           ) : (
-            <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
-              {visibleComplaints.map((c) => {
+            <>
+              <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+                {paginatedComplaints.map((c) => {
               if (complaintView === 'ratings') {
                 if (!c.feedback) return null;
                 return (
@@ -586,7 +680,48 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
                 );
               })}
             </div>
-          )}
+            
+            {/* Pagination Controls */}
+            {complaintView !== 'recent' && complaintView && totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                <p className="text-xs text-slate-500">
+                  Showing <span className="font-semibold text-slate-800 dark:text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, visibleComplaints.length)}</span> to <span className="font-semibold text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, visibleComplaints.length)}</span> of <span className="font-semibold text-slate-800 dark:text-white">{visibleComplaints.length}</span> complaints
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                        currentPage === p
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>)}
         </div>
 
         {/* Workload analysis list */}

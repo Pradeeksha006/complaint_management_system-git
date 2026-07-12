@@ -16,6 +16,14 @@ public class AiHelper {
     public static String predictDepartment(String title, String description) {
         String content = (title + " " + description).toLowerCase();
         
+        // Special Routing Rules: Mosquito issues and Stray Dogs go to Municipal Administration (MU)
+        if (content.contains("mosquito") || content.contains("கொசு") || content.contains("मच्छर") || content.contains("దోమలు") || content.contains("കൊതുക്") || content.contains("ಸೊಳ್ಳೆ") ||
+            (content.contains("dog") && (content.contains("stray") || content.contains("aggressive") || content.contains("bite") || content.contains("attack") || content.contains("menace"))) ||
+            (content.contains("நாய்") && (content.contains("தெரு") || content.contains("அச்சுறு") || content.contains("கடி") || content.contains("தாக்கு"))) ||
+            (content.contains("कुत्ता") && (content.contains("आवारा") || content.contains("काट") || content.contains("आक्रामक") || content.contains("हमला")))) {
+            return "MU"; // Municipal
+        }
+        
         // Water Supply & Sewage (WT)
         if (content.contains("water") || content.contains("leak") || content.contains("pipe") || content.contains("drain") || content.contains("sewer") || content.contains("plumb") || content.contains("tap") ||
             content.contains("குடிநீர்") || content.contains("தண்ணீர்") || content.contains("குழாய்") || content.contains("கசிவு") || content.contains("சாக்கடை") || content.contains("தண்ணி") ||
@@ -29,7 +37,7 @@ public class AiHelper {
         else if (content.contains("road") || content.contains("pothole") || content.contains("highway") || content.contains("street") || content.contains("bridge") || content.contains("tar") || content.contains("pavement") ||
                    content.contains("சாலை") || content.contains("பள்ளம்") || content.contains("பாதை") || content.contains("தெரு") || content.contains("ரோடு") ||
                    content.contains("सड़क") || content.contains("गड्ढा") || content.contains("रास्ता") || content.contains("मार्ग") ||
-                   content.contains("రోడ్డు") || content.contains("గుంత") || content.contains("రహదారి") ||
+                   content.contains("రోడ్డు") || content.contains("గుంత") || content.contains("ರಹదారి") ||
                    content.contains("റോഡ്") || content.contains("കുഴി") || content.contains("വഴി") ||
                    content.contains("ರಸ್ತೆ") || content.contains("ಗುಂಡಿ") || content.contains("ಮಾರ್ಗ")) {
             return "RD"; // Road
@@ -63,12 +71,10 @@ public class AiHelper {
             return "PL"; // Police
         } 
         // Public Health (HL)
-        else if (content.contains("stray") || content.contains("dog") || content.contains("health") || content.contains("disease") || content.contains("mosquito") || content.contains("hygiene") ||
-                   content.contains("நாய்") || content.contains("கொசு") || content.contains("நோய்") ||
-                   content.contains("कुत्ता") || content.contains("मच्छर") || content.contains("बीमारी") ||
-                   content.contains("కుక్క") || content.contains("దోమలు") ||
-                   content.contains("പട്ടി") || content.contains("കൊതുക്") || content.contains("രോഗം") ||
-                   content.contains("ನಾಯಿ") || content.contains("ಸೊಳ್ಳೆ") || content.contains("ಕಾಯಿಲೆ")) {
+        else if (content.contains("health") || content.contains("disease") || content.contains("hygiene") ||
+                   content.contains("நோய்") ||
+                   content.contains("बीमारी") ||
+                   content.contains("കಾಯಿലെ")) {
             return "HL"; // Health
         } 
         // Fire & Rescue Services (FI)
@@ -82,6 +88,13 @@ public class AiHelper {
         // Revenue Department (RV)
         else if (containsAny(content, "revenue", "land record", "patta", "chitta", "survey", "property tax", "tax receipt", "certificate", "income certificate", "community certificate", "legal heir", "encroachment", "land dispute")) {
             return "RV"; // Revenue
+        }
+        // Education Department (ED)
+        else if (content.contains("school") || content.contains("college") || content.contains("education") || content.contains("teacher") || content.contains("student") ||
+                 content.contains("admission") || content.contains("scholarship") || content.contains("classroom") || content.contains("blackboard") || content.contains("exam") ||
+                 content.contains("பள்ளி") || content.contains("ஆசிரியர்") || content.contains("கல்வி") || content.contains("மாணவர்") ||
+                 content.contains("स्कूल") || content.contains("शिक्षा") || content.contains("शिक्षक") || content.contains("छात्र")) {
+            return "ED"; // Education
         }
         // Transport & Traffic (TR)
         else if (content.contains("bus") || content.contains("metro") || content.contains("traffic") || content.contains("transport") || content.contains("vehicle") ||

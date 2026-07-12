@@ -13,6 +13,10 @@ const AllComplaints = () => {
   const [expandedSupportId, setExpandedSupportId] = useState(null);
   const [expandedComplaints, setExpandedComplaints] = useState({});
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const toggleComplaintExpand = (complaintId) => {
     setExpandedComplaints((prev) => ({
       ...prev,
@@ -109,6 +113,22 @@ const AllComplaints = () => {
     const matchesStatus = filterStatus ? c.status === filterStatus : true;
     return matchesSearch && matchesDept && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage);
+  const paginatedComplaints = filteredComplaints.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredComplaints.length, totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDept, filterStatus, semanticResults]);
 
   if (loading) {
     return (
@@ -229,7 +249,7 @@ const AllComplaints = () => {
           <div className="py-12 text-center text-slate-500">No complaints match your active filter search.</div>
         ) : (
           <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
-            {filteredComplaints.map((c) => {
+            {paginatedComplaints.map((c) => {
               const isExpanded = !!expandedComplaints[c.id];
               return (
                 <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
@@ -238,45 +258,42 @@ const AllComplaints = () => {
                     onClick={() => toggleComplaintExpand(c.id)}
                     className="p-6 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/10 flex items-center justify-between gap-4 select-none"
                   >
-                    <div className="space-y-1">
-                      <div className="flex items-center flex-wrap gap-2.5">
-                        <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                            #{c.id.substring(0, 8).toUpperCase()}
+                          </span>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-bold ${
+                            c.status === 'RESOLVED' || c.status === 'CLOSED'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-950/20 dark:text-green-400'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/20 dark:text-amber-400'
+                          }`}>
+                            {c.status}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">
+                          {c.departmentName}
+                        </span>
                       </div>
-                      <h4 className="text-md font-bold text-slate-800 dark:text-white mt-1">
-                        {c.translatedTitle && c.translatedTitle !== c.title ? c.translatedTitle : c.title}
-                        {c.translatedTitle && c.translatedTitle !== c.title && (
-                          <span className="ml-1.5 text-[9px] font-bold text-blue-500 uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 px-1 py-0.5 rounded">(AI Translated)</span>
-                        )}
-                      </h4>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        c.status === 'RESOLVED' || c.status === 'CLOSED'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
-                          : c.status === 'SUBMITTED'
-                          ? 'bg-blue-100 text-blue-805 dark:bg-blue-950/30 dark:text-blue-400'
-                          : c.status === 'REJECTED'
-                          ? 'bg-red-100 text-red-805 dark:bg-red-950/30 dark:text-red-400'
-                          : 'bg-amber-100 text-amber-805 dark:bg-amber-950/30 dark:text-amber-400'
-                      }`}>
-                        {c.status}
-                      </span>
-                      <svg 
-                        className={`h-5 w-5 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      
+                      <div className="flex items-start justify-between gap-4">
+                        <h4 className="font-bold text-slate-800 dark:text-white text-sm md:text-md mt-1 leading-snug">
+                          {c.title}
+                        </h4>
+                        <span className="text-[11.5px] text-slate-400 font-normal mt-1 block leading-none">
+                          {new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
+                  {/* Expanded Content View */}
                   {isExpanded && (
-                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800/60 space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center flex-wrap gap-2.5">
+                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 space-y-4">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div className="space-y-3 flex-1">
+                          <div className="flex flex-wrap items-center gap-3">
                             <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                               Customer Ref: {c.citizenId ? `CUST-${String(c.citizenId).padStart(4, '0')}` : 'Anonymous'}
                             </span>
@@ -390,6 +407,47 @@ const AllComplaints = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+            <p className="text-xs text-slate-500">
+              Showing <span className="font-semibold text-slate-800 dark:text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, filteredComplaints.length)}</span> to <span className="font-semibold text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, filteredComplaints.length)}</span> of <span className="font-semibold text-slate-800 dark:text-white">{filteredComplaints.length}</span> complaints
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+              >
+                Previous
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setCurrentPage(p)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                    currentPage === p
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

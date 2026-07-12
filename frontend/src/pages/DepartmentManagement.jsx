@@ -14,6 +14,22 @@ const DepartmentManagement = () => {
   const [description, setDescription] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  const totalPages = Math.ceil(departments.length / itemsPerPage);
+  const paginatedDepts = departments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [departments, totalPages, currentPage]);
+
   useEffect(() => {
     fetchDepts();
   }, []);
@@ -84,36 +100,79 @@ const DepartmentManagement = () => {
           {loading ? (
             <div className="p-8 text-center text-slate-500">Loading departments...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
-                    <th className="px-6 py-3">Code</th>
-                    <th className="px-6 py-3">Name</th>
-                    <th className="px-6 py-3">Description</th>
-                    <th className="px-6 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                  {departments.map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">{d.code}</td>
-                      <td className="px-6 py-4 text-slate-800 dark:text-white">{d.name}</td>
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">{d.description || '-'}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button 
-                          onClick={() => handleDeleteDept(d.id)}
-                          className="text-red-600 hover:text-red-800 p-1.5 rounded-lg border border-transparent hover:border-red-100 hover:bg-red-50 dark:hover:bg-red-950/20"
-                          title="Delete Department"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
+                      <th className="px-6 py-3">Code</th>
+                      <th className="px-6 py-3">Name</th>
+                      <th className="px-6 py-3">Description</th>
+                      <th className="px-6 py-3 text-right">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {paginatedDepts.map((d) => (
+                      <tr key={d.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <td className="px-6 py-4 font-bold text-blue-600 dark:text-blue-400">{d.code}</td>
+                        <td className="px-6 py-4 text-slate-800 dark:text-white">{d.name}</td>
+                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">{d.description || '-'}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => handleDeleteDept(d.id)}
+                            className="text-red-600 hover:text-red-800 p-1.5 rounded-lg border border-transparent hover:border-red-100 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            title="Delete Department"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                  <p className="text-xs text-slate-500">
+                    Showing <span className="font-semibold text-slate-800 dark:text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, departments.length)}</span> to <span className="font-semibold text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, departments.length)}</span> of <span className="font-semibold text-slate-800 dark:text-white">{departments.length}</span> departments
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setCurrentPage(p)}
+                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                          currentPage === p
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -29,6 +29,10 @@ const CitizenDashboard = () => {
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [expandedComplaints, setExpandedComplaints] = useState({});
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
   const toggleComplaintExpand = (complaintId) => {
     setExpandedComplaints((prev) => ({
       ...prev,
@@ -70,7 +74,21 @@ const CitizenDashboard = () => {
     }
     return true;
   });
+  const totalPages = Math.ceil(visibleComplaints.length / itemsPerPage);
+  const paginatedComplaints = visibleComplaints.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [visibleComplaints.length, totalPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [complaintView]);
   const loadOfflineDrafts = () => {
     const saved = localStorage.getItem('offline_drafts');
     if (saved) {
@@ -279,8 +297,9 @@ const CitizenDashboard = () => {
             )}
           </div>
         ) : (
-          <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
-            {visibleComplaints.map((c) => {
+          <>
+            <div className="bg-slate-50/50 dark:bg-slate-950/20 p-4 space-y-4 rounded-b-xl border-t border-slate-200 dark:border-slate-850">
+              {paginatedComplaints.map((c) => {
               const isExpanded = !!expandedComplaints[c.id];
               return (
                 <div key={c.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/80 dark:border-slate-800/60 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
@@ -360,7 +379,48 @@ const CitizenDashboard = () => {
               );
             })}
           </div>
-        )}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-800/10">
+                <p className="text-xs text-slate-500">
+                  Showing <span className="font-semibold text-slate-800 dark:text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, visibleComplaints.length)}</span> to <span className="font-semibold text-slate-800 dark:text-white">{Math.min(currentPage * itemsPerPage, visibleComplaints.length)}</span> of <span className="font-semibold text-slate-800 dark:text-white">{visibleComplaints.length}</span> tickets
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Previous
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setCurrentPage(p)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                        currentPage === p
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>)}
       </div>
 
     </div>

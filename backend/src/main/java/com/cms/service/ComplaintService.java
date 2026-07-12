@@ -188,6 +188,24 @@ public class ComplaintService {
             }
         }
 
+        // Workload Balancing Auto-Assignment (Idea 2)
+        Officer bestOfficer = null;
+        long minWorkload = Long.MAX_VALUE;
+        if (master == null) {
+            List<Officer> officers = officerRepository.findByDepartmentId(dept.getId());
+            for (Officer officer : officers) {
+                long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
+                if (workload < minWorkload) {
+                    minWorkload = workload;
+                    bestOfficer = officer;
+                }
+            }
+            if (bestOfficer != null) {
+                complaint.setAssignedOfficer(bestOfficer);
+                complaint.setStatus(ComplaintStatus.ASSIGNED);
+            }
+        }
+
         Complaint saved = complaintRepository.save(complaint);
 
         // 5. Create timeline event & register support
@@ -221,6 +239,9 @@ public class ComplaintService {
             }
         } else {
             saveTimelineEvent(saved, "SUBMITTED", "Complaint filed successfully" + (isAnonymous ? " anonymously" : "") + ".", citizen);
+            if (bestOfficer != null) {
+                saveTimelineEvent(saved, "ASSIGNED", "Automatically assigned to officer " + bestOfficer.getUser().getFullName() + " (Workload: " + minWorkload + " active task(s)) via workload balancer.", null);
+            }
         }
 
         // 6. Send Email Notifications
@@ -549,12 +570,32 @@ public class ComplaintService {
 
         String prevDeptName = complaint.getDepartment().getName();
         complaint.setDepartment(targetDept);
-        complaint.setAssignedOfficer(null); // Unassign officer
-        complaint.setStatus(ComplaintStatus.SUBMITTED); // Revert to submitted state
+        
+        // Trigger workload balancing auto-assignment for target department
+        List<Officer> officers = officerRepository.findByDepartmentId(targetDept.getId());
+        Officer bestOfficer = null;
+        long minWorkload = Long.MAX_VALUE;
+        for (Officer officer : officers) {
+            long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
+            if (workload < minWorkload) {
+                minWorkload = workload;
+                bestOfficer = officer;
+            }
+        }
+        if (bestOfficer != null) {
+            complaint.setAssignedOfficer(bestOfficer);
+            complaint.setStatus(ComplaintStatus.ASSIGNED);
+        } else {
+            complaint.setAssignedOfficer(null); // Unassign officer if no officers exist in target department
+            complaint.setStatus(ComplaintStatus.SUBMITTED); // Revert to submitted state
+        }
 
         Complaint saved = complaintRepository.save(complaint);
 
         saveTimelineEvent(saved, "TRANSFERRED", "Complaint transferred from " + prevDeptName + " to " + targetDept.getName() + ". Remarks: " + remarks, currentUser);
+        if (bestOfficer != null) {
+            saveTimelineEvent(saved, "ASSIGNED", "Automatically assigned to officer " + bestOfficer.getUser().getFullName() + " (Workload: " + minWorkload + " active task(s)) via workload balancer.", currentUser);
+        }
 
         return MapperUtils.toDto(saved);
     }
@@ -817,10 +858,33 @@ public class ComplaintService {
 
         complaint.setDepartment(newDept);
         complaint.setCategory(newDept.getName());
+        
+        // Trigger workload balancing auto-assignment for new department
+        List<Officer> officers = officerRepository.findByDepartmentId(newDept.getId());
+        Officer bestOfficer = null;
+        long minWorkload = Long.MAX_VALUE;
+        for (Officer officer : officers) {
+            long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
+            if (workload < minWorkload) {
+                minWorkload = workload;
+                bestOfficer = officer;
+            }
+        }
+        if (bestOfficer != null) {
+            complaint.setAssignedOfficer(bestOfficer);
+            complaint.setStatus(ComplaintStatus.ASSIGNED);
+        } else {
+            complaint.setAssignedOfficer(null);
+            complaint.setStatus(ComplaintStatus.SUBMITTED);
+        }
+
         complaint = complaintRepository.save(complaint);
 
         // Add a timeline event
         saveTimelineEvent(complaint, "MODIFIED", "Citizen modified the department assignment to: " + newDept.getName(), user);
+        if (bestOfficer != null) {
+            saveTimelineEvent(complaint, "ASSIGNED", "Automatically assigned to officer " + bestOfficer.getUser().getFullName() + " (Workload: " + minWorkload + " active task(s)) via workload balancer.", user);
+        }
 
         return MapperUtils.toDto(complaint);
     }
@@ -875,12 +939,32 @@ public class ComplaintService {
         String prevDeptName = complaint.getDepartment().getName();
         complaint.setDepartment(targetDept);
         complaint.setCategory(targetDept.getName());
-        complaint.setAssignedOfficer(null);
-        complaint.setStatus(ComplaintStatus.SUBMITTED);
+        
+        // Trigger workload balancing auto-assignment for target department
+        List<Officer> officers = officerRepository.findByDepartmentId(targetDept.getId());
+        Officer bestOfficer = null;
+        long minWorkload = Long.MAX_VALUE;
+        for (Officer officer : officers) {
+            long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
+            if (workload < minWorkload) {
+                minWorkload = workload;
+                bestOfficer = officer;
+            }
+        }
+        if (bestOfficer != null) {
+            complaint.setAssignedOfficer(bestOfficer);
+            complaint.setStatus(ComplaintStatus.ASSIGNED);
+        } else {
+            complaint.setAssignedOfficer(null);
+            complaint.setStatus(ComplaintStatus.SUBMITTED);
+        }
 
         Complaint saved = complaintRepository.save(complaint);
 
         saveTimelineEvent(saved, "TRANSFERRED", "AI Auto-Routed complaint from " + prevDeptName + " to " + targetDept.getName() + " based on content analysis.", currentUser);
+        if (bestOfficer != null) {
+            saveTimelineEvent(saved, "ASSIGNED", "Automatically assigned to officer " + bestOfficer.getUser().getFullName() + " (Workload: " + minWorkload + " active task(s)) via workload balancer.", currentUser);
+        }
 
         return MapperUtils.toDto(saved);
     }

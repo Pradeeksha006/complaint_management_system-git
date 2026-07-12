@@ -171,7 +171,8 @@ public class DataInitializer implements CommandLineRunner {
             Department.builder().name("Revenue Department").code("RV").description("Land records, property tax, certificates, survey, encroachment, and revenue services.").build(),
             Department.builder().name("Forest Department").code("FR").description("Tree hazards, forest land, wildlife rescue, illegal cutting, and environmental protection.").build(),
             Department.builder().name("Fire & Rescue Services").code("FI").description("Fire incidents, rescue, gas leaks, explosions, and immediate emergency hazards.").build(),
-            Department.builder().name("Transport Department").code("TR").description("Public transport, bus service, traffic operations, vehicle permits, and transit safety.").build()
+            Department.builder().name("Transport Department").code("TR").description("Public transport, bus service, traffic operations, vehicle permits, and transit safety.").build(),
+            Department.builder().name("Education Department").code("ED").description("School facilities, teacher requests, local school admissions, scholarships, and educational complaints.").build()
         );
 
         for (Department dept : defaultDepts) {
@@ -255,6 +256,7 @@ public class DataInitializer implements CommandLineRunner {
         seedDeptHead("FR", "forest_admin", "forest@cms.com", "forestpassword", "Forest Chief Superintendent");
         seedDeptHead("FI", "fire_admin", "fire@cms.com", "firepassword", "Fire Chief Superintendent");
         seedDeptHead("TR", "transport_admin", "transport@cms.com", "transportpassword", "Transport Chief Superintendent");
+        seedDeptHead("ED", "education_admin", "education@cms.com", "educationpassword", "Education Chief Superintendent");
     }
 
     private void seedDeptHead(String deptCode, String username, String email, String password, String fullName) {
@@ -276,6 +278,7 @@ public class DataInitializer implements CommandLineRunner {
         else if ("FR".equals(deptCode)) pin = "999999";
         else if ("FI".equals(deptCode)) pin = "101010";
         else if ("TR".equals(deptCode)) pin = "202020";
+        else if ("ED".equals(deptCode)) pin = "303030";
 
         Optional<User> existingUserOpt = userRepository.findByUsername(username);
         User user;
@@ -346,6 +349,7 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute("CREATE OR REPLACE VIEW forest_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'FR'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW fire_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'FI'");
             jdbcTemplate.execute("CREATE OR REPLACE VIEW transport_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'TR'");
+            jdbcTemplate.execute("CREATE OR REPLACE VIEW education_department_complaints AS SELECT c.* FROM complaints c JOIN departments d ON c.department_id = d.id WHERE d.code = 'ED'");
             log.info("Successfully registered all MySQL views.");
         } catch (Exception e) {
             log.error("Failed to create database views: {}", e.getMessage());

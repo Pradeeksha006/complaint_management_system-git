@@ -431,7 +431,10 @@ public class GeminiService {
         String prompt = "You are a department routing assistant for a public services network. Analyze the following complaint title and description (which could be in Tamil, Hindi, Telugu, Malayalam, Kannada, English, or any other regional language). " +
                 "Determine the core issue and match it to the most relevant department from the candidates list. " +
                 "If the description is empty or short, classify from the complaint title alone. " +
-                "Prefer Fire & Rescue for fire/gas leak/rescue emergencies, Revenue for land records/tax/certificates/encroachment, Forest for trees/wildlife/forest land, Transport for buses/traffic/vehicle permits, and Municipal Administration for general civic administration. " +
+                "\n\nCRITICAL ROUTING RULES:\n" +
+                "1. If the complaint contains issues or keywords related to mosquito bites, mosquito control, or mosquito breeding, do NOT choose Public Health (HL); you MUST select Municipal Administration (MU), because it concerns the local residents suffering from the mosquito menace.\n" +
+                "2. If the complaint is about stray dogs (such as aggressive stray dogs, stray dog menace/bites/attacks), do NOT choose Public Health (HL); you MUST select Municipal Administration (MU).\n\n" +
+                "Prefer Fire & Rescue for fire/gas leak/rescue emergencies, Revenue for land records/tax/certificates/encroachment, Forest for trees/wildlife/forest land, Transport for buses/traffic/vehicle permits, Education for school/teacher/admission/fees/scholarships/educational complaints, and Municipal Administration for general civic administration. " +
                 "\n\nCandidate Departments:\n" + departmentsJson + "\n\n" +
                 "Complaint Title: \"" + title + "\"\n" +
                 "Complaint Description: \"" + description + "\"\n\n" +

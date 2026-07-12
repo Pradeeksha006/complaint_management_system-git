@@ -84,4 +84,7 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     long countByDepartmentIdAndPriority(Long departmentId, com.cms.entity.Priority priority);
     long countByDepartmentIdAndStatusNotAndDeadlineBetween(Long departmentId, ComplaintStatus status, LocalDateTime start, LocalDateTime end);
     long countByDepartmentIdAndStatusNotAndDeadlineBefore(Long departmentId, ComplaintStatus status, LocalDateTime deadline);
+
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.assignedOfficer.id = :officerId AND c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
+    long countActiveComplaintsByOfficerId(@Param("officerId") Long officerId);
 }
