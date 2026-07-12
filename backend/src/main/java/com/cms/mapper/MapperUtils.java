@@ -113,7 +113,7 @@ public class MapperUtils {
         return ComplaintDto.builder()
                 .id(c.getId())
                 .citizenId(c.getCitizen() != null ? c.getCitizen().getId() : null)
-                .citizenName(c.getCitizenName() != null ? c.getCitizenName() : "Anonymous Citizen")
+                .citizenName(c.getCitizen() != null ? c.getCitizen().getFullName() : (c.getCitizenName() != null ? c.getCitizenName() : "Anonymous Citizen"))
                 .departmentId(source.getDepartment().getId())
                 .departmentName(source.getDepartment().getName())
                 .title(c.getTitle())
@@ -134,7 +134,7 @@ public class MapperUtils {
                 .attachments(c.getAttachments() != null ? 
                         c.getAttachments().stream().map(MapperUtils::toDto).collect(Collectors.toList()) : 
                         Collections.emptyList())
-                .citizenEmail(c.getCitizenEmail() != null ? c.getCitizenEmail() : "N/A")
+                .citizenEmail(c.getCitizen() != null ? c.getCitizen().getEmail() : (c.getCitizenEmail() != null ? c.getCitizenEmail() : "N/A"))
                 .citizenPhone(c.getCitizen() != null ? c.getCitizen().getPhoneNumber() : "N/A")
                 .summary(c.getSummary())
                 .translatedDescription(c.getTranslatedDescription())

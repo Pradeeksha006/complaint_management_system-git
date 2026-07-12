@@ -392,7 +392,7 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center flex-wrap gap-2.5">
                           <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{c.id}</span>
-                          <span className="text-xs text-slate-400">By: {c.isAnonymous ? 'Anonymous' : c.citizenName}</span>
+                          <span className="text-xs text-slate-400">By: {c.citizenName || 'Anonymous'}</span>
                           <span className="text-xs text-slate-450 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-850 px-2 py-0.5 rounded">Email: {c.citizenEmail || 'N/A'}</span>
                         </div>
                         <div>
