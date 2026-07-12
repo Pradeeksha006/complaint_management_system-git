@@ -49,6 +49,12 @@ public class UserService {
     private final CloudinaryService cloudinaryService;
     private final JdbcTemplate jdbcTemplate;
     private final ActiveSessionRegistry activeSessionRegistry;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.username:superadmin}")
+    private String adminUsername;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.email:pradeeksha2006@gmail.com}")
+    private String adminEmail;
     @Transactional
     public UserDto registerUser(RegisterRequest request) {
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
@@ -175,25 +181,24 @@ public class UserService {
             return;
         }
 
-        String superAdminEmail = "pradeeksha2006@gmail.com";
-        boolean isSuperAdminLogin = "admin".equalsIgnoreCase(login)
-                || superAdminEmail.equalsIgnoreCase(login);
+        boolean isSuperAdminLogin = adminUsername.equalsIgnoreCase(login)
+                || adminEmail.equalsIgnoreCase(login);
         if (!isSuperAdminLogin) {
             return;
         }
 
-        User admin = userRepository.findByEmail(superAdminEmail)
-                .or(() -> userRepository.findByUsername("admin"))
+        User admin = userRepository.findByEmail(adminEmail)
+                .or(() -> userRepository.findByUsername(adminUsername))
                 .or(() -> userRepository.findByUsername(login))
                 .or(() -> userRepository.findByEmail(login))
                 .orElseGet(() -> User.builder()
-                        .username("admin")
-                        .email(superAdminEmail)
+                        .username(adminUsername)
+                        .email(adminEmail)
                         .fullName("Super Admin")
                         .phoneNumber("1234567890")
                         .build());
 
-        admin.setEmail(superAdminEmail);
+        admin.setEmail(adminEmail);
         admin.setFullName("Super Admin");
         admin.setRole(Role.ROLE_ADMIN);
         admin.setStatus(UserStatus.ACTIVE);
@@ -598,7 +603,7 @@ public class UserService {
         User userToDelete = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User to delete not found"));
 
-        if (userToDelete.getRole() == Role.ROLE_ADMIN && userToDelete.getUsername().equals("admin")) {
+        if (userToDelete.getRole() == Role.ROLE_ADMIN && userToDelete.getUsername().equals(adminUsername)) {
             throw new BadRequestException("Super Admin account cannot be deleted");
         }
 

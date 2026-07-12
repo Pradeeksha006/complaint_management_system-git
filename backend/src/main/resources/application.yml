@@ -49,6 +49,8 @@ app:
     refreshTokenExpirationMs: 604800000 # 7 days
   
   admin:
+    username: ${ADMIN_USERNAME:superadmin}
+    email: ${ADMIN_EMAIL:pradeeksha2006@gmail.com}
     password: ${ADMIN_PASSWORD:Pradhi@1234}
   
   cloudinary:

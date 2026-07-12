@@ -24,9 +24,13 @@ import java.util.Optional;
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private static final String SUPER_ADMIN_USERNAME = "admin";
-    private static final String SUPER_ADMIN_EMAIL = "pradeeksha2006@gmail.com";
     private static final String LEGACY_ADMIN_EMAIL = "vijaykumarcms@gmail.com";
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.username:superadmin}")
+    private String adminUsername;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.email:pradeeksha2006@gmail.com}")
+    private String adminEmail;
 
     private final DepartmentRepository departmentRepository;
     private final UserRepository userRepository;
@@ -131,11 +135,11 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Cleaning up stale Super Admin aliases and officer mappings...");
         try {
             jdbcTemplate.update("UPDATE all_users SET email = ? WHERE email = ? AND NOT EXISTS (SELECT 1 FROM (SELECT id FROM all_users WHERE email = ?) existing_admin_email)",
-                    SUPER_ADMIN_EMAIL, LEGACY_ADMIN_EMAIL, SUPER_ADMIN_EMAIL);
+                    adminEmail, LEGACY_ADMIN_EMAIL, adminEmail);
             jdbcTemplate.update("UPDATE complaints SET assigned_officer_id = NULL WHERE assigned_officer_id IN (SELECT id FROM officer_records WHERE user_id IN (SELECT id FROM all_users WHERE username = ? OR email IN (?, ?) OR role = 'ROLE_ADMIN'))",
-                    SUPER_ADMIN_USERNAME, SUPER_ADMIN_EMAIL, LEGACY_ADMIN_EMAIL);
+                    adminUsername, adminEmail, LEGACY_ADMIN_EMAIL);
             jdbcTemplate.update("DELETE FROM officer_records WHERE user_id IN (SELECT id FROM all_users WHERE username = ? OR email IN (?, ?) OR role = 'ROLE_ADMIN')",
-                    SUPER_ADMIN_USERNAME, SUPER_ADMIN_EMAIL, LEGACY_ADMIN_EMAIL);
+                    adminUsername, adminEmail, LEGACY_ADMIN_EMAIL);
             jdbcTemplate.update("DELETE FROM notifications WHERE user_id IN (SELECT id FROM all_users WHERE email = ?)",
                     LEGACY_ADMIN_EMAIL);
             jdbcTemplate.update("UPDATE audit_logs SET user_id = NULL WHERE user_id IN (SELECT id FROM all_users WHERE email = ?)",
@@ -181,15 +185,15 @@ public class DataInitializer implements CommandLineRunner {
     private void seedAdminUser() {
         log.info("Checking/Seeding Super Admin account...");
         
-        Optional<User> existingAdminOpt = userRepository.findByUsername("admin");
+        Optional<User> existingAdminOpt = userRepository.findByUsername(adminUsername);
         if (existingAdminOpt.isPresent()) {
             User admin = existingAdminOpt.get();
             ensureSuperAdminCredentials(admin);
 
-            Optional<User> adminEmailUser = userRepository.findByEmail("pradeeksha2006@gmail.com");
-            if (!"pradeeksha2006@gmail.com".equalsIgnoreCase(admin.getEmail())
+            Optional<User> adminEmailUser = userRepository.findByEmail(adminEmail);
+            if (!adminEmail.equalsIgnoreCase(admin.getEmail())
                     && (adminEmailUser.isEmpty() || adminEmailUser.get().getId().equals(admin.getId()))) {
-                admin.setEmail("pradeeksha2006@gmail.com");
+                admin.setEmail(adminEmail);
             }
             userRepository.save(admin);
 
@@ -197,21 +201,21 @@ public class DataInitializer implements CommandLineRunner {
                 User emailAdmin = adminEmailUser.get();
                 ensureSuperAdminCredentials(emailAdmin);
                 userRepository.save(emailAdmin);
-                log.info("Ensured Super Admin account is active for email pradeeksha2006@gmail.com.");
+                log.info("Ensured Super Admin account is active for email " + adminEmail + ".");
             }
-            log.info("Ensured Super Admin account is active with username 'admin' and expected credentials.");
+            log.info("Ensured Super Admin account is active with username '" + adminUsername + "' and expected credentials.");
         } else {
-            Optional<User> adminByEmail = userRepository.findByEmail("pradeeksha2006@gmail.com");
+            Optional<User> adminByEmail = userRepository.findByEmail(adminEmail);
             if (adminByEmail.isPresent()) {
                 User admin = adminByEmail.get();
                 ensureSuperAdminCredentials(admin);
                 userRepository.save(admin);
-                log.info("Ensured Super Admin account is active for email pradeeksha2006@gmail.com.");
+                log.info("Ensured Super Admin account is active for email " + adminEmail + ".");
             } else {
                 User admin = User.builder()
-                        .username("admin")
+                        .username(adminUsername)
                         .password(passwordEncoder.encode(adminPassword))
-                        .email("pradeeksha2006@gmail.com")
+                        .email(adminEmail)
                         .fullName("Super Admin")
                         .phoneNumber("1234567890")
                         .role(Role.ROLE_ADMIN)
@@ -220,13 +224,14 @@ public class DataInitializer implements CommandLineRunner {
                         .securityPin("123456")
                         .build();
                 userRepository.save(admin);
-                log.info("Seeded new Super Admin account with username 'admin' and email 'pradeeksha2006@gmail.com' with security PIN");
+                log.info("Seeded new Super Admin account with username '" + adminUsername + "' and email '" + adminEmail + "' with security PIN");
             }
         }
     }
 
     private void ensureSuperAdminCredentials(User admin) {
-        admin.setEmail(SUPER_ADMIN_EMAIL);
+        admin.setUsername(adminUsername);
+        admin.setEmail(adminEmail);
         admin.setFullName("Super Admin");
         admin.setRole(Role.ROLE_ADMIN);
         admin.setStatus(UserStatus.ACTIVE);
