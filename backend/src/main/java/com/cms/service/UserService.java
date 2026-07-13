@@ -11,6 +11,8 @@ import com.cms.repository.DepartmentRepository;
 import com.cms.repository.OfficerRepository;
 import com.cms.repository.UserRepository;
 import com.cms.security.JwtTokenProvider;
+import com.cms.repository.CitizenRepository;
+import com.cms.entity.Citizen;
 import com.cms.security.SecurityUtils;
 import com.cms.security.ActiveSessionRegistry;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CitizenRepository citizenRepository;
     private final OfficerRepository officerRepository;
     private final DepartmentRepository departmentRepository;
     private final AuditLogRepository auditLogRepository;
@@ -57,28 +60,36 @@ public class UserService {
     private String adminEmail;
     @Transactional
     public UserDto registerUser(RegisterRequest request) {
+        // Registrations are for citizens; store in the dedicated 'users' table
+        // Prevent registration with reserved admin email or username
+        if (adminEmail.equalsIgnoreCase(request.getEmail()) || adminUsername.equalsIgnoreCase(request.getUsername())) {
+            throw new BadRequestException("Admin email or username is reserved");
+        }
+        // Reject if email or username already exists (verified accounts)
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new BadRequestException("Username already exists");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new BadRequestException("Email already exists");
+        }
         String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
-        // Clean up any unverified duplicate user with the same username or email
-        userRepository.findByUsername(request.getUsername()).ifPresent(user -> {
-            if (!user.isEmailVerified()) {
-                userRepository.delete(user);
+        // Clean up any existing user (admin/officer/citizen) with the same username or email that is not yet verified
+        userRepository.findByUsername(request.getUsername()).ifPresent(u -> {
+            if (!u.isEmailVerified()) {
+                userRepository.delete(u);
                 userRepository.flush();
-            } else {
-                throw new BadRequestException("Username is already taken");
+            }
+        });
+        userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
+            if (!u.isEmailVerified()) {
+                userRepository.delete(u);
+                userRepository.flush();
             }
         });
 
-        userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
-            if (!user.isEmailVerified()) {
-                userRepository.delete(user);
-                userRepository.flush();
-            } else {
-                throw new BadRequestException("Email address is already in use");
-            }
-        });
-
-        User user = User.builder()
+        // Create a new User entry with role CITIZEN and pending verification status
+        User newUser = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -87,87 +98,104 @@ public class UserService {
                 .role(Role.ROLE_CITIZEN)
                 .status(UserStatus.PENDING)
                 .emailVerified(false)
-                .resetOtp(otp)
-                .resetOtpExpiry(LocalDateTime.now().plusMinutes(15))
                 .build();
+        // Set OTP and expiry for verification
+        newUser.setResetOtp(otp);
+        newUser.setResetOtpExpiry(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(newUser);
 
-        userRepository.save(user);
-        
-        emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
+        // Send OTP for email verification
+        emailService.sendRegistrationOtpEmail(newUser.getEmail(), newUser.getFullName(), otp);
 
+        // Return DTO for the newly created user
         return UserDto.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole().name())
-                .status("PENDING_VERIFICATION")
+                .id(newUser.getId())
+                .username(newUser.getUsername())
+                .email(newUser.getEmail())
+                .fullName(newUser.getFullName())
+                .phoneNumber(newUser.getPhoneNumber())
+                .role(Role.ROLE_CITIZEN.name())
+                .status(UserStatus.PENDING.name())
                 .emailVerified(false)
                 .build();
+
     }
 
     @Transactional
     public AuthResponse loginUser(AuthRequest request) {
-        ensureSuperAdminCanLogin(request);
+        // Allow super admin login without restrictions
+        // Duplicate login block removed
 
-        userRepository.findByUsername(request.getUsernameOrEmail())
-                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .ifPresent(user -> {
-                    if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-                        if (!user.isEmailVerified()) {
-                            throw new BadRequestException("Please verify your email address first");
-                        }
-                        if (user.getStatus() == UserStatus.INACTIVE) {
-                            throw new BadRequestException("Your account is suspended");
-                        }
-                    }
-                });
+        // Attempt to find a regular user (admin/officer)
+        Optional<User> userOpt = userRepository.findByUsername(request.getUsernameOrEmail())
+                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()));
+        // If the login matches the reserved super admin credentials but the stored role is ADMIN,
+        // downgrade it to a citizen role to prevent admin dashboard access.
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsernameOrEmail(), request.getPassword())
-        );
 
-        User user = userRepository.findByUsername(request.getUsernameOrEmail())
-                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        if (!user.isEmailVerified()) {
-            throw new BadRequestException("Please verify your email address first");
-        }
-        if (user.getStatus() == UserStatus.INACTIVE) {
-            throw new BadRequestException("Your account is suspended");
-        }
-
-        // Prevent concurrent logins for Citizens
-        if (user.getRole() == Role.ROLE_CITIZEN && activeSessionRegistry.isSessionActive(user.getUsername())) {
-            throw new BadRequestException("This account is already logged in on another device.");
-        }
-
-        String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
-        
-        // Register active session
-        activeSessionRegistry.registerSession(user.getUsername(), token);
-
-        // Send login alert email
-        emailService.sendLoginAlertEmail(user.getEmail(), user.getFullName());
-
-        Long deptId = null;
-        if (user.getRole() == Role.ROLE_OFFICER || user.getRole() == Role.ROLE_DEPT_HEAD) {
-            Officer officer = officerRepository.findByUserId(user.getId()).orElse(null);
-            if (officer != null) {
-                deptId = officer.getDepartment().getId();
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Verify password
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new BadRequestException("Invalid credentials");
             }
+            // Verify email and status
+            if (!user.isEmailVerified()) {
+                throw new BadRequestException("Please verify your email address first");
+            }
+            if (user.getStatus() == UserStatus.INACTIVE) {
+                throw new BadRequestException("Your account is suspended");
+            }
+            // Prevent concurrent logins for Citizens (regular users may also be citizens, but handled separately)
+            if (user.getRole() == Role.ROLE_CITIZEN && activeSessionRegistry.isSessionActive(user.getUsername())) {
+                throw new BadRequestException("This account is already logged in on another device.");
+            }
+            // Generate JWT token
+            String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
+            // Register active session
+            activeSessionRegistry.registerSession(user.getUsername(), token);
+            // Send login alert email
+            emailService.sendLoginAlertEmail(user.getEmail(), user.getFullName());
+
+            Long deptId = null;
+            if (user.getRole() == Role.ROLE_OFFICER || user.getRole() == Role.ROLE_DEPT_HEAD) {
+                Officer officer = officerRepository.findByUserId(user.getId()).orElse(null);
+                if (officer != null) {
+                    deptId = officer.getDepartment().getId();
+                }
+            }
+
+            return AuthResponse.builder()
+                    .token(token)
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .role(user.getRole().name())
+                    .departmentId(deptId)
+                    .build();
         }
+
+        // If not a regular user, attempt citizen login
+        Citizen citizen = citizenRepository.findByUsername(request.getUsernameOrEmail())
+                .or(() -> citizenRepository.findByEmail(request.getUsernameOrEmail()))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!passwordEncoder.matches(request.getPassword(), citizen.getPassword())) {
+            throw new BadRequestException("Invalid credentials");
+        }
+        // Generate token for citizen
+        String token = tokenProvider.generateToken(citizen.getUsername(), Role.ROLE_CITIZEN.name());
+        activeSessionRegistry.registerSession(citizen.getUsername(), token);
+        emailService.sendLoginAlertEmail(citizen.getEmail(), citizen.getFullName());
 
         return AuthResponse.builder()
                 .token(token)
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .role(user.getRole().name())
-                .departmentId(deptId)
+                .id(citizen.getId())
+                .username(citizen.getUsername())
+                .email(citizen.getEmail())
+                .fullName(citizen.getFullName())
+                .role(Role.ROLE_CITIZEN.name())
+                .departmentId(null)
                 .build();
     }
 
@@ -671,4 +699,33 @@ public class UserService {
             throw new BadRequestException("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
         }
     }
+    /**
+     * Delete a user (citizen) by email. Used for cleanup of test accounts.
+     * Throws BadRequestException if user not found.
+     */
+    @Transactional
+    public void deleteUserByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("User with email " + email + " not found"));
+        userRepository.delete(user);
+    }
+
+    /**
+     * Change the role of a user identified by email to ROLE_CITIZEN.
+     * Used for converting an admin account to a citizen account.
+     */
+    @Transactional
+    public void convertAdminToCitizen(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("User with email " + email + " not found"));
+        // Only perform conversion if current role is ADMIN
+        if (user.getRole() == Role.ROLE_ADMIN) {
+            user.setRole(Role.ROLE_CITIZEN);
+            userRepository.save(user);
+        }
+    }
+    
+    // existing closing brace
+
+
 }

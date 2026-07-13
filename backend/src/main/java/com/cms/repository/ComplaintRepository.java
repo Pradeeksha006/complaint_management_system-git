@@ -72,7 +72,8 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     @Query("SELECT COUNT(c) FROM Complaint c WHERE c.createdAt BETWEEN :start AND :end AND c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
     long countPendingCreatedBetween(@org.springframework.data.repository.query.Param("start") LocalDateTime start, @org.springframework.data.repository.query.Param("end") LocalDateTime end);
 
-    long countByDepartmentId(Long departmentId);
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId")
+    long countByDepartmentId(@Param("departmentId") Long departmentId);
 
     @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.masterComplaint IS NULL")
     long countIncidentsByDepartmentId(@Param("departmentId") Long departmentId);
@@ -80,10 +81,14 @@ public interface ComplaintRepository extends JpaRepository<Complaint, String>, J
     @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.masterComplaint IS NOT NULL")
     long countMergedReportsByDepartmentId(@Param("departmentId") Long departmentId);
 
-    long countByDepartmentIdAndStatus(Long departmentId, ComplaintStatus status);
-    long countByDepartmentIdAndPriority(Long departmentId, com.cms.entity.Priority priority);
-    long countByDepartmentIdAndStatusNotAndDeadlineBetween(Long departmentId, ComplaintStatus status, LocalDateTime start, LocalDateTime end);
-    long countByDepartmentIdAndStatusNotAndDeadlineBefore(Long departmentId, ComplaintStatus status, LocalDateTime deadline);
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.status = :status")
+    long countByDepartmentIdAndStatus(@Param("departmentId") Long departmentId, @Param("status") ComplaintStatus status);
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.priority = :priority")
+    long countByDepartmentIdAndPriority(@Param("departmentId") Long departmentId, @Param("priority") com.cms.entity.Priority priority);
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.status <> :status AND c.deadline BETWEEN :start AND :end")
+    long countByDepartmentIdAndStatusNotAndDeadlineBetween(@Param("departmentId") Long departmentId, @Param("status") ComplaintStatus status, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    @Query("SELECT COUNT(c) FROM Complaint c WHERE c.department.id = :departmentId AND c.status <> :status AND c.deadline < :deadline")
+    long countByDepartmentIdAndStatusNotAndDeadlineBefore(@Param("departmentId") Long departmentId, @Param("status") ComplaintStatus status, @Param("deadline") LocalDateTime deadline);
 
     @Query("SELECT COUNT(c) FROM Complaint c WHERE c.assignedOfficer.id = :officerId AND c.status NOT IN ('RESOLVED', 'CLOSED', 'REJECTED')")
     long countActiveComplaintsByOfficerId(@Param("officerId") Long officerId);

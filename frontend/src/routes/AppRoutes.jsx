@@ -13,6 +13,7 @@ import ComplaintDetail from '../pages/ComplaintDetail';
 import Settings from '../pages/Settings';
 import UserManagement from '../pages/UserManagement';
 import OfficerManagement from '../pages/OfficerManagement';
+import OfficersTable from '../pages/OfficersTable';
 import DepartmentManagement from '../pages/DepartmentManagement';
 import AuditLogs from '../pages/AuditLogs';
 import AllComplaints from '../pages/AllComplaints';
@@ -79,6 +80,12 @@ const AppRoutes = () => {
         <Route path="officers" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
             <OfficerManagement />
+          </ProtectedRoute>
+        } />
+        {/* New Officers Table View */}
+        <Route path="officers-view" element={
+          <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_DEPT_HEAD']}>
+            <OfficersTable />
           </ProtectedRoute>
         } />
         <Route path="departments" element={

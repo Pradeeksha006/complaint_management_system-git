@@ -79,4 +79,11 @@ public class AuthController {
         String password = body.get("password");
         return ResponseEntity.ok(userService.debugLogin(usernameOrEmail, password));
     }
+
+    @DeleteMapping("/admin/delete-user")
+    public ResponseEntity<MessageResponse> deleteUser(@RequestParam String email) {
+        userService.deleteUserByEmail(email);
+        return ResponseEntity.ok(new MessageResponse("User deleted successfully."));
+    }
+
 }

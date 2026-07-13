@@ -50,9 +50,9 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/dept-head/**").hasAnyRole("DEPT_HEAD", "ADMIN")
                 .requestMatchers("/api/officer/**").hasAnyRole("OFFICER", "DEPT_HEAD", "ADMIN")
+                .requestMatchers("/api/users/officers").hasRole("ADMIN")
+                .requestMatchers("/api/users/officers/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

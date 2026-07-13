@@ -1,12 +1,12 @@
 server:
-  port: 8080
+  port: 8090
   error:
     include-message: always
     include-binding-errors: always
 
 spring:
-  application:
-    name: complaint-management-system
+  thymeleaf:
+    check-template-location: false
   
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:cms}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}

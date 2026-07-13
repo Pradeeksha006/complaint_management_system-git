@@ -11,6 +11,7 @@ import com.cms.security.SecurityUtils;
 import com.cms.util.AiHelper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -45,12 +46,47 @@ public class ComplaintService {
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
 
+    // List of complaint titles that should be treated as CRITICAL priority
+    private static final Set<String> CRITICAL_TITLES = Set.of(
+        "Live Electrical Wire Hanging on Road",
+        "Major Water Pipeline Burst",
+        "Fire in Residential Building",
+        "Gas Leak Near Residential Area",
+        "Collapsed Bridge Section",
+        "Overflowing Sewage Flooding Homes",
+        "Government Hospital Emergency Generator Failure",
+        "Power Outage in Residential Area",
+        "Severe Flooding in Downtown",
+        "Road Collapse Causing Traffic Jam",
+        "Broken Water Pipe on Main Street",
+        "Tree Falling on Highway",
+        "Medical Emergency at Clinic",
+        "Fire Hazard in Market Area",
+        "Explosion at Chemical Plant",
+        "Earthquake Damage in Suburb",
+        "Landslide Blocking Road",
+        "Storm Damage to Power Lines",
+        "Tsunami Warning for Coastal Area",
+        "Wildfire Threat Near Forest" 
+    );
+
     @Transactional
     public ComplaintDto createComplaint(String title, String description, String category,
                                         Double latitude, Double longitude, String address,
                                         boolean isAnonymous, Long departmentId, String priorityStr,
                                         List<MultipartFile> files) throws IOException {
         
+        // Validate required fields
+        if (title == null || title.isBlank()) {
+            throw new BadRequestException("Title is required for complaint submission.");
+        }
+        if (description == null || description.isBlank()) {
+            throw new BadRequestException("Description is required for complaint submission.");
+        }
+        if (category == null || category.isBlank()) {
+            throw new BadRequestException("Category is required for complaint submission.");
+        }
+
         // 1. Resolve Citizen
         User citizen = null;
         if (!isAnonymous) {
@@ -85,6 +121,10 @@ public class ComplaintService {
 
         // Always predict priority automatically using translated text when available
         Priority priority = predictPriority(title, translatedTitle, description, translatedDesc, dept);
+        // Override to CRITICAL if title matches predefined critical list
+        if (title != null && CRITICAL_TITLES.stream().anyMatch(t -> t.equalsIgnoreCase(title.trim()))) {
+            priority = Priority.CRITICAL;
+        }
 
         String summary = geminiService.generateSummary(translatedDesc);
 

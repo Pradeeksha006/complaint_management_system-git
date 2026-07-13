@@ -3,6 +3,7 @@ package com.cms.controller;
 import com.cms.dto.ComplaintDto;
 import com.cms.dto.PageResponse;
 import com.cms.dto.TimelineDto;
+import com.cms.exception.BadRequestException;
 import com.cms.service.ComplaintService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,12 @@ import java.util.List;
 @RequestMapping("/api/complaints")
 @RequiredArgsConstructor
 public class ComplaintController {
+
+    // Global exception handler for BadRequestException
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<String> handleBadRequest(BadRequestException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 
     private final ComplaintService complaintService;
 
@@ -31,6 +38,17 @@ public class ComplaintController {
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "priority", required = false) String priority,
             @RequestParam(value = "files", required = false) List<MultipartFile> files) throws IOException {
+
+        // Validate required fields
+        if (title == null || title.isBlank()) {
+            throw new BadRequestException("Title is required for complaint submission.");
+        }
+        if (description == null || description.isBlank()) {
+            throw new BadRequestException("Description is required for complaint submission.");
+        }
+        if (category == null || category.isBlank()) {
+            throw new BadRequestException("Category is required for complaint submission.");
+        }
 
         return ResponseEntity.ok(complaintService.createComplaint(
                 title, description, category, latitude, longitude, address, isAnonymous, departmentId, priority, files));

@@ -34,7 +34,7 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
+        claims.put("role", role.replace("ROLE_", ""));
 
         return Jwts.builder()
                 .setClaims(claims)
