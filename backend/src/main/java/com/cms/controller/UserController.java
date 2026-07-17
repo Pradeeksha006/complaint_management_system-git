@@ -6,6 +6,7 @@ import com.cms.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -21,21 +22,16 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPT_HEAD')")
     @GetMapping("/officers")
     public ResponseEntity<List<OfficerDto>> getAllOfficers() {
         return ResponseEntity.ok(userService.getAllOfficers());
     }
 
-    @PostMapping("/officers")
-    public ResponseEntity<OfficerDto> createOfficer(
-            @RequestParam Long userId,
-            @RequestParam Long departmentId,
-            @RequestParam String designation) {
-        return ResponseEntity.ok(userService.createOfficer(userId, departmentId, designation));
-    }
+    
 
     @PostMapping("/officers/create")
-    public ResponseEntity<OfficerDto> createNewOfficer(@RequestBody com.cms.dto.OfficerCreationRequest request) {
+    public ResponseEntity<OfficerDto> createOfficer(@RequestBody com.cms.dto.OfficerCreationRequest request) {
         return ResponseEntity.ok(userService.createNewOfficer(request));
     }
 
@@ -65,6 +61,12 @@ public class UserController {
     @PutMapping("/profile/update")
     public ResponseEntity<UserDto> updateProfile(@RequestBody com.cms.dto.ProfileUpdateRequest request) {
         return ResponseEntity.ok(userService.updateProfile(request));
+    }
+
+    @DeleteMapping("/profile/avatar")
+    public ResponseEntity<Void> deleteAvatar() {
+        userService.deleteAvatar();
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/profile/upload-avatar", consumes = {"multipart/form-data"})

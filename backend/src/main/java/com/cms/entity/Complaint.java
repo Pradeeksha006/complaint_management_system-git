@@ -24,6 +24,9 @@ public class Complaint {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cid")
     private User citizen; // Nullable if anonymous
+    
+    @Column(nullable = false)
+    private boolean anonymous = false; // Indicates if complaint is filed anonymously
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)

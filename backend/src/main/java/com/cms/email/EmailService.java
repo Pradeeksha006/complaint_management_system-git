@@ -16,17 +16,18 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:no-reply@cms.com}")
     private String fromEmail;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
     public void sendEmail(String to, String subject, String htmlContent) {
-        if (to == null || to.trim().isEmpty() || to.toLowerCase().endsWith("@cms.com")) {
+        if (to == null || to.trim().isEmpty()) {
             log.info("Bypassing actual email sending to dummy/invalid address: {}", to);
             return;
         }
+        log.info("Attempting to send email to {} with subject '{}'.", to, subject);
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

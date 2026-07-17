@@ -61,6 +61,7 @@ const CreateComplaint = () => {
   // Submission & status states
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isDrafted, setIsDrafted] = useState(false);
   const [submittedComplaint, setSubmittedComplaint] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -82,6 +83,16 @@ const CreateComplaint = () => {
   useEffect(() => {
     if (isManualDeptSelection) return;
     if (!titleWatch || titleWatch.trim().length < 5) return;
+
+    // Quick override for gas-related complaints: assign to Fire & Rescue (FI)
+    const lowerTitle = titleWatch.toLowerCase();
+    if (lowerTitle.includes('gas')) {
+      const fireDept = departments.find(d => d.code === 'FI');
+      if (fireDept) {
+        setSelectedDept(fireDept.id.toString());
+        return;
+      }
+    }
 
     const delayDebounceFn = setTimeout(async () => {
       try {
@@ -106,19 +117,20 @@ const CreateComplaint = () => {
     const content = `${titleWatch || ''} ${descriptionWatch || ''}`.toLowerCase();
     if (!content.trim()) return;
 
-    const deptKeywords = {
-      WT: ['water', 'leak', 'pipe', 'drain', 'sewer', 'plumb', 'tap', 'contamination', 'drainage', 'flooding', 'குடிநீர்', 'தண்ணீர்', 'குழாய்', 'கசிவு', 'சாக்கடை'],
-      RD: ['road', 'pothole', 'highway', 'street', 'bridge', 'sidewalk', 'curb', 'pavement', 'சாலை', 'பள்ளம்', 'பாதை', 'தெரு'],
-      EL: ['electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'streetlight', 'மின்சார', 'விளக்கு', 'தெருவிளக்கு'],
-      SN: ['garbage', 'trash', 'waste', 'sanitation', 'clean', 'dump', 'litter', 'குப்பை', 'அசுத்தம்', 'கழிவுகள்'],
-      PL: ['police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault', 'drinking', 'alcohol', 'drunk', 'போலீஸ்', 'திருட்டு', 'சண்டை', 'மது'],
-      HL: ['stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'hygiene', 'நாய்', 'கொசு', 'நோய்'],
-      FI: ['fire', 'flame', 'burning', 'smoke', 'gas leak', 'explosion', 'blast', 'rescue', 'trapped', 'emergency'],
-      FR: ['forest', 'tree cutting', 'illegal cutting', 'fallen tree', 'wildlife', 'wild animal', 'snake', 'monkey', 'elephant', 'environment'],
-      RV: ['revenue', 'land record', 'patta', 'chitta', 'survey', 'property tax', 'certificate', 'income certificate', 'community certificate', 'encroachment', 'land dispute'],
-      TR: ['bus', 'metro', 'traffic', 'transport', 'vehicle', 'permit', 'driving license', 'auto', 'taxi', 'bus stop', 'route', 'fare'],
-      MU: ['municipal', 'corporation', 'ward office', 'public property', 'street vendor', 'license', 'birth certificate', 'death certificate', 'park', 'playground', 'public toilet', 'community hall']
-    };
+      const deptKeywords = {
+        FI: ['fire', 'flame', 'burning', 'smoke', 'gas leak', 'gas leakage', 'explosion', 'blast', 'rescue', 'trapped', 'emergency'],
+        ED: ['school', 'classroom', 'no drinking water', 'drinking water', 'toilet', 'bench', 'playground', 'equipment', 'damaged', 'broken', 'water shortage'],
+        WT: ['water', 'water leak', 'pipe', 'drain', 'sewer', 'plumb', 'tap', 'contamination', 'drainage', 'flooding', 'குடிநீர்', 'தண்ணீர்', 'குழாய்', 'கசிவு', 'சாக்கடை'],
+        RD: ['road', 'pothole', 'highway', 'street', 'bridge', 'sidewalk', 'curb', 'pavement', 'சாலை', 'பள்ளம்', 'பாதை', 'தெரு'],
+        EL: ['electricity', 'power', 'wire', 'spark', 'transformer', 'light', 'voltage', 'blackout', 'streetlight', 'மின்சார', 'விளக்கு', 'தே‌ருவிளக்கு'],
+        SN: ['garbage', 'trash', 'waste', 'sanitation', 'clean', 'dump', 'litter', 'குப்பை', 'அசுத்தம்', 'கழிவுகள்'],
+        PL: ['police', 'theft', 'robbery', 'crime', 'fight', 'security', 'guard', 'nuisance', 'assault', 'drinking', 'alcohol', 'drunk', 'போலீஸ்', 'திருட்டு', 'சண்டை', 'மது'],
+        HL: ['stray', 'dog', 'health', 'mosquito', 'pest', 'animal', 'disease', 'hygiene', 'நாய்', 'கொசு', 'நோய்'],
+        FR: ['forest', 'tree cutting', 'illegal cutting', 'fallen tree', 'wildlife', 'wild animal', 'snake', 'monkey', 'elephant', 'environment'],
+        RV: ['revenue', 'land record', 'patta', 'chitta', 'survey', 'property tax', 'certificate', 'income certificate', 'community certificate', 'encroachment', 'land dispute'],
+        TR: ['bus', 'metro', 'traffic', 'transport', 'vehicle', 'permit', 'driving license', 'auto', 'taxi', 'bus stop', 'route', 'fare'],
+        MU: ['municipal', 'corporation', 'ward office', 'public property', 'street vendor', 'license', 'birth certificate', 'death certificate', 'park', 'playground', 'public toilet', 'community hall']
+      };
 
     let predictedCode = '';
     for (const [code, words] of Object.entries(deptKeywords)) {
@@ -380,6 +392,7 @@ const CreateComplaint = () => {
     existing.push(draft);
     localStorage.setItem('offline_drafts', JSON.stringify(existing));
 
+    setIsDrafted(true);
     setSuccess(true);
     setTimeout(() => {
       navigate('/dashboard');
@@ -738,8 +751,14 @@ const CreateComplaint = () => {
               <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-50 p-4 text-green-700 dark:bg-emerald-950/30 dark:text-[#d4af37] border border-green-200 dark:border-[#0b3a20] animate-pulse">
                 <CheckCircle2 className="h-6 w-6 shrink-0" />
                 <div>
-                  <h4 className="font-bold">Complaint Registered!</h4>
-                  <p className="text-xs">{errorMsg ? errorMsg : 'Successfully posted complaint. Redirecting to dashboard console...'}</p>
+                  <h4 className="font-bold">{isDrafted ? 'Complaint Drafted!' : 'Complaint Registered!'}</h4>
+                  <p className="text-xs">
+                    {errorMsg 
+                      ? errorMsg 
+                      : isDrafted 
+                        ? 'Successfully drafted complaint. Redirecting to dashboard console...' 
+                        : 'Successfully posted complaint. Redirecting to dashboard console...'}
+                  </p>
                 </div>
               </div>
             )}
@@ -926,7 +945,7 @@ const CreateComplaint = () => {
                         <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-300 font-semibold">
                           {uploadedFiles.map((file, idx) => (
                             <li key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white/70 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/60">
-                              <span className="min-w-0 truncate">{file.name} ({Math.round(file.size / 1024)} KB)</span>
+                              <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate underline text-blue-600 dark:text-blue-400">{file.name} ({Math.round(file.size / 1024)} KB)</a>
                               <button
                                 type="button"
                                 onClick={() => removeUploadedFile(idx)}

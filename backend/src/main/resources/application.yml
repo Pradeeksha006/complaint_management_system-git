@@ -1,5 +1,5 @@
 server:
-  port: 8090
+  port: 8082
   error:
     include-message: always
     include-binding-errors: always
@@ -7,32 +7,24 @@ server:
 spring:
   thymeleaf:
     check-template-location: false
-  
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:cms}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
-    username: ${DB_USER:root}
+    url: jdbc:mysql://localhost:3306/cms?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
     password: ${DB_PASSWORD:pr@deeksha$#}
-    driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
-
-  servlet:
-    multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: pradeeksha2006@gmail.com
-    password: ywggwtzisiatnwet
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:pradeeksha2006@gmail.com}
+    password: ${MAIL_PASSWORD:ywggwtzisiatnwet}
     properties:
       mail:
         smtp:
@@ -40,19 +32,30 @@ spring:
           starttls:
             enable: true
             required: true
+          debug: true
+
+  superadmin:
+    address: ${ADMIN_EMAIL}
+  admin:
+    username: ${ADMIN_USERNAME}
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
+  multipart:
+    max-file-size: 50MB
+    max-request-size: 50MB
 
 # Custom Application Configs
 app:
   jwt:
-    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970} # 256-bit key in hex
-    accessTokenExpirationMs: 86400000 # 24 hours (for convenience in dev, can be smaller in prod)
-    refreshTokenExpirationMs: 604800000 # 7 days
-  
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    accessTokenExpirationMs: 86400000
+    refreshTokenExpirationMs: 604800000
+
   admin:
     username: ${ADMIN_USERNAME:superadmin}
     email: ${ADMIN_EMAIL:pradeeksha2006@gmail.com}
     password: ${ADMIN_PASSWORD:Pradhi@1234}
-  
+
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:placeholder}
     api-key: ${CLOUDINARY_API_KEY:placeholder}

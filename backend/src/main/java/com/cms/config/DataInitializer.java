@@ -153,6 +153,7 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.update("DELETE FROM all_users WHERE email = ?",
                     LEGACY_ADMIN_EMAIL);
             log.info("Stale Super Admin aliases cleaned up successfully.");
+            jdbcTemplate.update("DELETE FROM all_users WHERE email = ?", "24ecb28@karpagamtech.ac.in");
         } catch (Exception e) {
             log.error("Failed to clean up stale Super Admin aliases: {}", e.getMessage());
         }

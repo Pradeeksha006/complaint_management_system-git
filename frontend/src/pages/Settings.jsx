@@ -4,6 +4,14 @@ import { useForm } from 'react-hook-form';
 import api from '../services/api';
 import { updateUser } from '../redux/authSlice';
 import { Sparkles, User, KeyRound, Loader2, CheckCircle2, Camera } from 'lucide-react';
+const getAvatarUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const base = import.meta.env.VITE_API_URL || '';
+  // Ensure no double slashes when concatenating
+  const cleanedPath = path.startsWith('/') ? path.substring(1) : path;
+  return base.endsWith('/') ? `${base}${cleanedPath}` : `${base}/${cleanedPath}`;
+};
 
 const Settings = () => {
   const { user } = useSelector((state) => state.auth);
@@ -104,13 +112,13 @@ const Settings = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Check size limit: Max 5 MB (5 * 1024 * 1024 bytes)
+    // Size limit: 5 MB
     if (file.size > 5 * 1024 * 1024) {
       alert("Selected photo exceeds the 5 MB limit. Please select a smaller image.");
       return;
     }
 
-    // Verify file format is an image (by mime type or file extension)
+    // Validate image type
     const isImageMime = file.type && file.type.startsWith('image/');
     const isImageExtension = /\.(jpg|jpeg|png|gif|webp|jfif|svg|bmp|tiff|ico)$/i.test(file.name);
     if (!isImageMime && !isImageExtension) {
@@ -118,12 +126,11 @@ const Settings = () => {
       return;
     }
 
-    // 1. Optimistic Update (Render local preview URL instantly)
-    const previewUrl = URL.createObjectURL(file);
+    // Compress image before upload
+    const compressedFile = await compressImage(file);
+    const previewUrl = URL.createObjectURL(compressedFile);
     setLocalAvatarPreview(previewUrl);
 
-    setUploadingAvatar(true);
-    setProfileSuccess('');
     try {
       // 2. Compress the image file to reduce network payload from Megabytes to under 30KB
       const compressedFile = await compressImage(file);
@@ -146,6 +153,21 @@ const Settings = () => {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    if (!window.confirm('Remove profile picture?')) return;
+    setUploadingAvatar(true);
+    try {
+      await api.delete('/api/users/profile/avatar');
+      dispatch(updateUser({ ...user, profilePictureUrl: null }));
+      setProfileSuccess('Profile picture removed.');
+      setLocalAvatarPreview(null);
+    } catch (err) {
+      alert('Failed to remove avatar: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleSendOtp = async () => {
     setOtpLoading(true);
     setPassSuccess('');
@@ -163,7 +185,7 @@ const Settings = () => {
     }
   };
 
-  const onUpdateProfile = async (data) => {
+    const onUpdateProfile = async (data) => {
     setLoadingProfile(true);
     setProfileSuccess('');
     try {
@@ -171,7 +193,8 @@ const Settings = () => {
         fullName: data.fullName,
         phoneNumber: data.phoneNumber
       });
-      dispatch(updateUser(res.data));
+      // Preserve existing profilePictureUrl
+      dispatch(updateUser({ ...user, ...res.data }));
       setProfileSuccess('Profile details updated successfully!');
     } catch (err) {
       alert('Failed to update profile: ' + (err.response?.data?.message || err.message));
@@ -179,6 +202,10 @@ const Settings = () => {
       setLoadingProfile(false);
     }
   };
+
+
+
+
 
   const onChangePassword = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
@@ -248,7 +275,7 @@ const Settings = () => {
                   />
                 ) : user?.profilePictureUrl ? (
                   <img 
-                    src={user.profilePictureUrl} 
+                    src={getAvatarUrl(user.profilePictureUrl)} 
                     alt="Profile Avatar" 
                     className="h-full w-full object-cover" 
                   />
@@ -283,6 +310,16 @@ const Settings = () => {
               className="hidden" 
               id="avatarInput" 
             />
+            {/* Remove Avatar button – visible when an avatar exists */}
+            {(localAvatarPreview || user?.profilePictureUrl) && (
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                className="mt-2 text-xs text-red-600 hover:underline"
+              >
+                Remove profile picture
+              </button>
+            )}
           </div>
 
           {profileSuccess && (

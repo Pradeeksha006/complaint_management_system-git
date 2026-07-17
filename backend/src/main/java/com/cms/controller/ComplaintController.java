@@ -37,21 +37,24 @@ public class ComplaintController {
             @RequestParam("isAnonymous") boolean isAnonymous,
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "priority", required = false) String priority,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files) throws IOException {
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @RequestParam(value = "isDraft", defaultValue = "false") boolean isDraft) throws IOException {
 
-        // Validate required fields
-        if (title == null || title.isBlank()) {
-            throw new BadRequestException("Title is required for complaint submission.");
-        }
-        if (description == null || description.isBlank()) {
-            throw new BadRequestException("Description is required for complaint submission.");
-        }
-        if (category == null || category.isBlank()) {
-            throw new BadRequestException("Category is required for complaint submission.");
+        // Validate required fields only if not a draft
+        if (!isDraft) {
+            if (title == null || title.isBlank()) {
+                throw new BadRequestException("Title is required for complaint submission.");
+            }
+            if (description == null || description.isBlank()) {
+                throw new BadRequestException("Description is required for complaint submission.");
+            }
+            if (category == null || category.isBlank()) {
+                throw new BadRequestException("Category is required for complaint submission.");
+            }
         }
 
         return ResponseEntity.ok(complaintService.createComplaint(
-                title, description, category, latitude, longitude, address, isAnonymous, departmentId, priority, files));
+                title, description, category, latitude, longitude, address, isAnonymous, departmentId, priority, files, isDraft));
     }
 
     @PostMapping("/detect-duplicates")
@@ -116,6 +119,11 @@ public class ComplaintController {
             @PathVariable String id,
             @RequestParam("departmentId") Long departmentId) {
         return ResponseEntity.ok(complaintService.modifyDepartment(id, departmentId));
+    }
+
+    @PostMapping("/{id}/sync")
+    public ResponseEntity<ComplaintDto> syncDraft(@PathVariable String id) {
+        return ResponseEntity.ok(complaintService.syncDraft(id));
     }
 
     @DeleteMapping("/{id}")

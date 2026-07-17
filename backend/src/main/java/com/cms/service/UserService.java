@@ -105,6 +105,7 @@ public class UserService {
         userRepository.save(newUser);
 
         // Send OTP for email verification
+        log.info("Sending registration OTP {} to email {}", otp, newUser.getEmail());
         emailService.sendRegistrationOtpEmail(newUser.getEmail(), newUser.getFullName(), otp);
 
         // Return DTO for the newly created user
@@ -273,34 +274,11 @@ public class UserService {
         userRepository.saveAndFlush(user);
     }
 
-    @Transactional
-    public OfficerDto createOfficer(Long userId, Long deptId, String designation) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        Department dept = departmentRepository.findById(deptId)
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
 
-        user.setRole(Role.ROLE_OFFICER);
-        userRepository.save(user);
-
-        // Check if officer entry exists
-        Officer officer = officerRepository.findByUserId(userId).orElse(null);
-        if (officer == null) {
-            officer = new Officer();
-            officer.setUser(user);
-        }
-        officer.setDepartment(dept);
-        officer.setDesignation(designation);
-
-        Officer saved = officerRepository.save(officer);
-        return MapperUtils.toDto(saved);
-    }
 
     @Transactional
     public OfficerDto createNewOfficer(com.cms.dto.OfficerCreationRequest request) {
-        if (request.getSecurityPin() == null || request.getSecurityPin().isBlank()) {
-            throw new BadRequestException("Secret Recovery PIN is mandatory");
-        }
+
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BadRequestException("Username already exists");
         }
@@ -308,8 +286,22 @@ public class UserService {
             throw new BadRequestException("Email already exists");
         }
 
-        Department dept = departmentRepository.findById(request.getDepartmentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+                // Determine department. Superintendent (admin) does not need to provide departmentId.
+        Department dept;
+        User currentUser = SecurityUtils.getCurrentUsername()
+                .flatMap(userRepository::findByUsername)
+                .orElseThrow(() -> new BadRequestException("Unable to determine current user"));
+        if (currentUser.getRole() == Role.ROLE_ADMIN) {
+            // Assign default department (e.g., the first available department)
+            dept = departmentRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("No departments found"));
+        } else {
+            if (request.getDepartmentId() == null) {
+                throw new BadRequestException("Department ID is required");
+            }
+            dept = departmentRepository.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        }
 
         User user = User.builder()
                 .fullName(request.getFullName())
@@ -320,7 +312,7 @@ public class UserService {
                 .role(Role.ROLE_OFFICER)
                 .status(UserStatus.ACTIVE)
                 .emailVerified(true)
-                .securityPin(request.getSecurityPin())
+
                 .build();
         User savedUser = userRepository.save(user);
 
@@ -435,6 +427,26 @@ public class UserService {
         auditLogRepository.save(audit);
 
         return MapperUtils.toDto(saved);
+    }
+
+    @Transactional
+    public void deleteAvatar() {
+        String username = SecurityUtils.getCurrentUsername()
+                .orElseThrow(() -> new BadRequestException("Not authenticated"));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Remove profile picture URL
+        user.setProfilePictureUrl(null);
+        userRepository.save(user);
+
+        // Audit log for deletion
+        AuditLog audit = AuditLog.builder()
+                .user(user)
+                .action("DELETE_AVATAR")
+                .details("User removed profile picture.")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(audit);
     }
 
     @Transactional
@@ -592,6 +604,7 @@ public class UserService {
         user.setResetOtpExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
+        log.info("Sending registration OTP {} to email {}", otp, user.getEmail());
         emailService.sendRegistrationOtpEmail(user.getEmail(), user.getFullName(), otp);
     }
 

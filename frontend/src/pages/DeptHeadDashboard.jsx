@@ -8,6 +8,7 @@ import {
 import { 
   Inbox, UserCheck, Clock, CheckSquare, Loader2, RefreshCcw, Building2, Sparkles, Layers, Users, Star, AlertTriangle
 } from 'lucide-react';
+import OfficerDeptList from './OfficerDeptList';
 
 const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
   const { user } = useSelector((state) => state.auth);
@@ -53,6 +54,9 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
         navigate('/department-control');
       }
     }
+    setTimeout(() => {
+      complaintsListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
   };
 
   // Transfer and Assignment States
@@ -113,9 +117,9 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
       setComplaints(sortedList);
 
       // Fetch officers
-      const offRes = await api.get('/api/users/officers');
+      const offRes = await api.get('/api/officers/list');
       // Filter officers belonging to this department
-      setOfficers(offRes.data.filter(o => o.departmentId === Number(deptId)));
+      setOfficers(offRes.data.filter(o => o.departmentId == deptId || o.deptId == deptId));
 
       // Compute statistics
       const resolved = list.filter(c => c.status === 'RESOLVED' || c.status === 'CLOSED').length;
@@ -460,6 +464,9 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
             </div>
           </div>
         </button>
+        {/* Officer Department List */}
+        {user?.role !== 'ROLE_ADMIN' && <OfficerDeptList />}
+
       </div>
 
       {/* Main Split Content */}
@@ -636,30 +643,28 @@ const DeptHeadDashboard = ({ defaultView = 'recent' }) => {
                             ) : (
                               <>
                                 {/* Assign Officer Dropdown */}
-                                {c.status !== 'RESOLVED' && c.status !== 'CLOSED' && (
-                                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
-                                    <UserCheck className="h-3.5 w-3.5 text-slate-400" />
-                                    <select
-                                      disabled={actioningId === c.id}
-                                      value={c.assignedOfficerId || ''}
-                                      onChange={(e) => handleAssign(c.id, e.target.value)}
-                                      className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
-                                    >
-                                      <option value="">-- Assign Officer --</option>
-                                      {officers.map(o => (
-                                        <option key={o.id} value={o.id} className="bg-white text-slate-850 dark:bg-slate-900 dark:text-slate-100">
-                                          {o.fullName}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
+                                  <UserCheck className="h-3.5 w-3.5 text-slate-400" />
+                                  <select
+                                    disabled={actioningId === c.id || c.status === 'RESOLVED' || c.status === 'CLOSED'}
+                                    value={c.assignedOfficerId || ''}
+                                    onChange={(e) => handleAssign(c.id, e.target.value)}
+                                    className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
+                                  >
+                                    <option value="">-- Assign Officer --</option>
+                                    {officers.filter(o => o.departmentId == c.departmentId || o.deptId == c.departmentId).map(o => (
+                                      <option key={o.id} value={o.id} className="bg-white text-slate-850 dark:bg-slate-900 dark:text-slate-100">
+                                        {o.fullName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
 
                                 {/* Change Status Dropdown */}
                                 <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 rounded px-2 py-1 border border-slate-200 dark:border-slate-850">
                                   <CheckSquare className="h-3.5 w-3.5 text-slate-400" />
                                   <select
-                                    disabled={actioningId === c.id}
+                                    disabled={actioningId === c.id || c.status === 'RESOLVED' || c.status === 'CLOSED'}
                                     value={c.status}
                                     onChange={(e) => handleStatusUpdate(c.id, e.target.value)}
                                     className="bg-transparent text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"

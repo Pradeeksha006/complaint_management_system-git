@@ -1,10 +1,12 @@
 package com.cms.service;
 
 import com.cms.dto.*;
+import com.cms.service.AlertService;
 import com.cms.entity.*;
 import com.cms.email.EmailService;
 import com.cms.exception.BadRequestException;
 import com.cms.exception.ResourceNotFoundException;
+import com.cms.entity.ComplaintStatus;
 import com.cms.mapper.MapperUtils;
 import com.cms.repository.*;
 import com.cms.security.SecurityUtils;
@@ -43,6 +45,9 @@ public class ComplaintService {
     private final FeedbackRepository feedbackRepository;
     private final CloudinaryService cloudinaryService;
     private final EmailService emailService;
+    private final AlertService alertService;
+    @org.springframework.beans.factory.annotation.Value("${ADMIN_EMAIL:pradeeksha2006@gmail.com}")
+    private String superadminEmail;
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
 
@@ -74,7 +79,7 @@ public class ComplaintService {
     public ComplaintDto createComplaint(String title, String description, String category,
                                         Double latitude, Double longitude, String address,
                                         boolean isAnonymous, Long departmentId, String priorityStr,
-                                        List<MultipartFile> files) throws IOException {
+                                        List<MultipartFile> files, boolean isDraft) throws IOException {
         
         // Validate required fields
         if (title == null || title.isBlank()) {
@@ -147,7 +152,7 @@ public class ComplaintService {
         // SLA deadline calculation based on priority
         LocalDateTime deadline = LocalDateTime.now();
         if (priority == Priority.CRITICAL) {
-            deadline = deadline.plusHours(2); // immediate action (2 hours)
+            deadline = deadline.plusHours(1); // immediate action (1 hour)
         } else if (priority == Priority.HIGH) {
             deadline = deadline.plusHours(24); // 24 hours
         } else if (priority == Priority.MEDIUM) {
@@ -189,7 +194,7 @@ public class ComplaintService {
                 .summary(summary)
                 .category(dept.getName())
                 .priority(priority)
-                .status(master != null ? master.getStatus() : ComplaintStatus.SUBMITTED)
+                .status(isDraft ? ComplaintStatus.DRAFT : (master != null ? master.getStatus() : ComplaintStatus.SUBMITTED))
                 .latitude(latitude)
                 .longitude(longitude)
                 .address(safeAddress)
@@ -201,7 +206,7 @@ public class ComplaintService {
                 .build();
 
         // 4. Handle File Uploads to Cloudinary
-        if (files != null && !files.isEmpty()) {
+        if (!isDraft && files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (!file.isEmpty()) {
                     Map<String, String> uploadRes = cloudinaryService.uploadFile(file, "complaints/" + complaintId);
@@ -231,7 +236,7 @@ public class ComplaintService {
         // Workload Balancing Auto-Assignment (Idea 2)
         Officer bestOfficer = null;
         long minWorkload = Long.MAX_VALUE;
-        if (master == null) {
+        if (!isDraft && master == null) {
             List<Officer> officers = officerRepository.findByDepartmentId(dept.getId());
             for (Officer officer : officers) {
                 long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
@@ -285,10 +290,21 @@ public class ComplaintService {
         }
 
         // 6. Send Email Notifications
-        if (!isAnonymous && citizen != null) {
+        if (!isDraft && !isAnonymous && citizen != null) {
             String targetId = master != null ? master.getId() : saved.getId();
             String targetTitle = master != null ? master.getTitle() : saved.getTitle();
             emailService.sendComplaintSubmittedEmail(citizen.getEmail(), citizen.getFullName(), targetId, targetTitle);
+        }
+        // Critical complaint alert and superadmin notification
+        if (priority == Priority.CRITICAL) {
+            // Create an alert entry
+            alertService.createAlert(saved);
+            // Send email to superadmin if address is configured
+            if (superadminEmail != null && !superadminEmail.isBlank()) {
+                String subject = "CRITICAL Complaint Alert: " + saved.getId();
+                String body = "A critical complaint has been filed.\nID: " + saved.getId() + "\nTitle: " + saved.getTitle();
+                emailService.sendEmail(superadminEmail, subject, body);
+            }
         }
 
         return MapperUtils.toDto(saved);
@@ -1008,4 +1024,51 @@ public class ComplaintService {
 
         return MapperUtils.toDto(saved);
     }
+    
+    @Transactional
+    public ComplaintDto syncDraft(String id) {
+        Complaint complaint = complaintRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Complaint not found"));
+        // Only drafts can be synced
+        if (complaint.getStatus() != ComplaintStatus.DRAFT) {
+            throw new BadRequestException("Only draft complaints can be synced");
+        }
+        // Change status to SUBMITTED
+        complaint.setStatus(ComplaintStatus.SUBMITTED);
+        // Auto-assign officer if none and no master complaint
+        if (complaint.getAssignedOfficer() == null && complaint.getMasterComplaint() == null) {
+            Department dept = complaint.getDepartment();
+            List<Officer> officers = officerRepository.findByDepartmentId(dept.getId());
+            Officer bestOfficer = null;
+            long minWorkload = Long.MAX_VALUE;
+            for (Officer officer : officers) {
+                long workload = complaintRepository.countActiveComplaintsByOfficerId(officer.getId());
+                if (workload < minWorkload) {
+                    minWorkload = workload;
+                    bestOfficer = officer;
+                }
+            }
+            if (bestOfficer != null) {
+                complaint.setAssignedOfficer(bestOfficer);
+                complaint.setStatus(ComplaintStatus.ASSIGNED);
+            }
+        }
+        Complaint saved = complaintRepository.save(complaint);
+        // Notify citizen if not anonymous
+        if (saved.getCitizen() != null && !"Anonymous Citizen".equals(saved.getCitizenName())) {
+            emailService.sendComplaintSubmittedEmail(saved.getCitizen().getEmail(), saved.getCitizen().getFullName(), saved.getId(), saved.getTitle());
+        }
+        return MapperUtils.toDto(saved);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+

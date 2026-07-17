@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
+
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   LineChart, Line
@@ -196,6 +197,7 @@ const AdminDashboard = () => {
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-3">{stats?.averageResolutionTimeDays || 0.0} Days</h3>
         </div>
       </div>
+
 
       {/* Analytics Charts Grid */}
       <div className="grid gap-8 lg:grid-cols-2">

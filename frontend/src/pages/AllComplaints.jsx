@@ -5,6 +5,14 @@ import {
   Building2, Loader2, RefreshCw, Search, Filter, ClipboardList, Sparkles, X, Users
 } from 'lucide-react';
 
+const getFullUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  const base = import.meta.env.VITE_API_URL || '';
+  const cleaned = url.startsWith('/') ? url.substring(1) : url;
+  return base.endsWith('/') ? `${base}${cleaned}` : `${base}/${cleaned}`;
+};
+
 const AllComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -309,7 +317,7 @@ const AllComplaints = () => {
                           <div className="flex items-start gap-3">
                             {c.attachments && c.attachments.filter(att => att.fileType === 'IMAGE').length > 0 ? (
                               <img 
-                                src={c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl} 
+                                src={getFullUrl(c.attachments.filter(att => att.fileType === 'IMAGE')[0].fileUrl)} 
                                 alt="Proof" 
                                 className="h-12 w-12 object-cover rounded-md border border-slate-200 dark:border-slate-800 shrink-0" 
                               />

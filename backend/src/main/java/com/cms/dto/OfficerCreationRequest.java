@@ -11,5 +11,5 @@ public class OfficerCreationRequest {
     private String phoneNumber;
     private String designation;
     private Long departmentId;
-    private String securityPin;
+
 }

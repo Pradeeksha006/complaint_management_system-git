@@ -19,34 +19,55 @@ const OfficerManagement = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [securityPin, setSecurityPin] = useState('');
-  const [selectedDeptId, setSelectedDeptId] = useState('');
-  const [designation, setDesignation] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
 
+  const [selectedDeptId, setSelectedDeptId] = useState(user?.role === 'ROLE_DEPT_HEAD' && (user?.departmentId ?? user?.deptId) ? (user.departmentId ?? user.deptId).toString() : '');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [designation, setDesignation] = useState('');
   useEffect(() => {
-    fetchStaffData();
-  }, []);
+  // Fetch initial data on component mount
+  fetchStaffData();
+}, []);
+
+useEffect(() => {
+  // Auto-select department for chief superintendents when user info is available
+    if (user?.role === 'ROLE_DEPT_HEAD' && (user?.departmentId ?? user?.deptId)) {
+      setSelectedDeptId((user.departmentId ?? user.deptId).toString());
+    }
+}, [user]);
 
   const fetchStaffData = async () => {
     try {
       setLoading(true);
-      const [usersRes, officersRes, deptsRes] = await Promise.all([
+      const endpoints = [
         api.get('/api/users'),
-        api.get('/api/users/officers'),
         api.get('/api/departments')
-      ]);
+      ];
 
-      setUsers(usersRes.data);
-      setOfficers(officersRes.data || []);
-      setDepartments(deptsRes.data || []);
+      // Only fetch officers if user is admin; dept heads may not have permission
+        if (user?.role === 'ROLE_ADMIN' || user?.role === 'ROLE_DEPT_HEAD') {
+          // Use the correct officers endpoint
+          endpoints.push(api.get('/api/officers/list'));
+        }
+
+      const responses = await Promise.all(endpoints);
       
-      // Auto-assign department id if department head
-      if (user?.role === 'ROLE_DEPT_HEAD' && user?.departmentId) {
-        setSelectedDeptId(user.departmentId.toString());
-      } else if (deptsRes.data.length > 0) {
-        setSelectedDeptId(deptsRes.data[0].id.toString());
+      setUsers(responses[0].data);
+      setDepartments(responses[1].data || []);
+      
+      if (responses.length > 2) {
+        setOfficers(responses[2].data || []);
+        // Debug: log officers for department head
+        if (user?.role === 'ROLE_DEPT_HEAD') {
+          console.log('Fetched officers for dept head:', responses[2].data);
+        }      } else {
+        setOfficers([]);
       }
+            // Auto-assign department id if department head
+        if (user?.role === 'ROLE_DEPT_HEAD' && (user?.departmentId ?? user?.deptId)) {
+          setSelectedDeptId((user.departmentId ?? user.deptId).toString());
+        } else if (responses[1].data.length > 0) {
+          setSelectedDeptId(responses[1].data[0].id.toString());
+        }
     } catch (err) {
       console.error('Error fetching staff management data', err);
     } finally {
@@ -64,58 +85,71 @@ const OfficerManagement = () => {
     }
   };
 
-  const handleCreateOfficer = async (e) => {
-    e.preventDefault();
-    if (!fullName.trim() || !username.trim() || !email.trim() || !password.trim() || !selectedDeptId || !designation.trim() || !securityPin.trim()) {
-      alert('Please fill out all required fields, including the Secret Recovery PIN.');
-      return;
-    }
+    const handleCreateOfficer = async (e) => {
+      e.preventDefault();
+      // Validate required fields (department is pre‑selected for chief superintendents)
+      if (!fullName.trim() || !username.trim() || !email.trim() || !password.trim() || !designation.trim()) {
+        alert('Please fill out all required fields.');
+        return;
+      }
 
-    setActionLoading(true);
-    try {
-      await api.post('/api/users/officers/create', {
-        fullName,
-        username,
-        email,
-        password,
-        phoneNumber,
-        designation,
-        departmentId: parseInt(selectedDeptId),
-        securityPin
-      });
-      // Clear form
-      setFullName('');
-      setUsername('');
-      setEmail('');
-      setPassword('');
-      setPhoneNumber('');
-      setSecurityPin('');
-      setDesignation('');
-      fetchStaffData();
-      alert('New Officer account created successfully!');
-    } catch (err) {
-      alert('Failed to create officer account: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setActionLoading(false);
-    }
-  };
+      setActionLoading(true);
+
+      try {
+          const payload = {
+            fullName,
+            username,
+            email,
+            password,
+            phoneNumber,
+            designation,
+            departmentId: selectedDeptId,
+          };
+          await api.post('/api/users/officers/create', payload);
+        // Reset form fields
+        setFullName('');
+        setUsername('');
+        setEmail('');
+        setPassword('');
+        setPhoneNumber('');
+        setDesignation('');
+        // Refresh staff data to show new officer
+        fetchStaffData();
+        alert('Officer created successfully');
+      } catch (err) {
+          console.error('Error creating officer', err);
+          // If officer already exists, refresh list to display existing record
+          if (err.response?.status === 409 || (err.response?.data?.message && err.response.data.message.includes('already'))) {
+            fetchStaffData();
+            alert('Officer already exists and is now displayed in the registry.');
+          } else {
+            alert('Failed to create officer: ' + (err.response?.data?.message || err.message));
+          }
+        console.error('Error creating officer', err);
+        alert('Failed to create officer: ' + (err.response?.data?.message || err.message));
+      } finally {
+        setActionLoading(false);
+      }
+    };
 
   // Filter users who are Officers or Department Heads
   const staffUsers = users
     .filter(u => u.role === 'ROLE_OFFICER' || u.role === 'ROLE_DEPT_HEAD')
     .map(u => {
       const detail = officers.find(o => o.userId === u.id);
+      const deptId = detail?.departmentId ?? detail?.deptId;
+      const deptName = detail?.departmentName ?? (departments.find(d => d.id == deptId)?.name) || 'N/A';
       return {
         ...u,
         officerId: detail?.id, // ID in officer table
-        departmentId: detail?.departmentId,
-        departmentName: detail?.departmentName || 'N/A',
+        departmentId: deptId,
+        departmentName: deptName,
         designation: detail?.designation || 'N/A'
       };
     })
     .filter(staff => {
       if (user?.role === 'ROLE_DEPT_HEAD') {
-        return staff.departmentId === user.departmentId;
+        return staff.departmentId == (user?.departmentId ?? user?.deptId);
       }
       return true;
     });
@@ -145,7 +179,7 @@ const OfficerManagement = () => {
         <div className={user?.role === 'ROLE_DEPT_HEAD' ? "lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden" : "w-full rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden"}>
           <div className="border-b border-slate-200 px-6 py-4 dark:border-slate-800">
             <h3 className="font-bold text-slate-800 dark:text-white">
-              {user?.role === 'ROLE_DEPT_HEAD' ? 'Department Officers Registry' : 'All Department Staff Registry'}
+              {user?.role === 'ROLE_DEPT_HEAD' ? `${departments.find(d => d.id == (user?.departmentId ?? user?.deptId))?.name || ''} Officers Registry` : 'All Department Staff Registry'}
             </h3>
           </div>
 
@@ -154,75 +188,80 @@ const OfficerManagement = () => {
           ) : staffUsers.length === 0 ? (
             <div className="p-8 text-center text-slate-500">No officers or department heads registered.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
-                    <th className="px-6 py-3">Staff ID</th>
-                    <th className="px-6 py-3">User</th>
-                    <th className="px-6 py-3">Department</th>
-                    <th className="px-6 py-3">Designation</th>
-                    <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                  {staffUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-purple-600 dark:text-purple-400">
-                        {u.role === 'ROLE_DEPT_HEAD' 
-                          ? `DEPT-HEAD-${String(u.id).padStart(4, '0')}` 
-                          : `${u.designation && u.designation !== 'N/A' 
-                              ? u.designation.toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/-$/, '').replace(/^-/, '') 
-                              : 'OFFICER'}-${String(u.id).padStart(4, '0')}`}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-slate-800 dark:text-white font-bold">{u.fullName}</span>
-                          <span className="text-xs text-slate-400 font-normal">{u.email}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-650 dark:text-slate-350">
-                        {u.departmentName}
-                      </td>
-                      <td className="px-6 py-4 text-slate-550 dark:text-slate-400 text-xs">
-                        {u.designation}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          u.status === 'ACTIVE'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
-                            : 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
-                        }`}>
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          {/* Toggle Active status */}
-                          <button 
-                            onClick={() => handleToggleStatus(u.id, u.status)}
-                            className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
+            <div className="space-y-8">
+              {Object.entries(staffUsers.reduce((acc, user) => {
+                const dept = user.departmentName || 'Unassigned';
+                if (!acc[dept]) acc[dept] = [];
+                acc[dept].push(user);
+                return acc;
+              }, {})).map(([deptName, deptOfficers]) => (
+                <div key={deptName} className="overflow-x-auto">
+                  <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">{deptName} Officers</h4>
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/40 text-slate-400 border-b border-slate-100 dark:border-slate-800 font-semibold">
+                        <th className="px-6 py-3">Staff ID</th>
+                        <th className="px-6 py-3">User</th>
+                        <th className="px-6 py-3">Department</th>
+                        <th className="px-6 py-3">Designation</th>
+                        <th className="px-6 py-3">Status</th>
+                        <th className="px-6 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {deptOfficers.map((u) => (
+                        <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                          <td className="px-6 py-4 font-mono text-xs font-bold text-purple-600 dark:text-purple-400">
+                            {u.role === 'ROLE_DEPT_HEAD' 
+                              ? `DEPT-HEAD-${String(u.id).padStart(4, '0')}` 
+                              : `${u.designation && u.designation !== 'N/A' 
+                                  ? u.designation.toUpperCase().replace(/[^A-Z0-9]/g, '-').replace(/-+/g, '-').replace(/-$/, '').replace(/^-/, '') 
+                                  : 'OFFICER'}-${String(u.id).padStart(4, '0')}`}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-slate-800 dark:text-white font-bold">{u.fullName}</span>
+                              <span className="text-xs text-slate-400 font-normal">{u.email}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-slate-650 dark:text-slate-350">{u.departmentName}</td>
+                          <td className="px-6 py-4 text-slate-550 dark:text-slate-400 text-xs">{u.designation}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                               u.status === 'ACTIVE'
-                                ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20'
-                                : 'border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900/30 dark:hover:bg-green-950/20'
-                            }`}
-                            title={u.status === 'ACTIVE' ? 'Suspend Staff Account' : 'Activate Staff Account'}
-                          >
-                            <Power className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                                ? 'bg-green-100 text-green-800 dark:bg-green-950/30 dark:text-green-400'
+                                : 'bg-red-100 text-red-800 dark:bg-red-950/30 dark:text-red-400'
+                            }`}>
+                              {u.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleToggleStatus(u.id, u.status)}
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg border ${
+                                  u.status === 'ACTIVE'
+                                    ? 'border-red-200 text-red-600 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20'
+                                    : 'border-green-200 text-green-600 hover:bg-green-50 dark:border-green-900/30 dark:hover:bg-green-950/20'
+                                }`}
+                                title={u.status === 'ACTIVE' ? 'Suspend Staff Account' : 'Activate Staff Account'}
+                              >
+                                <Power className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         {/* Staff Creation Panel */}
-        {user?.role === 'ROLE_DEPT_HEAD' && (
+        {user?.role !== 'ROLE_SUPER_ADMIN' && (user?.role === 'ROLE_DEPT_HEAD' || user?.role === 'ROLE_ADMIN') && (
           <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-sm flex flex-col h-fit space-y-4">
             <h3 className="flex items-center gap-2 text-md font-bold text-slate-800 dark:text-white">
               <Award className="h-5 w-5 text-purple-600" />
@@ -266,6 +305,17 @@ const OfficerManagement = () => {
                   className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
                 />
               </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                  />
+                </div>
 
 
               <div>
@@ -280,21 +330,6 @@ const OfficerManagement = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Department Assignment</label>
-                <select 
-                  disabled
-                  required
-                  value={selectedDeptId}
-                  onChange={(e) => setSelectedDeptId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs dark:border-slate-800 dark:bg-slate-950 text-slate-500 cursor-not-allowed"
-                >
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Designation / Post</label>
                 <input 
                   type="text"
@@ -303,6 +338,14 @@ const OfficerManagement = () => {
                   onChange={(e) => setDesignation(e.target.value)}
                   placeholder="e.g. Inspector, Assistant Engineer"
                   className="w-full rounded-lg border border-slate-200 bg-transparent p-2.5 text-xs dark:border-slate-800 dark:text-white focus:border-blue-500"
+                />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 mt-2">Department</label>
+                <input
+                  type="text"
+                  disabled
+                  // Use the selected department ID (already set from user or default) to display the name
+                  value={departments.find(d => d.id === (user?.departmentId ?? user?.deptId))?.name || ''}
+                  className="w-full rounded-lg border border-slate-200 bg-gray-100 text-xs dark:border-slate-800 dark:bg-slate-800 dark:text-white p-2.5"
                 />
               </div>
 
